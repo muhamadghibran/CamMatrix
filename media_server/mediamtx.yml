@@ -1,0 +1,49 @@
+###############################################################
+# MediaMTX Configuration — CCTV VMS Platform
+# Dokumentasi lengkap: https://github.com/bluenviron/mediamtx
+###############################################################
+
+# ─────────────────────────────────────
+# RTSP Server (untuk menerima stream dari kamera/FFmpeg)
+# ─────────────────────────────────────
+rtspAddress: :8554
+rtspTransports: [tcp, udp]
+
+# ─────────────────────────────────────
+# WebRTC Server (untuk streaming ke browser)
+# ─────────────────────────────────────
+webrtcAddress: :8889
+
+# ─────────────────────────────────────
+# HLS Server (fallback jika WebRTC gagal)
+# ─────────────────────────────────────
+hlsAddress: :8888
+hlsAlwaysRemux: yes
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+
+# ─────────────────────────────────────
+# REST API MediaMTX (untuk kontrol via Python)
+# ─────────────────────────────────────
+api: yes
+apiAddress: :9997
+
+# ─────────────────────────────────────
+# Logging
+# ─────────────────────────────────────
+logLevel: info
+logDestinations: [stdout]
+
+# ─────────────────────────────────────
+# Paths / Stream definitions
+# Tambahkan kamera di sini atau via API
+# ─────────────────────────────────────
+paths:
+  # Contoh kamera statis (opsional, bisa juga via API)
+  # cam01:
+  #   source: rtsp://admin:password@192.168.1.64/stream1
+  #   sourceOnDemand: yes
+
+  # Catch-all path: izinkan publish dari semua source
+  "~.*":
+    sourceOnDemand: yes
