@@ -379,6 +379,13 @@ cameras (
 
 **Ferdi Supyandi**
 - GitHub: [@Ato](https://github.com/ferdisupyandi)
+  
+**Citra**
+- GitHub: [@Citra](https://github.com/citrarafril)
+
+**Haiza**
+- GitHub: [@Haiza](https://github.com/haizaputri)
+
 
 ---
 
