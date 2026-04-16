@@ -20,8 +20,9 @@ class CameraUpdate(BaseModel):
 
 class CameraResponse(CameraBase):
     id: int
+    owner_id: int                  # ID pemilik kamera
     status: str = "offline"       # Computed dynamically dari MediaMTX
-    stream_url: str = ""          # URL WebRTC player untuk ditampilkan di browser
+    stream_url: str = ""          # URL HLS player untuk ditampilkan di browser
 
     class Config:
         from_attributes = True

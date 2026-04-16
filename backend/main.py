@@ -21,11 +21,12 @@ async def lifespan(app: FastAPI):
         async with httpx.AsyncClient(timeout=3.0) as client:
             for cam in cameras:
                 try:
+                    path = f"cam_{cam.owner_id}_{cam.id}"
                     await client.post(
-                        f"{settings.MEDIAMTX_API_URL}/v3/config/paths/add/cam_{cam.id}",
+                        f"{settings.MEDIAMTX_API_URL}/v3/config/paths/add/{path}",
                         json={"source": cam.rtsp_url}
                     )
-                    print(f"✅ Synced camera {cam.id} ({cam.name}) to MediaMTX")
+                    print(f"✅ Synced camera {cam.id} ({cam.name}) as {path} to MediaMTX")
                 except Exception as e:
                     print(f"⚠️  Could not sync camera {cam.id}: {e}")
     except Exception as e:

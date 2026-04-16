@@ -11,11 +11,12 @@
   <img src="https://img.shields.io/badge/TailwindCSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" />
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white" />
   <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" />
 </p>
 
 <p align="center">
-  CamMatrix adalah platform SaaS manajemen kamera CCTV berbasis web yang dirancang untuk keamanan profesional. Dibangun dengan antarmuka futuristik bergaya <strong>glassmorphism</strong> dan <strong>neon-cyan accent</strong>, CamMatrix memberikan pengalaman pemantauan kamera yang mulus, intuitif, dan siap untuk integrasi AI.
+  CamMatrix adalah platform manajemen kamera CCTV berbasis web yang dirancang untuk keamanan profesional. Dibangun dengan antarmuka futuristik bergaya <strong>glassmorphism</strong> dan <strong>neon-cyan accent</strong>, CamMatrix memberikan pengalaman pemantauan kamera yang mulus, intuitif, dan siap untuk integrasi AI.
 </p>
 
 </div>
@@ -24,75 +25,72 @@
 
 ## 📸 Tampilan
 
-| Dashboard | Live View | Rekaman |
-|-----------|-----------|---------|
-| Statistik real-time & grafik | Multi-layout kamera grid | Daftar & analitik wajah |
+| Halaman | Deskripsi |
+|---------|-----------|
+| 🏠 Landing Page | Hero section animasi + mockup browser |
+| 🔐 Login / Register | Daftar via Email atau Google OAuth |
+| 📊 Dashboard | Statistik real-time & grafik sparkline |
+| 📹 Live View | Grid kamera multi-layout |
+| 🎬 Rekaman | Daftar rekaman + analitik wajah |
+| 👥 Pengguna | Manajemen akun (hanya ADMIN) |
 
 ---
 
 ## ✨ Fitur Utama
 
+### 🔐 Autentikasi & Registrasi
+- **Daftar via Email** — Form registrasi (Nama, Email, Password) langsung tersimpan ke database
+- **Login via Google OAuth** — Satu klik masuk atau daftar menggunakan akun Google
+- **JWT Authentication** — Semua API dilindungi dengan JWT Token
+- **Role-based Access** — ADMIN, OPERATOR, VIEWER dengan hak akses berbeda
+- **Protected Routes** — Halaman `/app/*` hanya dapat diakses setelah login
+- **Admin-only Pages** — Halaman Pengguna hanya muncul dan dapat diakses oleh ADMIN
+
 ### 📊 Dashboard
-- **Statistik Real-time** — Kamera aktif, siaran langsung, rekaman berjalan, deteksi AI, penyimpanan, dan peringatan diperbarui otomatis setiap 2 detik
+- **Statistik Real-time** — Kamera aktif, siaran langsung, rekaman berjalan, deteksi AI, penyimpanan, dan peringatan
 - **Sparkline Charts** — Grafik mini yang bergerak dinamis di setiap kartu statistik
-- **Status Kamera** — Monitoring status seluruh kamera (Live/Offline/Recording) dalam satu tampilan
+- **Status Kamera** — Monitoring status seluruh kamera (Live/Offline/Recording)
 - **Feed Peringatan** — Daftar peringatan terbaru dengan tingkat keparahan (High/Medium/Low)
-- **Navigasi Cepat** — Tombol langsung ke halaman Kamera dan Rekaman
 
 ### 📹 Live View
-- **Multi-Layout Grid** — Pilih tampilan 1×1, 2×2, 3×3, atau 4×4 secara instan
-- **Animasi Premium** — Setiap sel kamera muncul dengan staggered entrance animation
+- **Multi-Layout Grid** — Pilih tampilan 1×1, 2×2, 3×3, atau 4×4
 - **Efek Visual Sinematik** — Scan line, CRT interlace, corner brackets, dan vignette overlay
 - **Live Clock** — Jam digital berdetak di setiap sel kamera
-- **Fullscreen Mode** — Klik tombol Expand untuk tampilan kamera layar penuh
-- **Status Real-time** — Indikator animasi untuk status Live, Recording, dan Offline
+- **Fullscreen Mode** — Tampilan kamera layar penuh
 
 ### 🎥 Kamera (CRUD Penuh)
-- **Tambah Kamera** — Modal form untuk menambahkan kamera RTSP baru (nama, lokasi, IP, port, username, password)
-- **Edit Kamera** — Ubah data kamera yang sudah ada
-- **Hapus Kamera** — Hapus dengan dialog konfirmasi aman
-- **Pencarian** — Filter kamera berdasarkan nama atau lokasi secara real-time
-- **Status Monitoring** — Indikator Live/Recording/Offline dengan warna berbeda
+- **Tambah Kamera CCTV Pribadi** — Pengguna dapat menambahkan kamera RTSP milik sendiri (nama, lokasi, IP, port, username, password)
+- **Privasi Kamera** — Kamera pribadi hanya dapat dilihat oleh pemiliknya sendiri
+- **Kamera Publik** — Admin dapat menandai kamera sebagai publik untuk semua pengguna
+- **Edit & Hapus** — Manajemen lengkap kamera dengan konfirmasi dialog
+- **Pencarian** — Filter kamera berdasarkan nama atau lokasi
 
 ### 🎬 Rekaman
 - **Daftar Rekaman** — Tabel semua rekaman dengan info kamera, tanggal, durasi, dan ukuran file
-- **Putar/Pause** — Simulasi pemutaran rekaman langsung dari tabel
-- **Unduh** — Tombol download dengan notifikasi toast konfirmasi
-- **Pencarian & Filter** — Cari berdasarkan nama kamera atau tanggal, filter per kamera
-- **Tab Analitik Wajah** — Beralih ke mode analitik AI tanpa meninggalkan halaman
+- **Unduh Video** — Tombol download langsung dari daftar rekaman
+- **Pencarian & Filter** — Cari berdasarkan nama kamera atau tanggal
 
 ### 🤖 Analitik Wajah (AI)
 - **Statistik Deteksi** — Total deteksi, wajah unik, dan pencocokan dengan trend
 - **Tabel Tracking** — Lacak pergerakan wajah antar kamera dengan timestamp dan confidence score
-- **Confidence Bar** — Visual progress bar dengan warna berdasarkan tingkat kepercayaan (Hijau/Kuning/Merah)
-- **Terintegrasi** — Tersedia langsung di halaman Rekaman tanpa halaman terpisah
+- **Confidence Bar** — Visual progress bar berdasarkan tingkat kepercayaan
 
-### 👥 Pengguna (CRUD Penuh)
-- **Tambah Pengguna** — Daftarkan pengguna baru dengan nama, email, password, dan role
-- **Edit Pengguna** — Ubah data dan role pengguna
-- **Hapus Pengguna** — Hapus dengan konfirmasi dialog
-- **Toggle Status** — Aktifkan/nonaktifkan pengguna langsung dari tabel
+### 👥 Manajemen Pengguna (Admin Only)
+- **Data Real dari Database** — Tabel menampilkan semua pengguna terdaftar dari database
+- **Tambah / Edit / Hapus** — CRUD pengguna lengkap dengan konfirmasi
 - **Role System** — Admin, Operator, Viewer dengan badge warna berbeda
+- **Statistik** — Total pengguna, jumlah admin, pengguna aktif
 - **Pencarian** — Filter berdasarkan nama atau email
+- **Tombol Refresh** — Muat ulang data terbaru dari database
 
-### ⚙️ Pengaturan (State Aktif)
-- **Tema** — Ganti antara Dark Mode dan Light Mode secara instan
-- **Bahasa** — Dukungan multi-bahasa: Indonesia 🇮🇩, English 🇺🇸, 中文 🇨🇳
-- **Notifikasi** — Toggle independen untuk: Alert Wajah, Alert Kamera, Peringatan Storage
-- **AI Engine** — Konfigurasi perangkat inferensi (Auto/CPU/CUDA), Frame Rate, dan threshold Confidence
-- **Rekaman** — Atur chunk rekaman, auto-delete, dan retensi penyimpanan
-- **Keamanan** — Toggle 2FA dan durasi sesi login
+### 🌐 Navbar
+- **Hide on Scroll** — Navbar menghilang saat halaman di-scroll, muncul kembali di posisi atas
 
-### 🔔 Notifikasi Global
-- **Panel Notifikasi** — Klik ikon lonceng untuk melihat 5 peringatan terbaru
-- **Badge Merah** — Menampilkan jumlah notifikasi yang belum dibaca
-- **Mark as Read** — Klik satu notifikasi atau "Tandai Semua" untuk menandai sudah dibaca
-- **Auto-close** — Panel tertutup otomatis jika klik di luar area
-
-### 🔍 Pencarian Global
-- **Modal Search** — Tekan `Ctrl+K` (atau klik tombol "Cari...") untuk membuka pencarian global
-- **Navigasi Cepat** — Cari nama halaman atau fitur, klik untuk langsung navigasi
-- **Keyboard Support** — Tekan `ESC` untuk menutup modal
+### ⚙️ Pengaturan
+- **Tema** — Dark Mode dan Light Mode
+- **Bahasa** — Indonesia 🇮🇩, English 🇺🇸, 中文 🇨🇳
+- **Notifikasi** — Toggle untuk berbagai jenis peringatan
+- **AI Engine** — Konfigurasi perangkat inferensi, Frame Rate, dan threshold Confidence
 
 ---
 
@@ -100,38 +98,57 @@
 
 ```
 CamMatrix/
-├── frontend/                    # Aplikasi React
+├── frontend/                    # Aplikasi React (Vite)
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── layout/
 │   │   │   │   ├── MainLayout.jsx      # Layout utama (sidebar + topbar)
-│   │   │   │   ├── Sidebar.jsx         # Navigasi samping dengan collapse
-│   │   │   │   └── Topbar.jsx          # Header (search, notifikasi, theme toggle)
+│   │   │   │   ├── Sidebar.jsx         # Navigasi samping (admin-aware)
+│   │   │   │   └── Topbar.jsx          # Header (search, notifikasi)
 │   │   │   └── AnimatedText.jsx        # Komponen teks animasi
 │   │   ├── pages/
-│   │   │   ├── HomePage.jsx            # Landing page
-│   │   │   ├── LoginPage.jsx           # Halaman login dengan auth
-│   │   │   ├── DashboardPage.jsx       # Dashboard utama
+│   │   │   ├── HomePage.jsx            # Landing page + animated hero
+│   │   │   ├── LoginPage.jsx           # Login + Register (Email & Google)
+│   │   │   ├── DashboardPage.jsx       # Dashboard statistik real-time
 │   │   │   ├── LiveViewPage.jsx        # Grid kamera live
-│   │   │   ├── CamerasPage.jsx         # Manajemen kamera (CRUD)
-│   │   │   ├── RecordingsPage.jsx      # Rekaman + Analitik Wajah
-│   │   │   ├── FaceAnalyticsPage.jsx   # Komponen analitik AI
-│   │   │   ├── UsersPage.jsx           # Manajemen pengguna (CRUD)
+│   │   │   ├── CamerasPage.jsx         # Manajemen kamera CCTV (CRUD)
+│   │   │   ├── RecordingsPage.jsx      # Rekaman + download
+│   │   │   ├── FaceAnalyticsPage.jsx   # Analitik wajah AI
+│   │   │   ├── UsersPage.jsx           # Manajemen pengguna — ADMIN ONLY
 │   │   │   └── SettingsPage.jsx        # Pengaturan sistem
 │   │   ├── store/
 │   │   │   ├── authStore.js            # State autentikasi (Zustand + persist)
 │   │   │   ├── themeStore.js           # State dark/light mode
 │   │   │   ├── languageStore.js        # State bahasa & terjemahan
 │   │   │   └── cameraStore.js          # State data kamera
+│   │   ├── utils/
+│   │   │   └── api.js                  # Axios instance + JWT interceptor
 │   │   ├── locales/
-│   │   │   └── id.js                   # File terjemahan bahasa
+│   │   │   ├── id.js                   # Bahasa Indonesia
+│   │   │   ├── en.js                   # English
+│   │   │   └── zh.js                   # 中文
 │   │   ├── index.css                   # Design system, animasi, CSS variables
-│   │   └── App.jsx                     # Router & route definitions
+│   │   └── App.jsx                     # Router + route guards
+│   └── .env                            # VITE_GOOGLE_CLIENT_ID
 ├── backend/                     # API FastAPI (Python)
-│   ├── app/                     # Modul aplikasi
+│   ├── app/
+│   │   ├── api/v1/endpoints/
+│   │   │   ├── auth.py          # Login, Register, Google OAuth, /me
+│   │   │   ├── users.py         # CRUD pengguna (admin only)
+│   │   │   └── cameras.py       # CRUD kamera (dengan owner/privasi)
+│   │   ├── models/
+│   │   │   ├── user.py          # Model User (+ google_id, created_at)
+│   │   │   └── camera.py        # Model Camera (+ owner_id)
+│   │   ├── schemas/
+│   │   │   ├── user.py          # Pydantic schemas (UserRegister, etc.)
+│   │   │   └── camera.py        # Pydantic schemas kamera
+│   │   └── core/
+│   │       ├── security.py      # JWT + bcrypt
+│   │       └── database.py      # Async SQLAlchemy engine
+│   ├── alembic/versions/        # Migrasi database
 │   ├── main.py                  # Entry point FastAPI
 │   └── requirements.txt         # Dependensi Python
-├── media_server/                # Server streaming media
+├── media_server/                # MediaMTX streaming server
 ├── docker-compose.yml           # Konfigurasi Docker
 └── README.md
 ```
@@ -145,14 +162,15 @@ CamMatrix/
 | Mode | Primary | Accent | Background |
 |------|---------|--------|------------|
 | **Dark** | `#06b6d4` Cyan | `#00ffff` Neon | `#000000` Pure Black |
-| **Light** | `#06b6d4` Cyan Dove | `#cceef2` Soft Cyan | `#ffffff` Pure White |
+| **Light** | `#06b6d4` Cyan | `#cceef2` Soft Cyan | `#ffffff` Pure White |
 
 ### Animasi
-- **Entrance Stagger** — Elemen muncul berurutan dengan delay 60–100ms
+- **Entrance Stagger** — Elemen muncul berurutan dengan delay animasi
 - **Spring Physics** — `cubic-bezier(0.16, 1, 0.3, 1)` untuk efek kenyal alami
 - **Scan Line** — Animasi garis vertikal pada live view kamera
 - **Hover Glow** — Box shadow berwarna sesuai status kamera
 - **Glass Morphism** — `backdrop-filter: blur` pada elemen overlay
+- **Hide-on-Scroll Navbar** — Navbar menghilang/muncul berdasarkan posisi scroll
 
 ---
 
@@ -162,24 +180,24 @@ CamMatrix/
 | Teknologi | Versi | Fungsi |
 |-----------|-------|--------|
 | **React** | 19 | UI Library — komponen reaktif |
-| **Vite** | 8 | Build tool & dev server ultra-cepat |
+| **Vite** | 8 | Build tool & dev server |
 | **Tailwind CSS** | 4 | Utility-first CSS framework |
-| **React Router DOM** | 7 | Routing SPA (Single Page Application) |
-| **Zustand** | 5 | State management global yang ringan |
-| **Lucide React** | 1.8 | Icon library konsisten & modern |
+| **React Router DOM** | 7 | Routing SPA |
+| **Zustand** | 5 | State management global |
+| **Axios** | latest | HTTP client + JWT interceptor |
+| **Lucide React** | latest | Icon library modern |
 
-### Backend (Siap Integrasi)
+### Backend
 | Teknologi | Fungsi |
 |-----------|--------|
-| **FastAPI** | REST API & WebSocket server |
+| **FastAPI** | REST API server |
 | **Uvicorn** | ASGI server performa tinggi |
-| **SQLAlchemy** | ORM untuk database relasional |
+| **SQLAlchemy (Async)** | ORM database relasional |
 | **asyncpg** | Driver PostgreSQL async |
-| **Alembic** | Migrasi database |
+| **Alembic** | Migrasi database schema |
 | **python-jose** | JWT token authentication |
-| **passlib bcrypt** | Hash password yang aman |
-| **boto3 / MinIO** | Penyimpanan file rekaman (S3-compatible) |
-| **websockets** | Real-time streaming data |
+| **passlib bcrypt** | Hash password aman |
+| **PostgreSQL** | Database utama |
 
 ---
 
@@ -188,6 +206,7 @@ CamMatrix/
 ### Prasyarat
 - [Node.js](https://nodejs.org/) v18+
 - [Python](https://www.python.org/) 3.11+
+- [PostgreSQL](https://www.postgresql.org/) 16+
 - [Git](https://git-scm.com/)
 
 ### 1. Clone Repository
@@ -197,92 +216,143 @@ git clone https://github.com/muhamadghibran/CamMatrix.git
 cd CamMatrix
 ```
 
-### 2. Jalankan Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Aplikasi akan berjalan di: **http://localhost:5173**
-
-### 3. Jalankan Backend (Opsional)
+### 2. Setup Backend
 
 ```bash
 cd backend
 pip install -r requirements.txt
-cp .env.example .env   # Sesuaikan konfigurasi
+cp .env.example .env   # Sesuaikan DATABASE_URL dan SECRET_KEY
+alembic upgrade head   # Jalankan migrasi database
 python main.py
 ```
 
-API akan berjalan di: **http://localhost:8000**
+API berjalan di: **http://localhost:8000**
+Dokumentasi API: **http://localhost:8000/docs**
+
+### 3. Setup Frontend
+
+```bash
+cd frontend
+npm install
+# Buat file .env (isi Google Client ID jika ingin Google OAuth)
+cp .env.example .env
+npm run dev
+```
+
+Aplikasi berjalan di: **http://localhost:5173**
 
 ---
 
 ## 🔑 Akun Demo
 
-Gunakan kredensial berikut untuk masuk ke dashboard:
+Gunakan kredensial berikut (saat backend tidak berjalan):
 
 | Field | Nilai |
 |-------|-------|
-| **Email / Username** | `admin@vms.com` atau `admin` |
+| **Email** | `admin@vms.com` atau `admin` |
 | **Password** | `admin123` |
 
----
-
-## 📋 Halaman & Rute
-
-| Rute | Halaman | Deskripsi |
-|------|---------|-----------|
-| `/` | Home | Landing page CamMatrix |
-| `/login` | Login | Autentikasi pengguna |
-| `/app/dashboard` | Dashboard | Ringkasan sistem & statistik |
-| `/app/live` | Live View | Grid kamera real-time |
-| `/app/cameras` | Kamera | Manajemen kamera CCTV |
-| `/app/recordings` | Rekaman | Daftar rekaman & analitik wajah |
-| `/app/users` | Pengguna | Manajemen akun pengguna |
-| `/app/settings` | Pengaturan | Konfigurasi sistem |
+> Saat backend aktif, gunakan akun yang terdaftar di database.
 
 ---
 
 ## 🔐 Sistem Autentikasi
 
-- **Mock Auth** — Login dengan email/password divalidasi di frontend (mode demo)
-- **Persistent Session** — Auth state tersimpan di `localStorage` via Zustand persist
-- **Protected Routes** — Halaman `/app/*` hanya dapat diakses setelah login
-- **Auto Redirect** — Pengguna yang belum login akan diarahkan ke `/login`
-- **JWT Ready** — Backend FastAPI sudah dikonfigurasi dengan JWT untuk produksi
+### Alur Registrasi
+1. Pengguna mengisi form (Nama, Email, Password) atau klik **Google**
+2. Data dikirim ke `POST /api/v1/auth/register`
+3. Password di-hash dengan **bcrypt**, disimpan ke database PostgreSQL
+4. Role otomatis `VIEWER` untuk pengguna baru
+5. Pengguna dapat langsung masuk
+
+### Alur Google OAuth
+1. Pengguna klik tombol **Masuk/Daftar dengan Google**
+2. Google Identity Services menampilkan popup pilihan akun
+3. Token Google dikirim ke `POST /api/v1/auth/google`
+4. Jika email belum terdaftar → auto-register sebagai VIEWER
+5. Jika sudah terdaftar → langsung login
+
+### Hak Akses Role
+
+| Fitur | ADMIN | OPERATOR | VIEWER |
+|-------|:-----:|:--------:|:------:|
+| Dashboard | ✅ | ✅ | ✅ |
+| Live View | ✅ | ✅ | ✅ |
+| Kamera Publik | ✅ | ✅ | ✅ |
+| Kamera Pribadi | ✅ | ✅ | ✅ |
+| Rekaman & Download | ✅ | ✅ | ✅ |
+| Analitik Wajah | ✅ | ✅ | ✅ |
+| **Manajemen Pengguna** | ✅ | ❌ | ❌ |
+
+---
+
+## 📋 Rute Aplikasi
+
+| Rute | Halaman | Akses |
+|------|---------|-------|
+| `/` | Landing Page | Publik |
+| `/login` | Login / Register | Publik |
+| `/app/dashboard` | Dashboard | Login |
+| `/app/live` | Live View | Login |
+| `/app/cameras` | Kamera | Login |
+| `/app/recordings` | Rekaman | Login |
+| `/app/face` | Analitik Wajah | Login |
+| `/app/settings` | Pengaturan | Login |
+| `/app/users` | Pengguna | **ADMIN only** |
 
 ---
 
 ## 🌐 Dukungan Multi-Bahasa
 
-CamMatrix mendukung 3 bahasa:
-
 | Kode | Bahasa |
 |------|--------|
 | `id` | 🇮🇩 Bahasa Indonesia (default) |
 | `en` | 🇺🇸 English |
-| `zh` | 🇨🇳 中文 (Mandarin Sederhana) |
+| `zh` | 🇨🇳 中文 (Mandarin) |
 
 Ubah bahasa melalui **Pengaturan → Bahasa**.
 
 ---
 
-## 📱 Responsivitas
+## 🗄️ Database Schema (Update Terbaru)
 
-CamMatrix dirancang responsif untuk berbagai ukuran layar:
+```sql
+-- Tabel users
+users (
+  id            SERIAL PRIMARY KEY,
+  full_name     VARCHAR(255),
+  email         VARCHAR(255) UNIQUE NOT NULL,
+  hashed_password VARCHAR(255),          -- NULL untuk user Google OAuth
+  role          ENUM('admin','operator','viewer') DEFAULT 'viewer',
+  is_active     BOOLEAN DEFAULT TRUE,
+  google_id     VARCHAR(255) UNIQUE,     -- ID unik dari Google
+  created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+)
 
-- **Desktop** (1280px+) — Sidebar penuh + konten
-- **Tablet** (768px-1280px) — Sidebar dapat di-collapse
-- **Mobile** (< 768px) — Sidebar tersembunyi, hamburger menu
+-- Tabel cameras
+cameras (
+  id        SERIAL PRIMARY KEY,
+  name      VARCHAR(255),
+  location  VARCHAR(255),
+  rtsp_url  VARCHAR(500),
+  owner_id  INTEGER REFERENCES users(id), -- NULL = kamera publik
+  is_active BOOLEAN DEFAULT TRUE,
+  ...
+)
+```
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Integrasi backend FastAPI dengan database PostgreSQL
+- [x] Autentikasi JWT (Login/Logout)
+- [x] Registrasi via Email — tersimpan ke database
+- [x] Login/Register via Google OAuth
+- [x] Role-based Access Control (ADMIN, OPERATOR, VIEWER)
+- [x] Halaman Pengguna hanya untuk ADMIN
+- [x] Data pengguna real dari database PostgreSQL
+- [x] Kamera pribadi dengan sistem privasi per-user
+- [x] Hide-on-scroll navbar
 - [ ] Streaming kamera RTSP via WebRTC
 - [ ] Rekaman video otomatis ke storage MinIO/S3
 - [ ] Deteksi wajah real-time dengan AI (YOLO / DeepFace)
@@ -297,10 +367,10 @@ CamMatrix dirancang responsif untuk berbagai ukuran layar:
 
 **Muhamad Ghibran Muslih**
 - GitHub: [@MuhamadGhibran](https://github.com/muhamadghibran)
-  
+
 **Muhammad Fathir Bagas**
 - GitHub: [@MuhammadFathir](https://github.com/CHOCOcheeseE)
-  
+
 **Muhammad Sinar Agusta**
 - GitHub: [@MuhammadSinar](https://github.com/muhamadghibran)
 
@@ -314,7 +384,7 @@ Proyek ini menggunakan lisensi **MIT** — bebas digunakan, dimodifikasi, dan di
 
 <div align="center">
 
-Dibuat dengan ❤️ menggunakan **React + FastAPI**
+Dibuat dengan ❤️ menggunakan **React + FastAPI + PostgreSQL**
 
 ⭐ Jika proyek ini bermanfaat, berikan bintang di GitHub!
 

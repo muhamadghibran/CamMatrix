@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from datetime import datetime
 from app.models.user import UserRole
 
 # Basic properties
@@ -9,7 +10,13 @@ class UserBase(BaseModel):
     role: UserRole = UserRole.VIEWER
     is_active: bool = True
 
-# Properties to run when creating user
+# Properties for public self-registration (role always VIEWER)
+class UserRegister(BaseModel):
+    email: EmailStr
+    full_name: str
+    password: str
+
+# Properties to run when creating user (admin only)
 class UserCreate(UserBase):
     password: str
 
@@ -24,6 +31,7 @@ class UserUpdate(BaseModel):
 # Properties when returning user
 class UserResponse(UserBase):
     id: int
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
