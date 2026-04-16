@@ -296,13 +296,13 @@ CamMatrix dirancang responsif untuk berbagai ukuran layar:
 ## 👨‍💻 Pengembang
 
 **Muhamad Ghibran Muslih**
-- GitHub: [@muhamadghibran](https://github.com/muhamadghibran)
+- GitHub: [@MuhamadGhibran](https://github.com/muhamadghibran)
   
 **Muhammad Fathir Bagas**
-- GitHub: [@muhamadghibran](https://github.com/CHOCOcheeseE)
+- GitHub: [@MuhammadFathir](https://github.com/CHOCOcheeseE)
   
 **Muhammad Sinar Agusta**
-- GitHub: [@muhamadghibran](https://github.com/muhamadghibran)
+- GitHub: [@MuhammadSinar](https://github.com/muhamadghibran)
 
 ---
 
