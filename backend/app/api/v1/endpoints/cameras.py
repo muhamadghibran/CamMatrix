@@ -63,7 +63,8 @@ def write_cameras_to_config(cameras: list):
         path_name = f"cam_{cam.id}"
         paths_section += f"  {path_name}:\n"
         paths_section += f"    source: {cam.rtsp_url}\n"
-        paths_section += f"    sourceOnDemandCloseAfter: 60s\n"
+        paths_section += f"    sourceOnDemand: yes\n"      # Hanya connect saat ada yang menonton
+        paths_section += f"    sourceOnDemandCloseAfter: 30s\n"  # Tutup koneksi jika idle 30 detik
         paths_section += f"\n"
 
     content = f"""###############################################################
