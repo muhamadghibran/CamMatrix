@@ -1,49 +1,43 @@
 ###############################################################
-# MediaMTX Configuration — CCTV VMS Platform
-# Dokumentasi lengkap: https://github.com/bluenviron/mediamtx
+# MediaMTX Configuration — CCTV VMS Platform (Auto-generated)
 ###############################################################
 
-# ─────────────────────────────────────
-# RTSP Server (untuk menerima stream dari kamera/FFmpeg)
-# ─────────────────────────────────────
 rtspAddress: :8554
-rtspTransports: [tcp, udp]
-
-# ─────────────────────────────────────
-# WebRTC Server (untuk streaming ke browser)
-# ─────────────────────────────────────
 webrtcAddress: :8889
 
-# ─────────────────────────────────────
-# HLS Server (fallback jika WebRTC gagal)
-# ─────────────────────────────────────
 hlsAddress: :8888
 hlsAlwaysRemux: yes
-hlsSegmentDuration: 1s
-hlsPartDuration: 200ms
+hlsSegmentDuration: 2s
+hlsPartDuration: 500ms
 
-# ─────────────────────────────────────
-# REST API MediaMTX (untuk kontrol via Python)
-# ─────────────────────────────────────
 api: yes
 apiAddress: :9997
 
-# ─────────────────────────────────────
-# Logging
-# ─────────────────────────────────────
 logLevel: info
 logDestinations: [stdout]
 
-# ─────────────────────────────────────
-# Paths / Stream definitions
-# Tambahkan kamera di sini atau via API
-# ─────────────────────────────────────
-paths:
-  # Contoh kamera statis (opsional, bisa juga via API)
-  # cam01:
-  #   source: rtsp://admin:password@192.168.1.64/stream1
-  #   sourceOnDemand: yes
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+      - action: read
+      - action: playback
+      - action: api
 
-  # Catch-all path: izinkan publish dari semua source
-  "~.*":
-    sourceOnDemand: yes
+paths:
+  all_others:
+
+  cam_13:
+    source: rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4
+    sourceOnDemandCloseAfter: 60s
+
+  cam_14:
+    source: rtsp://rtspstream:573531fb5a999056d68b64e5c468ba32@zephyr.rtsp.stream/pattern
+    sourceOnDemandCloseAfter: 60s
+
+  cam_25:
+    source: rtsp://192.168.29.183:8080/h264_ulaw.sdp
+    sourceOnDemandCloseAfter: 60s
+

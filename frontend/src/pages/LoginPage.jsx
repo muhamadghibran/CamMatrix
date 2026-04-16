@@ -53,14 +53,50 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      // Kirim request ke Backend FastAPI untuk mendapat JWT token asli
+      const formData = new FormData();
+      formData.append("username", form.email);
+      formData.append("password", form.password);
 
-    const isValidId = form.email === "admin@vms.com" || form.email === "admin";
-    if (isValidId && form.password === "admin123") {
-      setAuth({ name: "Administrator", email: form.email, role: "Administrator" }, "mock-jwt-token");
-      navigate("/app/dashboard");
-    } else {
-      setError(t("login.invalidCred"));
+      const tokenRes = await fetch("http://localhost:8000/api/v1/auth/login", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!tokenRes.ok) {
+        setError(t("login.invalidCred"));
+        setLoading(false);
+        return;
+      }
+
+      const { access_token } = await tokenRes.json();
+
+      // Ambil profil pengguna menggunakan token JWT yang baru didapat
+      const profileRes = await fetch("http://localhost:8000/api/v1/auth/me", {
+        headers: { Authorization: `Bearer ${access_token}` },
+      });
+
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        setAuth({
+          name: profile.full_name,
+          email: profile.email,
+          role: profile.role,
+        }, access_token);
+        navigate("/app/dashboard");
+      } else {
+        setError("Gagal mengambil profil pengguna.");
+      }
+    } catch (err) {
+      // Jika backend tidak bisa diakses, gunakan akun demo lokal
+      const isValidId = form.email === "admin@vms.com" || form.email === "admin";
+      if (isValidId && form.password === "admin123") {
+        setAuth({ name: "Administrator", email: form.email, role: "admin" }, null);
+        navigate("/app/dashboard");
+      } else {
+        setError(t("login.invalidCred"));
+      }
     }
     setLoading(false);
   };

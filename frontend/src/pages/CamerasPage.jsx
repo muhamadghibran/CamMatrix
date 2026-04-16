@@ -1,16 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Camera, Plus, Wifi, WifiOff, Edit2, Trash2, X, Search, Signal, Check } from "lucide-react";
 import { useLanguageStore } from "../store/languageStore";
+import { useCameraStore } from "../store/cameraStore";
 import AnimatedText from "../components/AnimatedText";
-
-const initialCameras = [
-  { id: 1, name: "Main Entrance",  location: "Block A", ip: "192.168.1.101", status: "live",      fps: 25 },
-  { id: 2, name: "Lobby",          location: "Block A", ip: "192.168.1.102", status: "live",      fps: 25 },
-  { id: 3, name: "Server Room",    location: "Block B", ip: "192.168.1.103", status: "live",      fps: 20 },
-  { id: 4, name: "Parking Lot",    location: "Block C", ip: "192.168.1.104", status: "offline",   fps: 0  },
-  { id: 5, name: "Side Gate",      location: "Block C", ip: "192.168.1.105", status: "live",      fps: 25 },
-  { id: 6, name: "Rooftop",        location: "Block D", ip: "192.168.1.106", status: "recording", fps: 25 },
-];
 
 const statusCfg = {
   live:      { color: "#10b981", label: "live",      bg: "rgba(16,185,129,0.1)",   border: "rgba(16,185,129,0.25)" },
@@ -23,7 +15,7 @@ const emptyForm = { name: "", location: "", ip: "", port: "554", user: "", passw
 function CameraModal({ onClose, onSave, editData }) {
   const { t } = useLanguageStore();
   const [form, setForm] = useState(editData
-    ? { name: editData.name, location: editData.location, ip: editData.ip, port: "554", user: "", password: "" }
+    ? { name: editData.name, location: editData.location, ip: editData.rtsp_url, port: "554", user: editData.username || "", password: "" }
     : emptyForm
   );
   const isEdit = !!editData;
@@ -126,12 +118,19 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
 
 export default function CamerasPage() {
   const { t } = useLanguageStore();
-  const [cameras, setCameras] = useState(initialCameras);
+  const { cameras, fetchCameras, addCamera, updateCamera, deleteCamera } = useCameraStore();
   const [showModal, setShowModal] = useState(false);
   const [editCamera, setEditCamera] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [search, setSearch] = useState("");
   const [hovered, setHovered] = useState(null);
+
+  useEffect(() => {
+    fetchCameras();
+    // Polling tiap 15 detik — cukup untuk update status tanpa membanjiri server
+    const interval = setInterval(() => { fetchCameras() }, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const filtered = cameras.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -144,29 +143,30 @@ export default function CamerasPage() {
     recording: cameras.filter(c => c.status === "recording").length,
   };
 
-  const handleAdd = (form) => {
-    const newCam = {
-      id: Date.now(),
+  const handleAdd = async (form) => {
+    await addCamera({
       name: form.name,
       location: form.location,
-      ip: form.ip,
-      status: "live",
-      fps: 25,
-    };
-    setCameras(prev => [...prev, newCam]);
+      rtsp_url: form.ip,
+      username: form.user,
+      password: form.password
+    });
     setShowModal(false);
   };
 
-  const handleEdit = (form) => {
-    setCameras(prev => prev.map(c => c.id === editCamera.id
-      ? { ...c, name: form.name, location: form.location, ip: form.ip }
-      : c
-    ));
+  const handleEdit = async (form) => {
+    await updateCamera(editCamera.id, {
+      name: form.name,
+      location: form.location,
+      rtsp_url: form.ip,
+      username: form.user,
+      password: form.password
+    });
     setEditCamera(null);
   };
 
-  const handleDelete = () => {
-    setCameras(prev => prev.filter(c => c.id !== deleteTarget.id));
+  const handleDelete = async () => {
+    await deleteCamera(deleteTarget.id);
     setDeleteTarget(null);
   };
 
@@ -245,10 +245,10 @@ export default function CamerasPage() {
                   </td>
                   <td className="px-5 py-4 text-[13px]" style={{ color: "var(--color-text-sub)" }}>{cam.location}</td>
                   <td className="px-5 py-4">
-                    <span className="font-mono text-[12px] px-2 py-1 rounded-lg" style={{ color: "var(--color-text-base)", backgroundColor: "var(--color-surface-elevated)" }}>{cam.ip}</span>
+                    <span className="font-mono text-[12px] px-2 py-1 rounded-lg" style={{ color: "var(--color-text-base)", backgroundColor: "var(--color-surface-elevated)", wordBreak: "break-all" }}>{cam.rtsp_url}</span>
                   </td>
                   <td className="px-5 py-4 text-[13px]" style={{ color: "var(--color-text-sub)" }}>
-                    {cam.fps > 0 ? <span className="flex items-center gap-1.5"><Signal size={12} style={{ color: "#10b981" }} />{cam.fps} FPS</span> : "—"}
+                    {cam.fps && cam.fps > 0 ? <span className="flex items-center gap-1.5"><Signal size={12} style={{ color: "#10b981" }} />{cam.fps} FPS</span> : "—"}
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">

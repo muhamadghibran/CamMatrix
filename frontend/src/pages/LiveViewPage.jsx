@@ -1,19 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Maximize2, Grid2X2, Grid3X3, LayoutGrid, Camera, WifiOff, Radio, Expand, Minimize2, Clock } from "lucide-react";
+import { Maximize2, Grid2X2, Grid3X3, LayoutGrid, Camera, WifiOff, Expand, Minimize2, Clock, RefreshCw } from "lucide-react";
+import Hls from "hls.js";
 import { useLanguageStore } from "../store/languageStore";
+import { useCameraStore } from "../store/cameraStore";
 import AnimatedText from "../components/AnimatedText";
-
-const cameras = [
-  { id: 1, name: "Main Entrance",  location: "Block A", status: "live" },
-  { id: 2, name: "Lobby",          location: "Block A", status: "live" },
-  { id: 3, name: "Server Room",    location: "Block B", status: "live" },
-  { id: 4, name: "Parking Lot",    location: "Block C", status: "offline" },
-  { id: 5, name: "Side Gate",      location: "Block C", status: "live" },
-  { id: 6, name: "Rooftop",        location: "Block D", status: "recording" },
-  { id: 7, name: "Emergency Exit", location: "Block B", status: "live" },
-  { id: 8, name: "Reception",      location: "Block A", status: "live" },
-  { id: 9, name: "Warehouse",      location: "Block E", status: "live" },
-];
 
 const gridLayouts = [
   { key: "1x1", icon: Maximize2,  cols: 1, label: "1×1" },
@@ -37,16 +27,87 @@ function LiveClock() {
   return <span className="font-mono text-[11px]" style={{ color: "#06b6d4", letterSpacing: "0.08em" }}>{time}</span>;
 }
 
+function HlsPlayer({ src }) {
+  const videoRef = useRef(null);
+  const hlsRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        // LL-HLS mode — menghilangkan stutter dengan parts 250ms
+        lowLatencyMode: true,
+        enableWorker: true,
+        startPosition: -1,           // Mulai dari live edge
+
+        // Live sync: tetap 2 detik di belakang live edge
+        liveSyncDuration: 2,
+        liveMaxLatencyDuration: 8,
+        liveDurationInfinity: true,
+
+        // Buffer settings
+        maxBufferLength: 20,
+        maxMaxBufferLength: 30,
+        backBufferLength: 5,
+        maxBufferHole: 0.5,           // Toleransi gap 0.5 detik sebelum seek
+
+        // Retry settings untuk koneksi WiFi yang tidak stabil
+        manifestLoadingTimeOut: 10000,
+        manifestLoadingMaxRetry: 6,
+        levelLoadingTimeOut: 10000,
+        fragLoadingTimeOut: 20000,
+        fragLoadingMaxRetry: 6,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(() => {});
+      });
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          setTimeout(() => {
+            hls.loadSource(src);
+            hls.startLoad();
+          }, 3000);
+        }
+      });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src;
+      video.play().catch(() => {});
+    }
+
+    return () => {
+      hlsRef.current?.destroy();
+    };
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      className="absolute inset-0 w-full h-full"
+      style={{ objectFit: "cover", backgroundColor: "#000" }}
+      muted
+      playsInline
+      autoPlay
+    />
+  );
+}
 function CameraCell({ cam, t, index }) {
   const [hovered, setHovered] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [entered, setEntered] = useState(false);
   const cellRef = useRef(null);
-  const s = statusCfg[cam.status];
-  const isOffline  = cam.status === "offline";
-  const isRecording = cam.status === "recording";
 
-  // Staggered entrance
+  const camStatus = cam.status || "offline";
+  const s = statusCfg[camStatus] || statusCfg.offline;
+  const isOffline   = camStatus === "offline";
+  const isRecording = camStatus === "recording";
+  const isLive      = camStatus === "live";
+
+  // Staggered entrance animation
   useEffect(() => {
     const timer = setTimeout(() => setEntered(true), 80 + index * 75);
     return () => clearTimeout(timer);
@@ -68,9 +129,8 @@ function CameraCell({ cam, t, index }) {
         backgroundColor: "var(--color-surface)",
         border: `1px solid ${hovered ? `${s.color}55` : "var(--color-card-border)"}`,
         boxShadow: hovered
-          ? `0 0 0 1px ${s.color}30, 0 10px 40px ${s.color}20, 0 0 60px ${s.color}08`
+          ? `0 0 0 1px ${s.color}30, 0 10px 40px ${s.color}20`
           : "0 2px 8px rgba(0,0,0,0.12)",
-        /* Entrance */
         opacity: entered ? 1 : 0,
         transform: entered
           ? hovered ? "scale(1.015) translateY(-2px)" : "scale(1) translateY(0)"
@@ -82,59 +142,38 @@ function CameraCell({ cam, t, index }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* ── Video feed area ── */}
+      {/* Video feed area */}
       <div className="flex-1 flex items-center justify-center relative overflow-hidden"
         style={{ backgroundColor: isOffline ? "var(--color-surface-elevated)" : "#02030d" }}>
 
         {isOffline ? (
+          /* Tampilan Offline */
           <div className="text-center space-y-2 transition-all duration-500" style={{ opacity: hovered ? 0.7 : 0.4 }}>
             <WifiOff size={28} className="mx-auto" style={{ color: "var(--color-text-sub)" }} />
             <p className="text-xs font-semibold" style={{ color: "var(--color-text-sub)" }}>{t("liveView.offline")}</p>
+            <p className="text-[10px]" style={{ color: "var(--color-text-sub)" }}>{cam.rtsp_url}</p>
           </div>
         ) : (
           <>
-            {/* Video gradient bg */}
-            <div className="absolute inset-0 transition-all duration-700" style={{
-              background: isRecording
-                ? `radial-gradient(ellipse at 25% 35%, rgba(100,0,0,0.7) 0%, transparent 55%),
-                   radial-gradient(ellipse at 75% 65%, rgba(80,0,20,0.6) 0%, transparent 50%),
-                   linear-gradient(180deg, #090001 0%, #0d0205 60%, #0f030a 100%)`
-                : `radial-gradient(ellipse at 25% 35%, rgba(0,15,55,0.75) 0%, transparent 55%),
-                   radial-gradient(ellipse at 75% 65%, rgba(0,25,70,0.65) 0%, transparent 50%),
-                   linear-gradient(180deg, #010209 0%, #020511 60%, #030818 100%)`,
+            {/* HLS Video Player - Stabil di Docker, tanpa WebRTC ICE issues */}
+            {cam.stream_url && (
+              <HlsPlayer src={cam.stream_url} />
+            )}
+
+            {/* Overlay efek visual */}
+            <div className="absolute inset-0 pointer-events-none" style={{
+              backgroundImage: "repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px)",
+            }} />
+            <div className="absolute inset-0 pointer-events-none" style={{
+              background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)",
             }} />
 
-            {/* Hover color overlay */}
-            <div className="absolute inset-0 pointer-events-none transition-opacity duration-500"
-              style={{
-                opacity: hovered ? 0.08 : 0,
-                background: `radial-gradient(ellipse at 50% 50%, ${s.color}, transparent 70%)`,
-              }} />
-
-            {/* Scan line */}
-            <div className="absolute left-0 right-0 h-px animate-scan"
+            {/* Scan line animasi */}
+            <div className="absolute left-0 right-0 h-px animate-scan pointer-events-none"
               style={{
                 background: `linear-gradient(90deg, transparent 0%, ${s.color}50 30%, ${s.color} 50%, ${s.color}50 70%, transparent 100%)`,
-                opacity: hovered ? 0.5 : 0.18,
-                transition: "opacity 0.4s ease",
+                opacity: 0.15,
               }} />
-
-            {/* CRT / interlace overlay */}
-            <div className="absolute inset-0 pointer-events-none" style={{
-              backgroundImage: "repeating-linear-gradient(0deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 3px)",
-              mixBlendMode: "multiply",
-            }} />
-
-            {/* Vignette */}
-            <div className="absolute inset-0 pointer-events-none" style={{
-              background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%)",
-            }} />
-
-            {/* Center cam icon */}
-            <div className="relative text-center transition-all duration-500"
-              style={{ opacity: hovered ? 0.07 : 0.12, transform: hovered ? "scale(1.15)" : "scale(1)" }}>
-              <Camera size={36} style={{ color: s.color }} />
-            </div>
 
             {/* Corner brackets on hover */}
             {["tl","tr","bl","br"].map(pos => (
@@ -151,13 +190,13 @@ function CameraCell({ cam, t, index }) {
                   borderRight:  pos.endsWith("r")   ? `2px solid ${s.color}` : "none",
                   opacity: hovered ? 0.85 : 0,
                   transform: hovered ? "scale(1)" : pos === "tl" ? "translate(-4px,-4px)" : pos === "tr" ? "translate(4px,-4px)" : pos === "bl" ? "translate(-4px,4px)" : "translate(4px,4px)",
-                  transition: `opacity 0.35s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1)`,
+                  transition: "opacity 0.35s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1)",
                 }} />
             ))}
 
             {/* REC indicator */}
             {isRecording && (
-              <div className="absolute top-2.5 right-12 flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+              <div className="absolute top-2.5 right-12 flex items-center gap-1.5 px-2.5 py-1 rounded-lg pointer-events-none"
                 style={{ backgroundColor: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.4)", backdropFilter: "blur(8px)" }}>
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-blink" />
                 <span className="text-[9px] font-bold text-red-400 tracking-widest">REC</span>
@@ -167,13 +206,12 @@ function CameraCell({ cam, t, index }) {
         )}
 
         {/* Status badge */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all duration-300"
+        <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all duration-300 pointer-events-none z-10"
           style={{
             backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(10px)",
             border: hovered ? `1px solid ${s.color}40` : "1px solid transparent",
-            transform: hovered ? "translateY(0)" : "translateY(0)",
           }}>
-          {cam.status === "live" ? (
+          {isLive ? (
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-70" style={{ backgroundColor: s.color }} />
               <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: s.color }} />
@@ -182,7 +220,7 @@ function CameraCell({ cam, t, index }) {
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
           )}
           <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: s.color }}>
-            {t(`dashboard.status.${s.label}`)}
+            {t(`dashboard.status.${s.label}`) || s.label}
           </span>
         </div>
 
@@ -190,70 +228,43 @@ function CameraCell({ cam, t, index }) {
         <button
           onClick={toggleFullscreen}
           title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
-          className="absolute top-2 right-2 p-1.5 rounded-lg"
+          className="absolute top-2 right-2 p-1.5 rounded-lg z-10"
           style={{
             backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(10px)",
             color: hovered ? "#fff" : "#94a3b8",
             opacity: hovered ? 1 : 0,
             transform: hovered ? "scale(1) translateY(0)" : "scale(0.85) translateY(-4px)",
-            transition: "opacity 0.3s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1), color 0.2s ease, background-color 0.2s ease",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${s.color}30`; e.currentTarget.style.transform = "scale(1.15)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.65)"; e.currentTarget.style.transform = "scale(1) translateY(0)"; }}
-        >
+            transition: "opacity 0.3s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1)",
+          }}>
           {isFullscreen ? <Minimize2 size={13} /> : <Expand size={13} />}
         </button>
 
-        {/* Live timestamp overlay (bottom-right) */}
+        {/* Timestamp */}
         {!isOffline && (
-          <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-md"
-            style={{
-              backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
-              opacity: hovered ? 1 : 0.5,
-              transition: "opacity 0.3s ease",
-            }}>
+          <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-md pointer-events-none z-10"
+            style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", opacity: hovered ? 1 : 0.5, transition: "opacity 0.3s ease" }}>
             <Clock size={9} style={{ color: s.color }} />
             <LiveClock />
           </div>
         )}
       </div>
 
-      {/* ── Info bar — slides up on hover ── */}
-      <div
-        className="px-4 py-3 shrink-0 flex items-center justify-between relative overflow-hidden"
+      {/* Info bar */}
+      <div className="px-4 py-3 shrink-0 flex items-center justify-between relative overflow-hidden"
         style={{
           borderTop: `1px solid ${hovered ? `${s.color}30` : "var(--color-card-border)"}`,
           backgroundColor: hovered ? "var(--color-surface-elevated)" : "var(--color-surface)",
           transition: "background-color 0.3s ease, border-color 0.3s ease",
-        }}
-      >
-        {/* Glow sweep on hover */}
-        <div className="absolute inset-0 pointer-events-none transition-opacity duration-500"
-          style={{
-            opacity: hovered ? 1 : 0,
-            background: `linear-gradient(90deg, ${s.color}08 0%, transparent 60%)`,
-          }} />
-
+        }}>
         <div className="relative z-10">
-          <p className="text-[13px] font-semibold leading-tight transition-colors duration-300"
-            style={{ color: hovered ? "var(--color-text-base)" : "var(--color-text-base)" }}>
-            {cam.name}
-          </p>
+          <p className="text-[13px] font-semibold leading-tight" style={{ color: "var(--color-text-base)" }}>{cam.name}</p>
           <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-sub)" }}>{cam.location}</p>
         </div>
-
         <div className="relative z-10 flex items-center gap-2">
-          {!isOffline && (
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md transition-all duration-300"
-              style={{
-                color: s.color,
-                backgroundColor: `${s.color}12`,
-                border: `1px solid ${s.color}25`,
-                opacity: hovered ? 1 : 0.6,
-              }}>
-              25 fps
-            </span>
-          )}
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md transition-all duration-300"
+            style={{ color: s.color, backgroundColor: `${s.color}12`, border: `1px solid ${s.color}25`, opacity: hovered ? 1 : 0.6 }}>
+            {isOffline ? "OFFLINE" : "WebRTC"}
+          </span>
         </div>
       </div>
     </div>
@@ -263,6 +274,15 @@ function CameraCell({ cam, t, index }) {
 export default function LiveViewPage() {
   const [layout, setLayout] = useState("2x2");
   const { t } = useLanguageStore();
+  const { cameras, fetchCameras, fetchStatuses, isLoading } = useCameraStore();
+
+  // Ambil kamera dari API saat halaman dibuka
+  useEffect(() => {
+    fetchCameras();
+    // Polling status tiap 15 detik
+    const interval = setInterval(() => fetchStatuses(), 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const currentLayout = gridLayouts.find(l => l.key === layout);
   const cols = currentLayout?.cols || 2;
@@ -287,12 +307,18 @@ export default function LiveViewPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" />
             {liveCount} LIVE
           </span>
+          {/* Tombol refresh manual */}
+          <button onClick={() => { fetchCameras(); }}
+            className="p-1.5 rounded-xl transition-all duration-200"
+            style={{ color: "var(--color-text-sub)", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)" }}
+            title="Refresh status kamera">
+            <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
+          </button>
         </div>
 
         {/* Layout selector */}
         <div className="flex items-center gap-1 p-1.5 rounded-2xl"
           style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)" }}>
-          {/* eslint-disable-next-line no-unused-vars */}
           {gridLayouts.map(({ key, icon: Icon, label }) => {
             const isActive = layout === key;
             return (
@@ -304,10 +330,7 @@ export default function LiveViewPage() {
                     ? { background: "linear-gradient(135deg,#06b6d4,#00ffff)", color: "#fff", boxShadow: "0 2px 12px rgba(6,182,212,0.45)" }
                     : { color: "var(--color-text-sub)" }
                   ),
-                }}
-                onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.color = "var(--color-text-base)"; e.currentTarget.style.transform = "scale(1.05)"; }}}
-                onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.color = "var(--color-text-sub)"; e.currentTarget.style.transform = ""; }}}
-              >
+                }}>
                 <Icon size={13} /> {label}
               </button>
             );
@@ -315,15 +338,24 @@ export default function LiveViewPage() {
         </div>
       </div>
 
+      {/* Kosong state */}
+      {cameras.length === 0 && !isLoading && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4" style={{ color: "var(--color-text-sub)" }}>
+          <Camera size={48} style={{ opacity: 0.3 }} />
+          <p className="text-sm font-semibold">Belum ada kamera terdaftar.</p>
+          <p className="text-[12px]">Tambahkan kamera RTSP terlebih dahulu di menu <strong>Kamera</strong>.</p>
+        </div>
+      )}
+
       {/* Camera grid */}
-      <div
-        className="grid gap-4 flex-1 pb-2"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-      >
-        {visibleCameras.map((cam, index) => (
-          <CameraCell key={`${layout}-${cam.id}`} cam={cam} t={t} index={index} />
-        ))}
-      </div>
+      {cameras.length > 0 && (
+        <div className="grid gap-4 flex-1 pb-2"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+          {visibleCameras.map((cam, index) => (
+            <CameraCell key={`${layout}-${cam.id}`} cam={cam} t={t} index={index} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

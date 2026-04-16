@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     MEDIAMTX_API_URL: str = "http://localhost:9997"
     MEDIAMTX_RTSP_BASE: str = "rtsp://localhost:8554"
+    MEDIAMTX_CONFIG_PATH: str = "../media_server/mediamtx.yml"
 
     AI_FRAME_SAMPLE_RATE: int = 5
     AI_DEVICE: str = "auto"

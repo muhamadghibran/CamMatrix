@@ -39,8 +39,16 @@ services:
     image: bluenviron/mediamtx:latest
     container_name: vms_mediamtx
     restart: always
+    environment:
+      MTX_RTSPADDRESS: ":8554"
+      MTX_WEBRTCADDRESS: ":8889"
+      MTX_HLSADDRESS: ":8888"
+      MTX_API: "yes"
+      MTX_APIADDRESS: ":9997"
+      MTX_LOGLEVEL: "info"
     ports:
       - "8554:8554"   # RTSP
+      - "8888:8888"   # HLS
       - "8889:8889"   # WebRTC (HTTP)
       - "8890:8890"   # WebRTC (UDP)
       - "9997:9997"   # REST API MediaMTX
