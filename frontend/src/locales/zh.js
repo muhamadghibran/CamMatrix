@@ -1,13 +1,14 @@
 const zh = {
   nav: {
-    dashboard:  "仪表板",
-    liveView:   "实时视图",
-    cameras:    "摄像头",
-    recordings: "录像",
-    analytics:  "人脸分析",
-    users:      "用户",
-    settings:   "设置",
-    logout:     "退出",
+    dashboard:    "仪表板",
+    liveView:     "实时视图",
+    cameras:      "摄像头",
+    recordings:   "录像",
+    faceAnalytics:"人脸分析",
+    analytics:    "人脸分析",
+    users:        "用户",
+    settings:     "设置",
+    logout:       "退出",
   },
   topbar: {
     titles: {

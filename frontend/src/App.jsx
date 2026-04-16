@@ -13,10 +13,19 @@ import CamerasPage from "./pages/CamerasPage";
 import RecordingsPage from "./pages/RecordingsPage";
 import UsersPage from "./pages/UsersPage";
 import SettingsPage from "./pages/SettingsPage";
+import FaceAnalyticsPage from "./pages/FaceAnalyticsPage";
 
+/** Redirect ke /login jika belum login */
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuthStore();
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
+/** Redirect ke /app/dashboard jika bukan ADMIN */
+function AdminRoute({ children }) {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "ADMIN" || user?.role === "admin";
+  return isAdmin ? children : <Navigate to="/app/dashboard" replace />;
 }
 
 export default function App() {
@@ -41,12 +50,22 @@ export default function App() {
           }
         >
           <Route index element={<Navigate to="/app/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="live" element={<LiveViewPage />} />
-          <Route path="cameras" element={<CamerasPage />} />
+          <Route path="dashboard"  element={<DashboardPage />} />
+          <Route path="live"       element={<LiveViewPage />} />
+          <Route path="cameras"    element={<CamerasPage />} />
           <Route path="recordings" element={<RecordingsPage />} />
-          <Route path="users" element={<UsersPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="face"       element={<FaceAnalyticsPage />} />
+          <Route path="settings"   element={<SettingsPage />} />
+
+          {/* Hanya ADMIN yang bisa akses halaman Users */}
+          <Route
+            path="users"
+            element={
+              <AdminRoute>
+                <UsersPage />
+              </AdminRoute>
+            }
+          />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Shield, MonitorPlay, ScanFace, Film, ArrowRight, Camera, Lock, Zap, Sun, Moon } from "lucide-react";
 import { useThemeStore } from "../store/themeStore";
@@ -72,11 +72,35 @@ const features = [
 export default function HomePage() {
   const { theme, toggleTheme } = useThemeStore();
   const { t } = useLanguageStore();
+  const [navVisible, setNavVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const scrollContainer = useRef(null);
+
+  const handleScroll = useCallback((e) => {
+    const currentY = e.target.scrollTop;
+    if (currentY > 80) {
+      setNavVisible(false);
+    } else {
+      setNavVisible(true);
+    }
+    lastScrollY.current = currentY;
+  }, []);
 
   return (
-    <div className="h-screen w-full overflow-y-auto scroll-smooth" style={{ backgroundColor: "var(--color-bg-page)", color: "var(--color-text-base)" }}>
+    <div
+      ref={scrollContainer}
+      onScroll={handleScroll}
+      className="h-screen w-full overflow-y-auto scroll-smooth"
+      style={{ backgroundColor: "var(--color-bg-page)", color: "var(--color-text-base)" }}
+    >
       <nav
-        className="absolute top-0 left-0 right-0 z-50 h-24 flex items-center justify-between px-6 md:px-12 bg-transparent animate-slide-up opacity-0-init"
+        style={{
+          opacity: navVisible ? 1 : 0,
+          pointerEvents: navVisible ? "auto" : "none",
+          transition: "opacity 0.4s ease",
+          backgroundColor: "transparent",
+        }}
+        className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-6 md:px-12"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-linear-to-br from-cyan-500 to-teal-400 flex items-center justify-center shadow-lg shadow-cyan-500/20">
@@ -103,9 +127,9 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <div className="relative h-[150vh]">
+      <div className="relative">
         <section 
-          className="sticky top-0 w-full h-screen flex flex-col justify-between overflow-hidden"
+          className="w-full min-h-screen flex flex-col justify-between overflow-hidden"
           style={{ backgroundColor: "var(--color-bg-page)" }}
         >
         
@@ -121,7 +145,7 @@ export default function HomePage() {
           </svg>
         </div>
 
-        {/* Text Content - Positioned to leave lower area free */}
+        {/* Text Content */}
         <div className="w-full max-w-7xl mx-auto px-6 md:px-12 flex flex-col justify-center flex-1 z-10 pt-28 pb-8">
           <h1
             className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold leading-[1.05] tracking-tight mb-8 max-w-4xl"
@@ -149,21 +173,21 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Peeking Mockup - Natural Document Flow, absolutely NO overlap */}
-        <div className="w-full max-w-5xl mx-auto px-4 md:px-8 z-10 mt-auto animate-slide-up opacity-0-init delay-1500">
-          <div className="rounded-t-2xl overflow-hidden border-t-2 border-x-2 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] flex justify-center p-2 opacity-90 hover:opacity-100 group translate-y-12 hover:translate-y-4 transition-all duration-1000 ease-out" 
+        {/* Browser Mockup - diperkecil agar proporsional */}
+        <div className="w-full max-w-3xl mx-auto px-4 md:px-8 z-10 pb-8 animate-slide-up opacity-0-init delay-1500">
+          <div className="rounded-t-xl overflow-hidden border-t border-x shadow-[0_-12px_40px_rgba(0,0,0,0.2)] p-1.5 opacity-90 hover:opacity-100 transition-opacity duration-300"
                style={{ borderColor: "var(--color-card-border)", backgroundColor: "var(--color-surface-elevated)" }}>
-            <div className="rounded-xl overflow-hidden border relative bg-zinc-950 aspect-21/9 w-full" style={{ borderColor: "var(--color-card-border)" }}>
+            <div className="rounded-lg overflow-hidden border relative bg-zinc-950" style={{ borderColor: "var(--color-card-border)", aspectRatio: "16/9" }}>
                {/* Fake App header */}
-               <div className="absolute top-0 w-full h-8 flex items-center px-4 gap-2 bg-black/60 z-20 backdrop-blur-md border-b border-white/10">
-                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/80 hover:bg-red-400 transition-colors cursor-pointer"></div>
-                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 hover:bg-yellow-400 transition-colors cursor-pointer"></div>
-                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 hover:bg-emerald-400 transition-colors cursor-pointer"></div>
+               <div className="absolute top-0 w-full h-7 flex items-center px-3 gap-1.5 bg-black/60 z-20 backdrop-blur-md border-b border-white/10">
+                 <div className="w-2 h-2 rounded-full bg-red-500/80"></div>
+                 <div className="w-2 h-2 rounded-full bg-yellow-500/80"></div>
+                 <div className="w-2 h-2 rounded-full bg-emerald-500/80"></div>
                </div>
                {/* Grid */}
-               <div className="absolute inset-0 pt-10 p-3 grid grid-cols-3 gap-3 bg-zinc-900 border-x-4 border-b-4 border-zinc-900 pointer-events-auto cursor-pointer">
+               <div className="absolute inset-0 pt-9 p-2 grid grid-cols-3 gap-2 bg-zinc-900">
                  {[1,2,3].map(i => (
-                   <div key={i} className="bg-zinc-950 rounded-lg relative overflow-hidden border border-white/5 group/card">
+                   <div key={i} className="bg-zinc-950 rounded-md relative overflow-hidden border border-white/5">
                      <img src={`https://picsum.photos/seed/${i * 42}/400/300`} alt={`feed-${i}`} className="absolute inset-0 w-full h-full object-cover opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500" />
                    </div>
                  ))}

@@ -11,18 +11,18 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Dot,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useLanguageStore } from "../../store/languageStore";
 
 const navItems = [
-  { to: "/app/dashboard",  icon: LayoutDashboard, labelKey: "dashboard",  group: "monitor" },
-  { to: "/app/live",       icon: MonitorPlay,      labelKey: "liveView",   group: "monitor" },
-  { to: "/app/cameras",    icon: Camera,           labelKey: "cameras",    group: "monitor" },
-  { to: "/app/recordings", icon: Film,             labelKey: "recordings", group: "manage" },
-  { to: "/app/users",      icon: Users,            labelKey: "users",      group: "system" },
-  { to: "/app/settings",   icon: Settings,         labelKey: "settings",   group: "system" },
+  { to: "/app/dashboard",  icon: LayoutDashboard, labelKey: "dashboard",    group: "monitor" },
+  { to: "/app/live",       icon: MonitorPlay,      labelKey: "liveView",     group: "monitor" },
+  { to: "/app/cameras",    icon: Camera,           labelKey: "cameras",      group: "monitor" },
+  { to: "/app/recordings", icon: Film,             labelKey: "recordings",   group: "manage"  },
+  { to: "/app/face",       icon: ScanFace,         labelKey: "faceAnalytics",group: "manage"  },
+  { to: "/app/users",      icon: Users,            labelKey: "users",        group: "system", adminOnly: true },
+  { to: "/app/settings",   icon: Settings,         labelKey: "settings",     group: "system" },
 ];
 
 const groups = [
@@ -88,7 +88,11 @@ export default function Sidebar({ collapsed, onToggle }) {
       {/* Nav */}
       <nav className="flex-1 py-3 px-2 overflow-y-auto overflow-x-hidden space-y-4">
         {groups.map((group) => {
-          const items = navItems.filter((n) => n.group === group.key);
+          const isAdmin = user?.role === "ADMIN" || user?.role === "admin";
+          const items = navItems.filter(
+            (n) => n.group === group.key && (!n.adminOnly || isAdmin)
+          );
+          if (items.length === 0) return null;
           return (
             <div key={group.key}>
               {!collapsed && (
@@ -100,7 +104,6 @@ export default function Sidebar({ collapsed, onToggle }) {
                 </p>
               )}
               <div className="space-y-0.5">
-                {/* eslint-disable-next-line no-unused-vars */}
                 {items.map(({ to, icon: NavIcon, labelKey }) => {
                   const isActive = pathname === to || pathname.startsWith(to + "/");
                   return (

@@ -1,13 +1,14 @@
 const en = {
   nav: {
-    dashboard:  "Dashboard",
-    liveView:   "Live View",
-    cameras:    "Cameras",
-    recordings: "Recordings",
-    analytics:  "Face Analytics",
-    users:      "Users",
-    settings:   "Settings",
-    logout:     "Logout",
+    dashboard:    "Dashboard",
+    liveView:     "Live View",
+    cameras:      "Cameras",
+    recordings:   "Recordings",
+    faceAnalytics:"Face Analytics",
+    analytics:    "Face Analytics",
+    users:        "Users",
+    settings:     "Settings",
+    logout:       "Logout",
   },
   topbar: {
     titles: {

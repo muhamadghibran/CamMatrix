@@ -30,7 +30,7 @@ html {
 }
 
 html * {
-  transition-property: background-color, border-color, box-shadow, color, opacity;
+  transition-property: background-color, border-color, box-shadow, color;
   transition-duration: 0.4s;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -39,6 +39,12 @@ html * {
 html *:hover {
   transition-property: background-color, border-color, box-shadow, color, opacity, transform;
   transition-duration: 0.2s;
+}
+
+/* Elemen dengan animasi keyframe TIDAK boleh terkena transition opacity */
+[class*="animate-"],
+[class*="opacity-0-init"] {
+  transition: none !important;
 }
 
 html.dark {

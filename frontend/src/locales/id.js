@@ -4,6 +4,7 @@ const id = {
     liveView:     "Siaran Langsung",
     cameras:      "Kamera",
     recordings:   "Rekaman",
+    faceAnalytics:"Analitik Wajah",
     analytics:    "Analitik Wajah",
     users:        "Pengguna",
     settings:     "Pengaturan",
