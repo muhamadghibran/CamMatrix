@@ -20,9 +20,15 @@ Bila kamu ingin mengunggah project ini agar bisa dikumpulkan sebagai tugas akhir
    > Pastikan kamu bersedia mengetik password jika diminta oleh sistem (catatan: saat mengetik password di Linux, teksnya tidak akan kelihatan. Ketik saja lalu `Enter`).
 
 ### Langkah 2: Mengunggah Folder Proyek
-1. Jika project ini sudah kamu dorong (Push) ke **GitHub**, tarik masuk kodenya ke Linux dengan perintah:
+1. Jika project ini sudah kamu dorong (Push) ke **GitHub**, tarik masuk kodenya ke Linux dengan perintah berikut. *(Kita menggunakan perintah `chown` terlebih dahulu agar tidak terjadi error "Permission denied" pada akun komputermu)*:
    ```bash
-   mkdir -p /var/www
+   # Buat folder wadah secara paksa
+   sudo mkdir -p /var/www
+   
+   # Jadikan folder tersebut milik akun kamu saat ini
+   sudo chown -R $USER:$USER /var/www
+   
+   # Masuk dan unduh repo Github di dalamnya
    cd /var/www
    git clone <URL_GITHUB_BISA_KAMU_PASTE_DISINI> CamMatrix
    cd CamMatrix
