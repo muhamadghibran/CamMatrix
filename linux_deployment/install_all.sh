@@ -138,7 +138,7 @@ async def seed():
     session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)()
     hashed = pwd_context.hash(os.getenv("ADMIN_PASS"))
     async with session.begin():
-        await session.execute(text(f"INSERT INTO users (full_name, email, hashed_password, role) VALUES ('System Admin', 'admin@vms.com', '{hashed}', 'ADMIN') ON CONFLICT DO NOTHING;"))
+        await session.execute(text(f"INSERT INTO users (full_name, email, hashed_password, role, is_active) VALUES ('System Admin', 'admin@vms.com', '{hashed}', 'ADMIN', true) ON CONFLICT DO NOTHING;"))
     await session.close()
     await engine.dispose()
 
