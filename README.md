@@ -374,6 +374,19 @@ cameras (
 **Muhammad Sinar Agusta**
 - GitHub: [@MuhammadSinar](https://github.com/muhamadghibran)
 
+**Muh Agung Hanapi**
+- GitHub: [@MuhAgungHanapi](https://github.com/muhagunghanapi)
+
+**Ferdi Supyandi**
+- GitHub: [@Ato](https://github.com/ferdisupyandi)
+  
+**Citra**
+- GitHub: [@Citra](https://github.com/citrarafril)
+
+**Haiza**
+- GitHub: [@Haiza](https://github.com/haizaputri)
+
+
 ---
 
 ## 📄 Lisensi
