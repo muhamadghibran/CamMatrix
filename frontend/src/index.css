@@ -2,6 +2,7 @@
 
 @import "tailwindcss";
 
+/* stylelint-disable-next-line at-rule-no-unknown -- Tailwind v4 @theme directive */
 @theme {
   --color-bg-base: #0a0c12;
   --color-bg-surface: #0f1218;
@@ -261,6 +262,7 @@ html.dark .card-hover:hover {
   background: linear-gradient(135deg, rgba(8,145,178,0.5), rgba(0,255,255,0.3), rgba(6,182,212,0.2), transparent 60%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
 }
