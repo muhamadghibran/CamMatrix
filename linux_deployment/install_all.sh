@@ -44,8 +44,9 @@ MINIO_SECRET_KEY=${MINIO_PASS}
 MINIO_BUCKET_NAME=records
 EOF
 
+SERVER_IP=$(curl -s ifconfig.me)
 cat <<EOF > $APP_DIR/frontend/.env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://${SERVER_IP}:8000
 VITE_GOOGLE_CLIENT_ID=
 EOF
 
