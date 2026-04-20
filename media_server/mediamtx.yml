@@ -29,6 +29,7 @@ authInternalUsers:
 paths:
   all_others:
 
+<<<<<<< HEAD
   cam_13:
     source: rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4
     sourceOnDemand: yes
@@ -38,4 +39,9 @@ paths:
     source: rtsp://rtspstream:573531fb5a999056d68b64e5c468ba32@zephyr.rtsp.stream/pattern
     sourceOnDemand: yes
     sourceOnDemandCloseAfter: 30s
+=======
+  cam_1_1:
+    source: rtsp://192.168.29.210:8080/h264_ulaw.sdp
+    sourceOnDemandCloseAfter: 60s
+>>>>>>> c397de28b79c80af133e47a342f8eff7e2bebaad
 

@@ -203,43 +203,48 @@ CamMatrix/
 
 ## 🚀 Cara Menjalankan
 
-### Prasyarat
-- [Node.js](https://nodejs.org/) v18+
-- [Python](https://www.python.org/) 3.11+
-- [PostgreSQL](https://www.postgresql.org/) 16+
-- [Git](https://git-scm.com/)
+### Opsi A: Menjalankan Lokal (Development / Windows)
+Cara ini sangat cocok saat kamu sedang melakukan *coding* pengembangan.
 
-### 1. Clone Repository
+**Prasyarat Lokal:** Node.js v20+, Python 3.11+, PostgreSQL 16+
 
-```bash
-git clone https://github.com/muhamadghibran/CamMatrix.git
-cd CamMatrix
-```
-
-### 2. Setup Backend
-
+**1. Setup Backend**
 ```bash
 cd backend
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # Sesuaikan DATABASE_URL dan SECRET_KEY
-alembic upgrade head   # Jalankan migrasi database
+cp .env.example .env   # Sesuaikan DATABASE_URL
+alembic upgrade head   
 python main.py
 ```
+*API berjalan di: http://localhost:8000*
 
-API berjalan di: **http://localhost:8000**
-Dokumentasi API: **http://localhost:8000/docs**
-
-### 3. Setup Frontend
-
+**2. Setup Frontend**
 ```bash
 cd frontend
 npm install
-# Buat file .env (isi Google Client ID jika ingin Google OAuth)
 cp .env.example .env
 npm run dev
 ```
+*Web berjalan di: http://localhost:5173*
 
-Aplikasi berjalan di: **http://localhost:5173**
+---
+
+### Opsi B: Deploy ke Production (Ubuntu 24.04 Native / Systemd)
+Ini adalah rute deployment resmi jika kamu menyewa server Linux VPS agar aplikasi online 24 jam. Semua proses instalasi DB hingga Web server diotomatisasi tanpa Docker!
+
+**Cara Pemasangan:**
+1. Sewa Server VPS dengan OS **Ubuntu 24.04 LTS**.
+2. Clone repo ini ke server.
+3. Jalankan *Installer* sakti:
+```bash
+cd CamMatrix
+sudo chmod +x linux_deployment/install_all.sh
+sudo bash linux_deployment/install_all.sh
+# Ambil kopi sambil menunggu skrip memasang seluruh aplikasi
+```
+*Semua 5 layanan (MinIO, MediaMTX, Frontend, Backend, PostgreSQL) akan tertanam permanen di dalam manajer `systemd` Linux kamu.*
 
 ---
 

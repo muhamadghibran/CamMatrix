@@ -1,0 +1,23 @@
+[Unit]
+Description=MinIO Storage Server
+Documentation=https://min.io/docs/minio/linux/index.html
+Wants=network-online.target
+After=network-online.target
+AssertFileIsExecutable=/usr/local/bin/minio
+
+[Service]
+WorkingDirectory=/usr/local/
+
+User=root
+Group=root
+
+# File environment untuk memuat konfigurasi password MinIO
+EnvironmentFile=/etc/default/minio
+# Mengeksekusi binary minio
+ExecStart=/usr/local/bin/minio server $MINIO_OPTS $MINIO_VOLUMES
+
+Restart=always
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
