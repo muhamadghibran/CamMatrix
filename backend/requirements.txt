@@ -14,6 +14,7 @@ alembic>=1.15.0
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
 bcrypt==4.0.1  # Versi lebih baru tidak kompatibel dengan passlib
+python-multipart>=0.0.9
 
 # HTTP Client (untuk komunikasi antar-service)
 httpx>=0.28.0

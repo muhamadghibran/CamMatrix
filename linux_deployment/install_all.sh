@@ -46,7 +46,9 @@ EOF
 
 SERVER_IP=$(curl -s ifconfig.me)
 cat <<EOF > $APP_DIR/frontend/.env
-VITE_API_URL=http://${SERVER_IP}:8000
+VITE_API_BASE_URL=http://${SERVER_IP}:8000/api/v1
+VITE_WS_BASE_URL=ws://${SERVER_IP}:8000/ws
+VITE_MEDIAMTX_URL=http://${SERVER_IP}:8889
 VITE_GOOGLE_CLIENT_ID=
 EOF
 

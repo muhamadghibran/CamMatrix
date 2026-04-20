@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { useAuthStore } from "./authStore";
 
-const API_URL = "http://localhost:8000/api/v1";
+import { API_BASE_URL as API_URL } from "../constants/api";
 
 const getHeaders = () => {
   const token = useAuthStore.getState().token;

@@ -13,7 +13,7 @@ from app.models.user import User, UserRole
 router = APIRouter()
 
 MEDIAMTX_API = settings.MEDIAMTX_API_URL
-HLS_BASE = "http://localhost:8888"
+HLS_BASE = "http://103.180.198.240:8888"
 
 
 def _path_name(user_id: int, camera_id: int) -> str:
@@ -27,7 +27,7 @@ async def get_mediamtx_status(user_id: int, camera_id: int) -> str:
         path = _path_name(user_id, camera_id)
         async with httpx.AsyncClient(timeout=3.0) as client:
             res = await client.get(f"{MEDIAMTX_API}/v3/paths/get/{path}")
-            if res.status_code == 200 and res.json().get("ready"):
+            if res.status_code == 200 and (res.json().get("sourceReady") or res.json().get("ready")):
                 return "live"
     except Exception:
         pass
@@ -39,9 +39,12 @@ async def register_camera_to_mediamtx(user_id: int, camera_id: int, rtsp_url: st
     try:
         path = _path_name(user_id, camera_id)
         async with httpx.AsyncClient(timeout=3.0) as client:
+            payload = {"source": rtsp_url}
+            if rtsp_url == "publisher":
+                payload = {} # Kosongkan source agar MediaMTX menerima PUSH
             await client.post(
                 f"{MEDIAMTX_API}/v3/config/paths/add/{path}",
-                json={"source": rtsp_url}
+                json=payload
             )
     except Exception:
         pass
@@ -60,17 +63,18 @@ async def remove_camera_from_mediamtx(user_id: int, camera_id: int):
 def write_cameras_to_config(cameras: list):
     """Tulis semua kamera ke mediamtx.yml agar persist setelah restart."""
     import os
-    config_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "media_server", "mediamtx.yml")
-    )
+    # Gunakan path konfigurasi sistem yang sesungguhnya di Linux
+    config_path = "/etc/mediamtx/mediamtx.yml"
 
     paths_section = ""
     for cam in cameras:
         path_name = _path_name(cam.owner_id, cam.id)
         paths_section += f"  {path_name}:\n"
-        paths_section += f"    source: {cam.rtsp_url}\n"
-        paths_section += f"    sourceOnDemandCloseAfter: 60s\n"
-        paths_section += f"\n"
+        if cam.rtsp_url == "publisher":
+            paths_section += f"\n" # Mode Push
+        else:
+            paths_section += f"    source: {cam.rtsp_url}\n"
+            paths_section += f"    sourceOnDemandCloseAfter: 60s\n\n"
 
     content = f"""###############################################################
 # MediaMTX Configuration — CCTV VMS Platform (Auto-generated)

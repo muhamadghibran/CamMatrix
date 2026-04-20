@@ -5,7 +5,7 @@ import { useAuthStore } from "../store/authStore";
 import { useThemeStore } from "../store/themeStore";
 import { useLanguageStore } from "../store/languageStore";
 
-const API = "http://localhost:8000/api/v1";
+import { API_BASE_URL as API } from "../constants/api";
 
 /* ── Animated text helper ── */
 function AnimatedText({ text, delayOffset = 0, splitBy = "char" }) {
