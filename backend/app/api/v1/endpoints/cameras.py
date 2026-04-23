@@ -9,6 +9,8 @@ from app.core.config import settings
 from app.models.camera import Camera
 from app.schemas.camera import CameraCreate, CameraUpdate, CameraResponse
 from app.models.user import User, UserRole
+from app.core.security import encrypt_symmetric, decrypt_symmetric
+from urllib.parse import quote_plus
 
 router = APIRouter()
 
@@ -19,6 +21,22 @@ HLS_BASE = "http://103.180.198.240:8888"
 def _path_name(user_id: int, camera_id: int) -> str:
     """Format path MediaMTX: cam_{user_id}_{camera_id} — unik per pengguna."""
     return f"cam_{user_id}_{camera_id}"
+
+
+def _build_authenticated_rtsp(rtsp_url: str, username: str | None, password: str | None) -> str:
+    """Menggabungkan kredensial ke dalam struktur rtsp://user:pass@ip:port"""
+    if not rtsp_url or rtsp_url == "publisher" or "://" not in rtsp_url:
+        return rtsp_url
+    if not username or not password:
+        return rtsp_url
+        
+    protocol, address = rtsp_url.split("://", 1)
+    if "@" in address:
+        return rtsp_url  # Jangan tumpuk kredensial jika URL sudah memilikinya
+        
+    safe_user = quote_plus(username)
+    safe_pass = quote_plus(password)
+    return f"{protocol}://{safe_user}:{safe_pass}@{address}"
 
 
 async def get_mediamtx_status(user_id: int, camera_id: int) -> str:
@@ -73,7 +91,9 @@ def write_cameras_to_config(cameras: list):
         if cam.rtsp_url == "publisher":
             paths_section += f"\n" # Mode Push
         else:
-            paths_section += f"    source: {cam.rtsp_url}\n"
+            raw_pass = decrypt_symmetric(cam.password) if cam.password else None
+            rtsp_source = _build_authenticated_rtsp(cam.rtsp_url, cam.username, raw_pass)
+            paths_section += f"    source: {rtsp_source}\n"
             paths_section += f"    sourceOnDemandCloseAfter: 60s\n\n"
 
     content = f"""###############################################################
@@ -127,7 +147,7 @@ def camera_to_dict(cam: Camera, cam_status: str = "offline") -> dict:
         "location": cam.location,
         "rtsp_url": cam.rtsp_url,
         "username": cam.username,
-        "password": cam.password,
+        "password": "", # Override password sebelum dikirim ke Frontend untuk keamanan
         "status": cam_status,
         "stream_url": f"{HLS_BASE}/{path}/index.m3u8",
     }
@@ -209,14 +229,15 @@ async def create_camera(
         location=camera_in.location,
         rtsp_url=camera_in.rtsp_url,
         username=camera_in.username or None,
-        password=camera_in.password or None,
+        password=encrypt_symmetric(camera_in.password) if camera_in.password else None,
     )
     db.add(camera)
     await db.commit()
     await db.refresh(camera)
 
-    # Daftarkan ke MediaMTX dengan path unik milik user ini
-    await register_camera_to_mediamtx(current_user.id, camera.id, camera.rtsp_url)
+    # Daftarkan ke MediaMTX dengan path unik milik user ini ditambah credentials asli
+    auth_url = _build_authenticated_rtsp(camera.rtsp_url, camera.username, camera_in.password)
+    await register_camera_to_mediamtx(current_user.id, camera.id, auth_url)
 
     # Update mediamtx.yml
     all_cams_result = await db.execute(select(Camera))
@@ -241,7 +262,11 @@ async def update_camera(
 
     update_data = camera_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(camera, field, value or None if isinstance(value, str) and field in ("username", "password") else value)
+        if field == "password":
+            if value: # Encrypt hanya jika mengganti password baru
+                setattr(camera, field, encrypt_symmetric(value))
+        else:
+            setattr(camera, field, value or None if isinstance(value, str) and field in ("username", "password") else value)
 
     db.add(camera)
     await db.commit()
