@@ -1,34 +1,20 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Any
+import base64
+import hashlib
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from cryptography.fernet import Fernet
-import base64
 from app.core.config import settings
 
+# ─── Fernet Key — Derive dari SECRET_KEY agar tidak perlu env variable baru ───
+def _get_fernet() -> Fernet:
+    """Buat Fernet cipher dari SECRET_KEY. Menggunakan SHA-256 untuk normalisasi."""
+    key_bytes = hashlib.sha256(settings.SECRET_KEY.encode()).digest()
+    fernet_key = base64.urlsafe_b64encode(key_bytes)
+    return Fernet(fernet_key)
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# Fernet membutuhkan 32-url-safe base64-encoded bytes
-# Kita turunkan dari SECRET_KEY agar tetap stabil selama SECRET_KEY tidak diganti
-_fernet_key = base64.urlsafe_b64encode(settings.SECRET_KEY.encode()[:32].ljust(32, b'0'))
-_fernet = Fernet(_fernet_key)
-
-def encrypt_symmetric(data: str) -> str:
-    """Mengenkripsi teks biasa menjadi token Fernet."""
-    if not data:
-        return data
-    return _fernet.encrypt(data.encode()).decode()
-
-def decrypt_symmetric(encrypted_data: str) -> str:
-    """Mengembalikan token Fernet menjadi teks biasa."""
-    if not encrypted_data:
-        return encrypted_data
-    try:
-        return _fernet.decrypt(encrypted_data.encode()).decode()
-    except Exception:
-        # Menghindari error jika data lama yang belum terenkripsi tersisa di DB
-        return encrypted_data
-
 
 
 def hash_password(password: str) -> str:
@@ -37,6 +23,16 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
+
+def encrypt_symmetric(data: str) -> str:
+    """Enkripsi teks (misal password kamera) menjadi ciphertext Fernet."""
+    return _get_fernet().encrypt(data.encode()).decode()
+
+
+def decrypt_symmetric(encrypted_data: str) -> str:
+    """Dekripsi ciphertext Fernet kembali ke teks asli."""
+    return _get_fernet().decrypt(encrypted_data.encode()).decode()
 
 
 def create_access_token(
