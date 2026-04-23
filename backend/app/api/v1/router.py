@@ -1,8 +1,11 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, cameras, settings, recordings
+from app.api.v1.endpoints import auth, users, cameras, settings, recordings, public
 
 api_router = APIRouter()
+
+# Endpoint publik — tidak memerlukan autentikasi
+api_router.include_router(public.router, prefix="/public", tags=["public"])
 
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])

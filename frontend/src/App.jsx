@@ -7,6 +7,7 @@ import MainLayout from "./components/layout/MainLayout";
 
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
+import LivePublicPage from "./pages/LivePublicPage";
 import DashboardPage from "./pages/DashboardPage";
 import LiveViewPage from "./pages/LiveViewPage";
 import CamerasPage from "./pages/CamerasPage";
@@ -21,13 +22,6 @@ function ProtectedRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
-/** Redirect ke /app/dashboard jika bukan ADMIN */
-function AdminRoute({ children }) {
-  const { user } = useAuthStore();
-  const isAdmin = user?.role === "ADMIN" || user?.role === "admin";
-  return isAdmin ? children : <Navigate to="/app/dashboard" replace />;
-}
-
 export default function App() {
   const { theme, initTheme } = useThemeStore();
 
@@ -39,8 +33,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Halaman publik — tidak perlu login */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/live" element={<LivePublicPage />} />
+
+        {/* Area admin — wajib login */}
         <Route
           path="/app"
           element={
@@ -56,17 +54,9 @@ export default function App() {
           <Route path="recordings" element={<RecordingsPage />} />
           <Route path="face"       element={<FaceAnalyticsPage />} />
           <Route path="settings"   element={<SettingsPage />} />
-
-          {/* Hanya ADMIN yang bisa akses halaman Users */}
-          <Route
-            path="users"
-            element={
-              <AdminRoute>
-                <UsersPage />
-              </AdminRoute>
-            }
-          />
+          <Route path="users"      element={<UsersPage />} />
         </Route>
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
