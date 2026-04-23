@@ -40,6 +40,41 @@ def _build_rtsp_with_auth(rtsp_url: str, username: str | None, encrypted_passwor
     return rtsp_url
 
 
+def _validate_rtsp_url(url: str) -> str:
+    """C9: Validasi RTSP URL untuk mencegah SSRF.
+    Hanya rtsp:// dan rtsps:// yang diizinkan.
+    IP private/loopback/reserved diblokir.
+    Nilai 'publisher' diizinkan sebagai push mode.
+    """
+    if url == "publisher":
+        return url  # Mode push khusus, tidak perlu validasi URL
+
+    from urllib.parse import urlparse
+    import ipaddress
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ("rtsp", "rtsps"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Hanya URL rtsp:// atau rtsps:// yang diizinkan."
+        )
+    host = parsed.hostname
+    if not host:
+        raise HTTPException(status_code=400, detail="Host tidak valid pada URL RTSP.")
+
+    try:
+        ip = ipaddress.ip_address(host)
+        if ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            raise HTTPException(
+                status_code=400,
+                detail="IP loopback/link-local/reserved tidak diizinkan. Gunakan IP publik atau nama domain."
+            )
+    except ValueError:
+        pass  # host berupa nama domain, bukan IP — diizinkan
+    return url
+
+
+
 async def get_mediamtx_status(user_id: int, camera_id: int) -> str:
     """Cek status kamera secara ASYNC via MediaMTX API."""
     try:
@@ -224,11 +259,13 @@ async def create_camera(
     camera_in: CameraCreate,
     current_user: User = Depends(deps.get_current_user)  # Semua user bisa tambah kamera
 ) -> Any:
+    # C9: Validasi RTSP URL sebelum disimpan (cegah SSRF)
+    validated_url = _validate_rtsp_url(camera_in.rtsp_url)
     camera = Camera(
         owner_id=current_user.id,
         name=camera_in.name,
         location=camera_in.location,
-        rtsp_url=camera_in.rtsp_url,
+        rtsp_url=validated_url,
         username=camera_in.username or None,
         # Enkripsi password sebelum disimpan ke PostgreSQL
         password=encrypt_symmetric(camera_in.password) if camera_in.password else None,
@@ -267,10 +304,11 @@ async def update_camera(
     update_data = camera_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         if field == "password":
-            # Jika password baru dikirim, enkripsi. Jika kosong, pertahankan lama.
             if value:
                 setattr(camera, field, encrypt_symmetric(value))
-            # Jika kosong/None, lewati — jangan hapus password lama
+        elif field == "rtsp_url" and value:
+            # C9: Validasi URL baru juga saat update
+            setattr(camera, field, _validate_rtsp_url(value))
         elif field in ("username",) and isinstance(value, str):
             setattr(camera, field, value or None)
         else:

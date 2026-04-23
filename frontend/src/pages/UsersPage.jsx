@@ -176,7 +176,7 @@ export default function UsersPage() {
       setShowModal(false);
       await fetchUsers();
     } catch (err) {
-      alert(err.response?.data?.detail || "Gagal menambah pengguna.");
+      setError(err.response?.data?.detail || "Gagal menambah pengguna.");
     } finally {
       setSaving(false);
     }
@@ -195,7 +195,7 @@ export default function UsersPage() {
       setEditUser(null);
       await fetchUsers();
     } catch (err) {
-      alert(err.response?.data?.detail || "Gagal mengubah pengguna.");
+      setError(err.response?.data?.detail || "Gagal mengubah pengguna.");
     } finally {
       setSaving(false);
     }
@@ -209,7 +209,7 @@ export default function UsersPage() {
       setDeleteTarget(null);
       await fetchUsers();
     } catch (err) {
-      alert(err.response?.data?.detail || "Gagal menghapus pengguna.");
+      setError(err.response?.data?.detail || "Gagal menghapus pengguna.");
     } finally {
       setSaving(false);
     }

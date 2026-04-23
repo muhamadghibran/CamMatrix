@@ -1,6 +1,8 @@
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -10,10 +12,13 @@ from app.models.user import User, UserRole
 from app.schemas.user import Token, UserResponse, UserRegister
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")  # H4: Rate limit — cegah brute-force
 async def login_access_token(
+    request: Request,
     db: deps.DbSession,
     form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
@@ -45,7 +50,9 @@ async def login_access_token(
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("3/hour")  # H4: Rate limit — cegah spam registrasi
 async def register(
+    request: Request,
     *,
     db: deps.DbSession,
     user_in: UserRegister,
@@ -77,7 +84,9 @@ async def register(
 
 
 @router.post("/google", response_model=Token)
+@limiter.limit("10/minute")  # H4: Rate limit Google OAuth
 async def google_login(
+    request: Request,
     *,
     db: deps.DbSession,
     payload: dict,
