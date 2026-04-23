@@ -14,7 +14,7 @@ from app.models.user import User, UserRole
 router = APIRouter()
 
 MEDIAMTX_API = settings.MEDIAMTX_API_URL
-HLS_BASE = "http://103.180.198.240:8888"
+HLS_BASE = settings.HLS_BASE_URL  # C11: tidak hardcode IP, baca dari .env
 
 
 def _path_name(user_id: int, camera_id: int) -> str:

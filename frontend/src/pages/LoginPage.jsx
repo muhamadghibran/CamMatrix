@@ -83,16 +83,12 @@ export default function LoginPage() {
       const { access_token } = await res.json();
       await fetchProfileAndLogin(access_token);
     } catch {
-      // fallback demo
-      if ((form.email === "admin@vms.com" || form.email === "admin") && form.password === "admin123") {
-        setAuth({ name: "Administrator", email: form.email, role: "ADMIN" }, null);
-        navigate("/app/dashboard");
-      } else {
-        setError(t("login.invalidCred"));
-      }
+      // Jika backend tidak dapat dijangkau, tampilkan pesan error — jangan fallback demo
+      setError(t("login.invalidCred"));
     }
     setLoading(false);
   };
+
 
   /* ── Register ── */
   const handleRegister = async (e) => {
