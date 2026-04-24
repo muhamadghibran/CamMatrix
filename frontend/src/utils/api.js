@@ -7,8 +7,11 @@ const api = axios.create({
   timeout: 10000,
 });
 
+// M13: Satu sumber token — baca dari Zustand, bukan localStorage langsung
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  // Lazy import agar tidak circular dependency
+  const { useAuthStore } = require("../store/authStore");
+  const token = useAuthStore.getState().token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -19,8 +22,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("access_token");
-      window.location.href = "/login";
+      // M12: Gunakan Zustand logout + navigate, bukan full page reload
+      const { useAuthStore } = require("../store/authStore");
+      useAuthStore.getState().logout();
+      // Redirect ke login tanpa full reload (pakai hash navigation agar kompatibel)
+      if (window.location.pathname !== "/login") {
+        window.location.replace("/login");
+      }
     }
     return Promise.reject(error);
   }

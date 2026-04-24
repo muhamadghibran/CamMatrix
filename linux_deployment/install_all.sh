@@ -30,23 +30,28 @@ apt-get install -y curl wget git python3 python3-venv python3-pip openssl build-
 DB_PASS=$(openssl rand -hex 12)
 MINIO_PASS=$(openssl rand -hex 16)
 JWT_SECRET=$(openssl rand -hex 32)
-ADMIN_PASS=$(openssl rand -hex 6)
+ADMIN_PASS=$(openssl rand -base64 24)
 
 echo "[2/8] Membuat file konfigurasi Lingkungan (.env)..."
 cat <<EOF > $APP_DIR/backend/.env
 DATABASE_URL=postgresql+asyncpg://postgres:${DB_PASS}@localhost:5432/cctv_vms
 SECRET_KEY=${JWT_SECRET}
 ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+DEBUG=false
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=admin
 MINIO_SECRET_KEY=${MINIO_PASS}
 MINIO_BUCKET_NAME=records
+CORS_ORIGINS=["http://${SERVER_IP}:5173","http://localhost:5173"]
+HLS_BASE_URL=http://${SERVER_IP}:8888
 EOF
 
 SERVER_IP=$(curl -s ifconfig.me)
 cat <<EOF > $APP_DIR/frontend/.env
-VITE_API_URL=http://${SERVER_IP}:8000
+VITE_API_BASE_URL=http://${SERVER_IP}:8000/api/v1
+VITE_WS_BASE_URL=ws://${SERVER_IP}:8000/ws
+VITE_MEDIAMTX_URL=http://${SERVER_IP}:8889
 VITE_GOOGLE_CLIENT_ID=
 EOF
 

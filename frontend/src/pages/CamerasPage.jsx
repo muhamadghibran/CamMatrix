@@ -155,13 +155,15 @@ export default function CamerasPage() {
   };
 
   const handleEdit = async (form) => {
-    await updateCamera(editCamera.id, {
+    const payload = {
       name: form.name,
       location: form.location,
       rtsp_url: form.ip,
       username: form.user,
-      password: form.password
-    });
+    };
+    // M6: Hanya kirim password jika user mengisi field baru — jangan hapus password lama
+    if (form.password) payload.password = form.password;
+    await updateCamera(editCamera.id, payload);
     setEditCamera(null);
   };
 

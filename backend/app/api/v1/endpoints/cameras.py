@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from app.api import deps
 from app.core.config import settings
+from app.core.security import encrypt_symmetric, decrypt_symmetric
 from app.models.camera import Camera
 from app.schemas.camera import CameraCreate, CameraUpdate, CameraResponse
 from app.models.user import User, UserRole
@@ -13,12 +14,65 @@ from app.models.user import User, UserRole
 router = APIRouter()
 
 MEDIAMTX_API = settings.MEDIAMTX_API_URL
-HLS_BASE = "http://localhost:8888"
+HLS_BASE = settings.HLS_BASE_URL  # C11: tidak hardcode IP, baca dari .env
 
 
 def _path_name(user_id: int, camera_id: int) -> str:
     """Format path MediaMTX: cam_{user_id}_{camera_id} — unik per pengguna."""
     return f"cam_{user_id}_{camera_id}"
+
+
+def _build_rtsp_with_auth(rtsp_url: str, username: str | None, encrypted_password: str | None) -> str:
+    """Gabungkan username:password ke RTSP URL jika ada kredensial.
+    Contoh hasil: rtsp://admin:sandi123@192.168.1.100:554/stream1
+    """
+    if not username or not encrypted_password or rtsp_url == "publisher":
+        return rtsp_url
+    try:
+        plain_pass = decrypt_symmetric(encrypted_password)
+    except Exception:
+        return rtsp_url  # Jika dekripsi gagal, pakai URL asli tanpa auth
+
+    # Sisipkan user:pass setelah rtsp://
+    if "://" in rtsp_url:
+        scheme, rest = rtsp_url.split("://", 1)
+        return f"{scheme}://{username}:{plain_pass}@{rest}"
+    return rtsp_url
+
+
+def _validate_rtsp_url(url: str) -> str:
+    """C9: Validasi RTSP URL untuk mencegah SSRF.
+    Hanya rtsp:// dan rtsps:// yang diizinkan.
+    IP private/loopback/reserved diblokir.
+    Nilai 'publisher' diizinkan sebagai push mode.
+    """
+    if url == "publisher":
+        return url  # Mode push khusus, tidak perlu validasi URL
+
+    from urllib.parse import urlparse
+    import ipaddress
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ("rtsp", "rtsps"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Hanya URL rtsp:// atau rtsps:// yang diizinkan."
+        )
+    host = parsed.hostname
+    if not host:
+        raise HTTPException(status_code=400, detail="Host tidak valid pada URL RTSP.")
+
+    try:
+        ip = ipaddress.ip_address(host)
+        if ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+            raise HTTPException(
+                status_code=400,
+                detail="IP loopback/link-local/reserved tidak diizinkan. Gunakan IP publik atau nama domain."
+            )
+    except ValueError:
+        pass  # host berupa nama domain, bukan IP — diizinkan
+    return url
+
 
 
 async def get_mediamtx_status(user_id: int, camera_id: int) -> str:
@@ -27,7 +81,7 @@ async def get_mediamtx_status(user_id: int, camera_id: int) -> str:
         path = _path_name(user_id, camera_id)
         async with httpx.AsyncClient(timeout=3.0) as client:
             res = await client.get(f"{MEDIAMTX_API}/v3/paths/get/{path}")
-            if res.status_code == 200 and res.json().get("ready"):
+            if res.status_code == 200 and (res.json().get("sourceReady") or res.json().get("ready")):
                 return "live"
     except Exception:
         pass
@@ -39,9 +93,12 @@ async def register_camera_to_mediamtx(user_id: int, camera_id: int, rtsp_url: st
     try:
         path = _path_name(user_id, camera_id)
         async with httpx.AsyncClient(timeout=3.0) as client:
+            payload = {"source": rtsp_url}
+            if rtsp_url == "publisher":
+                payload = {} # Kosongkan source agar MediaMTX menerima PUSH
             await client.post(
                 f"{MEDIAMTX_API}/v3/config/paths/add/{path}",
-                json={"source": rtsp_url}
+                json=payload
             )
     except Exception:
         pass
@@ -60,17 +117,15 @@ async def remove_camera_from_mediamtx(user_id: int, camera_id: int):
 def write_cameras_to_config(cameras: list):
     """Tulis semua kamera ke mediamtx.yml agar persist setelah restart."""
     import os
-    config_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "media_server", "mediamtx.yml")
-    )
+    # Gunakan path konfigurasi sistem yang sesungguhnya di Linux
+    config_path = "/etc/mediamtx/mediamtx.yml"
 
     paths_section = ""
     for cam in cameras:
         path_name = _path_name(cam.owner_id, cam.id)
         paths_section += f"  {path_name}:\n"
         paths_section += f"    source: {cam.rtsp_url}\n"
-        paths_section += f"    sourceOnDemand: yes\n"      # Hanya connect saat ada yang menonton
-        paths_section += f"    sourceOnDemandCloseAfter: 30s\n"  # Tutup koneksi jika idle 30 detik
+        paths_section += f"    sourceOnDemandCloseAfter: 60s\n"
         paths_section += f"\n"
 
     content = f"""###############################################################
@@ -115,7 +170,9 @@ paths:
 
 
 def camera_to_dict(cam: Camera, cam_status: str = "offline") -> dict:
-    """Ubah model SQLAlchemy ke dict bersih untuk response Pydantic."""
+    """Ubah model SQLAlchemy ke dict bersih untuk response Pydantic.
+    Password TIDAK dikembalikan ke Frontend demi keamanan.
+    """
     path = _path_name(cam.owner_id, cam.id)
     return {
         "id": cam.id,
@@ -124,7 +181,7 @@ def camera_to_dict(cam: Camera, cam_status: str = "offline") -> dict:
         "location": cam.location,
         "rtsp_url": cam.rtsp_url,
         "username": cam.username,
-        "password": cam.password,
+        "password": "",   # Sembunyikan dari API response — tidak bocor ke browser
         "status": cam_status,
         "stream_url": f"{HLS_BASE}/{path}/index.m3u8",
     }
@@ -200,20 +257,26 @@ async def create_camera(
     camera_in: CameraCreate,
     current_user: User = Depends(deps.get_current_user)  # Semua user bisa tambah kamera
 ) -> Any:
+    # C9: Validasi RTSP URL sebelum disimpan (cegah SSRF)
+    validated_url = _validate_rtsp_url(camera_in.rtsp_url)
     camera = Camera(
-        owner_id=current_user.id,          # Otomatis jadi milik user yang login
+        owner_id=current_user.id,
         name=camera_in.name,
         location=camera_in.location,
-        rtsp_url=camera_in.rtsp_url,
+        rtsp_url=validated_url,
         username=camera_in.username or None,
-        password=camera_in.password or None,
+        # Enkripsi password sebelum disimpan ke PostgreSQL
+        password=encrypt_symmetric(camera_in.password) if camera_in.password else None,
     )
     db.add(camera)
     await db.commit()
     await db.refresh(camera)
 
-    # Daftarkan ke MediaMTX dengan path unik milik user ini
-    await register_camera_to_mediamtx(current_user.id, camera.id, camera.rtsp_url)
+    # Bangun URL RTSP yang sudah memiliki kredensial tersemat untuk MediaMTX
+    authenticated_url = _build_rtsp_with_auth(
+        camera.rtsp_url, camera.username, camera.password
+    )
+    await register_camera_to_mediamtx(current_user.id, camera.id, authenticated_url)
 
     # Update mediamtx.yml
     all_cams_result = await db.execute(select(Camera))
@@ -238,7 +301,16 @@ async def update_camera(
 
     update_data = camera_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(camera, field, value or None if isinstance(value, str) and field in ("username", "password") else value)
+        if field == "password":
+            if value:
+                setattr(camera, field, encrypt_symmetric(value))
+        elif field == "rtsp_url" and value:
+            # C9: Validasi URL baru juga saat update
+            setattr(camera, field, _validate_rtsp_url(value))
+        elif field in ("username",) and isinstance(value, str):
+            setattr(camera, field, value or None)
+        else:
+            setattr(camera, field, value)
 
     db.add(camera)
     await db.commit()

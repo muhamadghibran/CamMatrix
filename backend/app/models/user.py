@@ -5,9 +5,9 @@ import enum
 from app.core.database import Base
 
 class UserRole(str, enum.Enum):
-    ADMIN = "admin"
-    OPERATOR = "operator"
-    VIEWER = "viewer"
+    ADMIN = "ADMIN"
+    OPERATOR = "OPERATOR"
+    VIEWER = "VIEWER"
 
 class User(Base):
     __tablename__ = "users"
