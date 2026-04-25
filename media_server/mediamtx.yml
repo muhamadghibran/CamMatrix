@@ -1,7 +1,10 @@
 ###############################################################
-# MediaMTX Configuration — CCTV VMS Platform (Auto-generated)
+# MediaMTX Configuration — CCTV VMS Platform
+# BASE CONFIG — statis, jangan diedit oleh backend.
+# Kamera (paths) ditulis terpisah oleh backend di bawah bagian paths:
 ###############################################################
 
+# ── Network ────────────────────────────────────────────────
 rtspAddress: :8554
 webrtcAddress: :8889
 
@@ -10,26 +13,35 @@ hlsAlwaysRemux: yes
 hlsSegmentDuration: 2s
 hlsPartDuration: 500ms
 
+# ── API — hanya localhost, tidak expose ke publik ───────────
+# N1: bind ke 127.0.0.1, bukan :9997 (all-interface)
 api: yes
-apiAddress: :9997
+apiAddress: 127.0.0.1:9997
 
+# ── Logging ────────────────────────────────────────────────
 logLevel: info
 logDestinations: [stdout]
 
+# ── Auth — N2: hapus wildcard, pakai 2 role spesifik ───────
+# Password diambil dari env /etc/mediamtx/mediamtx.env (mode 600)
 authInternalUsers:
-  - user: any
-    pass:
-    ips: []
+  - user: publisher
+    pass: ${MTX_PUBLISHER_PASS}
+    ips: [127.0.0.1/32]        # Hanya backend (localhost) yang boleh publish
     permissions:
       - action: publish
+      - action: api
+
+  - user: viewer
+    pass: ${MTX_VIEWER_PASS}
+    permissions:
       - action: read
       - action: playback
-      - action: api
+
+# ── Paths ──────────────────────────────────────────────────
+# Bagian paths di bawah ini akan di-generate dan diperbarui
+# secara otomatis oleh backend setiap kali kamera ditambah/dihapus.
+# Jangan edit manual di bawah baris ini.
 
 paths:
   all_others:
-
-  cam_1_1:
-    source: rtsp://192.168.29.210:8080/h264_ulaw.sdp
-    sourceOnDemandCloseAfter: 60s
-

@@ -13,33 +13,43 @@ from app.models.user import User
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Event startup: sinkronisasi semua kamera ke MediaMTX saat server mulai."""
+    """Event startup: sinkronisasi kamera + safety check production."""
     try:
-        import httpx
         from sqlalchemy import select
         from app.core.database import AsyncSessionLocal
         from app.models.camera import Camera
+        from app.core.security import verify_password
+        from app.api.v1.endpoints.cameras import write_cameras_to_config
 
         async with AsyncSessionLocal() as db:
+
+            # ── C3 Safety check: tolak start jika password admin123 masih aktif ──
+            if not settings.DEBUG:
+                result = await db.execute(
+                    select(User).where(User.email == "admin@vms.com")
+                )
+                admin = result.scalar_one_or_none()
+                if admin and admin.hashed_password and verify_password("admin123", admin.hashed_password):
+                    raise RuntimeError(
+                        "FATAL: Default admin password 'admin123' masih aktif! "
+                        "Ganti password admin sebelum menjalankan di production."
+                    )
+
+            # ── Sinkronisasi semua kamera ke MediaMTX + tulis config ──
             result = await db.execute(select(Camera))
             cameras = result.scalars().all()
 
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            for cam in cameras:
-                try:
-                    path = f"cam_{cam.owner_id}_{cam.id}"
-                    await client.post(
-                        f"{settings.MEDIAMTX_API_URL}/v3/config/paths/add/{path}",
-                        json={"source": cam.rtsp_url}
-                    )
-                    print(f"✅ Synced camera {cam.id} ({cam.name}) as {path} to MediaMTX")
-                except Exception as e:
-                    print(f"⚠️  Could not sync camera {cam.id}: {e}")
+        # Tulis config mediamtx dengan paths yang aman (N3+N4)
+        write_cameras_to_config(cameras)
+        print(f"✅ Startup: {len(cameras)} kamera disinkronisasi ke MediaMTX config")
+
+    except RuntimeError:
+        raise  # Re-raise FATAL errors
     except Exception as e:
-        print(f"⚠️  MediaMTX sync skipped: {e}")
+        print(f"⚠️  Startup sync skipped: {e}")
 
     yield  # Server berjalan di sini
-    # (cleanup jika diperlukan saat shutdown)
+
 
 
 app = FastAPI(

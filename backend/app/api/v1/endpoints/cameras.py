@@ -114,61 +114,101 @@ async def remove_camera_from_mediamtx(user_id: int, camera_id: int):
         pass
 
 
-def write_cameras_to_config(cameras: list):
-    """Tulis semua kamera ke mediamtx.yml agar persist setelah restart."""
-    import os
-    # Gunakan path konfigurasi sistem yang sesungguhnya di Linux
-    config_path = "/etc/mediamtx/mediamtx.yml"
 
-    paths_section = ""
+def write_cameras_paths(cameras: list):
+    """
+    N3+N4: Tulis paths kamera ke mediamtx.yml dengan aman.
+    Strategi:
+    - Baca base config dari mediamtx.yml (hanya sampai baris 'paths:')
+    - Tulis cameras.env (mode 600) berisi RTSP URL yang sudah di-decrypt
+    - Tambahkan paths ke bawah config dengan referensi ${CAM_x_RTSP_URL}
+    - Reload mediamtx agar config terbaca tanpa restart
+    """
+    import os, subprocess
+
+    config_path = settings.MEDIAMTX_CONFIG_PATH          # /etc/mediamtx/mediamtx.yml
+    env_path    = "/etc/mediamtx/cameras.env"
+
+    # ── 1. Baca base config (hanya sampai sebelum paths pertama yg dynamic) ──
+    base_lines = []
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            for line in f:
+                base_lines.append(line)
+                # Potong tepat setelah baris "  all_others:"
+                if line.strip() == "all_others:":
+                    break
+    except FileNotFoundError:
+        # Fallback kalau config belum ada sama sekali
+        base_lines = [
+            "###############################################################\n",
+            "# MediaMTX — Auto-generated (base config tidak ditemukan)\n",
+            "###############################################################\n",
+            "rtspAddress: :8554\n",
+            "hlsAddress: :8888\n",
+            "hlsAlwaysRemux: yes\n",
+            "api: yes\n",
+            "apiAddress: 127.0.0.1:9997\n",
+            "logLevel: info\n",
+            "logDestinations: [stdout]\n",
+            "paths:\n",
+            "  all_others:\n",
+        ]
+
+    # ── 2. Bangun cameras.env dan paths section ──────────────────────────────
+    env_lines   = ["# cameras.env — Di-generate otomatis oleh backend. Jangan edit manual.\n"]
+    paths_lines = []
+
     for cam in cameras:
         path_name = _path_name(cam.owner_id, cam.id)
-        paths_section += f"  {path_name}:\n"
+        env_key   = f"CAM_{cam.owner_id}_{cam.id}_RTSP_URL"
+
         if cam.rtsp_url == "publisher":
-            paths_section += f"\n" # Mode Push
+            # Mode push — tidak butuh source, tidak perlu env entry
+            paths_lines.append(f"\n  {path_name}:\n")
         else:
-            paths_section += f"    source: {cam.rtsp_url}\n"
-            paths_section += f"    sourceOnDemandCloseAfter: 60s\n\n"
+            # Decrypt RTSP URL + credentials → simpan ke env, referensi di yaml
+            full_url = _build_rtsp_with_auth(cam.rtsp_url, cam.username, cam.password)
+            env_lines.append(f"{env_key}={full_url}\n")
+            paths_lines.append(
+                f"\n  {path_name}:\n"
+                f"    source: ${{{env_key}}}\n"
+                f"    sourceOnDemandCloseAfter: 60s\n"
+            )
 
-    content = f"""###############################################################
-# MediaMTX Configuration — CCTV VMS Platform (Auto-generated)
-###############################################################
+    # ── 3. Tulis cameras.env (mode 600 agar hanya root yang bisa baca) ───────
+    try:
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(env_lines)
+        os.chmod(env_path, 0o600)
+    except Exception as e:
+        print(f"⚠️  Gagal menulis cameras.env: {e}")
 
-rtspAddress: :8554
-webrtcAddress: :8889
-
-hlsAddress: :8888
-hlsAlwaysRemux: yes
-hlsSegmentDuration: 2s
-hlsPartDuration: 500ms
-
-api: yes
-apiAddress: :9997
-
-logLevel: info
-logDestinations: [stdout]
-
-authInternalUsers:
-  - user: any
-    pass:
-    ips: []
-    permissions:
-      - action: publish
-      - action: read
-      - action: playback
-      - action: api
-
-paths:
-  all_others:
-
-{paths_section}"""
-
+    # ── 4. Tulis mediamtx.yml = base + dynamic paths ─────────────────────────
     try:
         with open(config_path, "w", encoding="utf-8") as f:
-            f.write(content)
+            f.writelines(base_lines)
+            f.writelines(paths_lines)
         print(f"✅ mediamtx.yml diperbarui dengan {len(cameras)} kamera")
     except Exception as e:
         print(f"⚠️  Gagal menulis mediamtx.yml: {e}")
+        return
+
+    # ── 5. Reload mediamtx agar paths langsung aktif ─────────────────────────
+    try:
+        subprocess.run(
+            ["systemctl", "reload", "mediamtx"],
+            check=False, timeout=5,
+            capture_output=True,
+        )
+    except Exception:
+        pass  # Di lingkungan dev (Windows), perintah ini tidak ada — tidak masalah
+
+
+# Alias backward-compat agar main.py tidak perlu diubah
+write_cameras_to_config = write_cameras_paths
+
+
 
 
 def camera_to_dict(cam: Camera, cam_status: str = "offline") -> dict:

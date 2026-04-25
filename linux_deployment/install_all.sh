@@ -30,7 +30,27 @@ apt-get install -y curl wget git python3 python3-venv python3-pip openssl build-
 DB_PASS=$(openssl rand -hex 12)
 MINIO_PASS=$(openssl rand -hex 16)
 JWT_SECRET=$(openssl rand -hex 32)
-ADMIN_PASS=$(openssl rand -base64 24)
+
+# C3: Admin password — pakai env jika sudah di-set, atau auto-generate
+if [ -z "${ADMIN_INITIAL_PASSWORD}" ]; then
+    ADMIN_PASS=$(openssl rand -base64 18 | tr -d '=+/' | head -c 24)
+    echo "" >&2
+    echo "╔══════════════════════════════════════════════════════╗" >&2
+    echo "║  [!] PASSWORD ADMIN DI-GENERATE OTOMATIS             ║" >&2
+    echo "║  SIMPAN SEKARANG — tidak akan ditampilkan lagi!      ║" >&2
+    echo "║                                                      ║" >&2
+    echo "║  Admin Password: ${ADMIN_PASS}" >&2
+    echo "║                                                      ║" >&2
+    echo "║  Kamu WAJIB ganti password ini saat login pertama.   ║" >&2
+    echo "╚══════════════════════════════════════════════════════╝" >&2
+    echo "" >&2
+else
+    ADMIN_PASS="${ADMIN_INITIAL_PASSWORD}"
+fi
+
+# N2: Generate password untuk MediaMTX publisher dan viewer
+MTX_PUBLISHER_PASS=$(openssl rand -hex 16)
+MTX_VIEWER_PASS=$(openssl rand -hex 16)
 
 echo "[2/8] Membuat file konfigurasi Lingkungan (.env)..."
 cat <<EOF > $APP_DIR/backend/.env
@@ -95,6 +115,18 @@ rm mediamtx.tar.gz
 mkdir -p /etc/mediamtx
 cp $APP_DIR/media_server/mediamtx.yml /etc/mediamtx/mediamtx.yml
 
+# N1+N2: Buat mediamtx.env berisi password publisher/viewer (mode 600)
+cat <<EOF > /etc/mediamtx/mediamtx.env
+MTX_PUBLISHER_PASS=${MTX_PUBLISHER_PASS}
+MTX_VIEWER_PASS=${MTX_VIEWER_PASS}
+EOF
+chmod 600 /etc/mediamtx/mediamtx.env
+echo "✅ /etc/mediamtx/mediamtx.env dibuat (mode 600)"
+
+# Buat cameras.env kosong dengan permission yang benar
+touch /etc/mediamtx/cameras.env
+chmod 600 /etc/mediamtx/cameras.env
+
 cp $APP_DIR/linux_deployment/mediamtx.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl start mediamtx
@@ -128,23 +160,32 @@ pip install passlib[bcrypt]
 # Proses Pembuatan Struktur Database Pertama Kali di Linux
 alembic upgrade head
 
-# Otomatis Membuat Akun Admin Pertama menggunakan Python Script Injection
+# C3: Seed admin dengan must_change_password=TRUE (paksa ganti saat login pertama)
 cat << 'EOF' > seed_admin.py
-import asyncio, os
+import asyncio, os, sys
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from passlib.context import CryptContext
 from sqlalchemy import text
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-DB_URL = os.getenv("DATABASE_URL")
+DB_URL  = os.getenv("DATABASE_URL")
+password = os.getenv("ADMIN_PASS")
+
+if not password:
+    print("[ERROR] ADMIN_PASS tidak di-set", file=sys.stderr)
+    sys.exit(1)
 
 async def seed():
-    engine = create_async_engine(DB_URL)
+    engine  = create_async_engine(DB_URL)
     session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)()
-    hashed = pwd_context.hash(os.getenv("ADMIN_PASS"))
+    hashed  = pwd_context.hash(password)
     async with session.begin():
-        await session.execute(text(f"INSERT INTO users (full_name, email, hashed_password, role, is_active) VALUES ('System Admin', 'admin@vms.com', '{hashed}', 'ADMIN', true) ON CONFLICT DO NOTHING;"))
+        await session.execute(text(
+            f"INSERT INTO users (full_name, email, hashed_password, role, is_active, must_change_password) "
+            f"VALUES ('System Admin', 'admin@vms.com', '{hashed}', 'ADMIN', true, true) "
+            f"ON CONFLICT (email) DO NOTHING;"
+        ))
     await session.close()
     await engine.dispose()
 
@@ -161,27 +202,26 @@ systemctl start cammatrix-backend
 systemctl enable cammatrix-backend
 
 
-echo "[8/8] Validasi Akhir..."
-systemctl --no-pager status minio mediamtx postgresql cammatrix-backend cammatrix-frontend | grep "Active:" || true
+echo "=========================================================="
+echo "🎉 INSTALASI SELESAI! Semua layanan berjalan via systemd."
+echo "=========================================================="
+echo "Akses Aplikasi:"
+echo "  Frontend  : http://${SERVER_IP}:5173"
+echo "  Backend   : http://${SERVER_IP}:8000"
+echo "  MinIO     : http://${SERVER_IP}:9001"
+echo ""
+echo "🔐 KREDENSIAL (SIMPAN SEKARANG — tidak bisa dilihat lagi)"
+echo "=========================================================="
+echo "Admin Login:"
+echo "  Email    : admin@vms.com"
+echo "  Password : ${ADMIN_PASS}  ← WAJIB GANTI SAAT LOGIN PERTAMA"
+echo ""
+echo "Database PostgreSQL:"
+echo "  Password : ${DB_PASS}"
+echo ""
+echo "MinIO S3:"
+echo "  Password : ${MINIO_PASS}"
+echo "=========================================================="
+echo "⚠️  Catat password di atas. Script ini tidak akan menampilkannya lagi."
+echo "=========================================================="
 
-echo "=========================================================="
-echo "🎉 INSTALASI MURNI SYSTEMD SELESAI!"
-echo "Semua aplikasi hidup, berjalan independen, dan akan AUTO-START."
-echo "=========================================================="
-echo "Cek API Backend: http://IP_SERVER:8000"
-echo "Cek Frontend   : http://IP_SERVER:5173"
-echo "=========================================================="
-echo "🔐 KREDENSIAL APLIKASI (SIMPAN BAIK-BAIK!)"
-echo "=========================================================="
-echo "Web Login (Admin)"
-echo "- Email    : admin@vms.com"
-echo "- Password : ${ADMIN_PASS}"
-echo ""
-echo "Database (PostgreSQL)"
-echo "- User     : postgres"
-echo "- Password : ${DB_PASS}"
-echo ""
-echo "S3 Storage (MinIO) -> http://IP_SERVER:9001"
-echo "- User     : admin"
-echo "- Password : ${MINIO_PASS}"
-echo "=========================================================="
