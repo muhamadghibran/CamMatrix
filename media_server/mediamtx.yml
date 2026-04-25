@@ -27,7 +27,6 @@ logDestinations: [stdout]
 authInternalUsers:
   - user: publisher
     pass: ${MTX_PUBLISHER_PASS}
-    ips: [127.0.0.1/32]        # Hanya backend (localhost) yang boleh publish
     permissions:
       - action: publish
       - action: api
