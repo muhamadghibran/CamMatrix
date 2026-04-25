@@ -52,12 +52,14 @@
 - **Rate Limiting** — Login dibatasi 5x/menit untuk mencegah brute-force
 - **Session** — Token disimpan aman, logout membersihkan semua state
 
-### 🛡️ Keamanan
-- **Enkripsi Kredensial Kamera** — Password RTSP dienkripsi menggunakan Fernet sebelum disimpan ke database
-- **Password Tidak Bocor** — API tidak pernah mengembalikan password kamera ke browser
-- **Validasi RTSP URL** — Hanya `rtsp://` dan `rtsps://` yang diizinkan, IP loopback diblokir
-- **Secret Key Validation** — Startup akan gagal jika SECRET_KEY tidak dikonfigurasi dengan benar
-- **Auth pada Endpoint Admin** — Semua endpoint sensitif dilindungi autentikasi
+### 🛡️ Keamanan & Hardening (Audit Sesi 2)
+- **Wajib Ganti Password** — Admin baru yang dibuat via script wajib mengganti password saat login pertama kali (Scope terisolasi).
+- **Isolasi API Streaming** — API MediaMTX (port 9997) dikunci hanya untuk akses `127.0.0.1` (backend), mencegah manipulasi dari internet.
+- **Otentikasi Streaming Spesifik** — Akses *wildcard* dihapus, diganti dengan 2 role spesifik (*Publisher* dan *Viewer*).
+- **Enkripsi Kredensial Kamera** — Password CCTV dienkripsi menggunakan *Fernet* di dalam database PostgreSQL.
+- **Obfuscasi Konfigurasi YAML** — Kredensial RTSP disimpan di file terpisah (`cameras.env` mode 600) untuk mencegah *plaintext* di `mediamtx.yml`.
+- **Validasi RTSP & Anti-SSRF** — Hanya `rtsp://` dan `rtsps://` yang diizinkan, menolak injeksi IP lokal palsu.
+- **Startup Safety Check** — Server menolak hidup jika mendeteksi password admin masih default (`admin123`) di mode Production.
 
 ### 📊 Dashboard
 - **Statistik Real-time** — Kamera aktif, rekaman, penyimpanan
@@ -279,8 +281,9 @@ users (
   full_name       VARCHAR(255),
   email           VARCHAR(255) UNIQUE NOT NULL,
   hashed_password VARCHAR(255),
-  role            ENUM('ADMIN') DEFAULT 'ADMIN',
+  role            ENUM('ADMIN', 'OPERATOR', 'VIEWER') DEFAULT 'VIEWER',
   is_active       BOOLEAN DEFAULT TRUE,
+  must_change_password BOOLEAN DEFAULT FALSE,
   created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 )
 
