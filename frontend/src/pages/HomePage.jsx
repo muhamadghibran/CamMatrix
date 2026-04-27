@@ -119,18 +119,10 @@ export default function HomePage() {
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
           <Link
-            to="/login"
-            className="p-2 mr-1 rounded-lg transition-colors"
-            style={{ color: "var(--color-text-sub)" }}
-            title="Admin Login"
-          >
-            <Lock size={18} />
-          </Link>
-          <Link
             to="/live"
             className="px-5 py-2 text-sm font-semibold rounded bg-cyan-600 text-white hover:bg-cyan-700 transition-colors shadow-sm"
           >
-            {t("home.getStarted") || "Mulai Pantau"}
+            {t("home.signIn")}
           </Link>
         </div>
       </nav>
@@ -176,7 +168,7 @@ export default function HomePage() {
               to="/live"
               className="px-6 py-3.5 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded text-sm transition-colors shadow-none"
             >
-              <AnimatedText text={t("home.getStarted") || "Mulai Pantau"} delayOffset={1200} splitBy="char" />
+              <AnimatedText text={t("home.signIn")} delayOffset={1200} splitBy="char" />
             </Link>
           </div>
         </div>
