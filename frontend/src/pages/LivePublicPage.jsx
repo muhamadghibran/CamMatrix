@@ -175,17 +175,6 @@ export default function LivePublicPage() {
             <RefreshCw size={14} />
           </button>
 
-          {/* Admin login */}
-          <Link to="/login" style={{
-            display: "flex", alignItems: "center", gap: "6px",
-            padding: "8px 16px", borderRadius: "10px",
-            background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)",
-            color: "#a78bfa", fontSize: "12px", fontWeight: 700,
-            textDecoration: "none", transition: "all 0.2s",
-          }}>
-            <Shield size={13} />
-            Admin
-          </Link>
         </div>
       </header>
 
