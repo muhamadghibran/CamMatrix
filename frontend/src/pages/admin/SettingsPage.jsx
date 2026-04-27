@@ -1,8 +1,8 @@
 import { Sun, Moon, Monitor, Bell, Shield, Database, Cpu, Globe, Save, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
-import { useThemeStore } from "../store/themeStore";
-import { useLanguageStore } from "../store/languageStore";
-import AnimatedText from "../components/AnimatedText";
+import { useThemeStore } from "../../store/themeStore";
+import { useLanguageStore } from "../../store/languageStore";
+import AnimatedText from "../../components/AnimatedText";
 
 // eslint-disable-next-line no-unused-vars
 function SectionCard({ icon: Icon, iconColor, title, children, delay = 0 }) {

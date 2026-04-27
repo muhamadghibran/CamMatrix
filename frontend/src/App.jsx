@@ -5,16 +5,16 @@ import { useAuthStore } from "./store/authStore";
 
 import MainLayout from "./components/layout/MainLayout";
 
-import HomePage from "./pages/HomePage";
-import LoginPage from "./pages/LoginPage";
-import LivePublicPage from "./pages/LivePublicPage";
-import DashboardPage from "./pages/DashboardPage";
-import LiveViewPage from "./pages/LiveViewPage";
-import CamerasPage from "./pages/CamerasPage";
-import RecordingsPage from "./pages/RecordingsPage";
-import UsersPage from "./pages/UsersPage";
-import SettingsPage from "./pages/SettingsPage";
-import FaceAnalyticsPage from "./pages/FaceAnalyticsPage";
+import HomePage from "./pages/public/HomePage";
+import LoginPage from "./pages/auth/LoginPage";
+import LivePublicPage from "./pages/public/LivePublicPage";
+import DashboardPage from "./pages/admin/DashboardPage";
+import LiveViewPage from "./pages/admin/LiveViewPage";
+import CamerasPage from "./pages/admin/CamerasPage";
+import RecordingsPage from "./pages/admin/RecordingsPage";
+import UsersPage from "./pages/admin/UsersPage";
+import SettingsPage from "./pages/admin/SettingsPage";
+import FaceAnalyticsPage from "./pages/admin/FaceAnalyticsPage";
 
 /** Redirect ke /login jika belum login */
 function ProtectedRoute({ children }) {

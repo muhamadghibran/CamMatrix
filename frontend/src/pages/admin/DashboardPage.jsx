@@ -1,9 +1,9 @@
 import { Camera, MonitorPlay, Film, HardDrive, Users, Activity, TrendingUp, ArrowUpRight, ArrowDownRight, RefreshCw } from "lucide-react";
-import { useLanguageStore } from "../store/languageStore";
+import { useLanguageStore } from "../../store/languageStore";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import AnimatedText from "../components/AnimatedText";
-import api from "../utils/api";
+import AnimatedText from "../../components/AnimatedText";
+import api from "../../utils/api";
 
 /* ── Sparkline SVG ── */
 function Sparkline({ data, color }) {

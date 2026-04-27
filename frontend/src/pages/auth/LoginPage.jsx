@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Shield, Eye, EyeOff, Lock, Mail, Tv2 } from "lucide-react";
-import { useAuthStore } from "../store/authStore";
-import { useThemeStore } from "../store/themeStore";
-import { useLanguageStore } from "../store/languageStore";
-import { API_BASE_URL as API } from "../constants/api";
+import { useAuthStore } from "../../store/authStore";
+import { useThemeStore } from "../../store/themeStore";
+import { useLanguageStore } from "../../store/languageStore";
+import { API_BASE_URL as API } from "../../constants/api";
 
 export default function LoginPage() {
   const [email, setEmail]       = useState("");

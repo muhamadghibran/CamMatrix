@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Users, Plus, Edit2, Trash2, X, ShieldCheck, User, Search, Mail, Crown, Check, RefreshCw, AlertCircle } from "lucide-react";
-import { useLanguageStore } from "../store/languageStore";
-import AnimatedText from "../components/AnimatedText";
-import api from "../utils/api";
+import { useLanguageStore } from "../../store/languageStore";
+import AnimatedText from "../../components/AnimatedText";
+import api from "../../utils/api";
 
 const roleStyle = {
   ADMIN:    { label: "Admin",    color: "#06b6d4", bg: "rgba(6,182,212,0.1)",   border: "rgba(6,182,212,0.25)",   icon: Crown },

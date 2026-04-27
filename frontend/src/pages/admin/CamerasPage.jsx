@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Camera, Plus, Wifi, WifiOff, Edit2, Trash2, X, Search, Signal, Check } from "lucide-react";
-import { useLanguageStore } from "../store/languageStore";
-import { useCameraStore } from "../store/cameraStore";
-import AnimatedText from "../components/AnimatedText";
+import { useLanguageStore } from "../../store/languageStore";
+import { useCameraStore } from "../../store/cameraStore";
+import AnimatedText from "../../components/AnimatedText";
 
 const statusCfg = {
   live:      { color: "#10b981", label: "live",      bg: "rgba(16,185,129,0.1)",   border: "rgba(16,185,129,0.25)" },

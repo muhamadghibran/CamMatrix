@@ -1,6 +1,6 @@
 import { ScanFace, Camera, Clock, ArrowRight, TrendingUp, Shield, ChevronUp, ChevronDown } from "lucide-react";
-import { useLanguageStore } from "../store/languageStore";
-import AnimatedText from "../components/AnimatedText";
+import { useLanguageStore } from "../../store/languageStore";
+import AnimatedText from "../../components/AnimatedText";
 
 const detections = [
   { id: 1, face: "Unknown #001", cam1: "Main Entrance",  cam2: "Lobby",       time1: "08:14:32", time2: "08:17:05", confidence: 94 },

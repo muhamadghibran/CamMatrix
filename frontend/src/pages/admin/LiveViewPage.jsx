@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Maximize2, Grid2X2, Grid3X3, LayoutGrid, Camera, WifiOff, Expand, Minimize2, Clock, RefreshCw } from "lucide-react";
 import Hls from "hls.js";
-import { useLanguageStore } from "../store/languageStore";
-import { useCameraStore } from "../store/cameraStore";
-import AnimatedText from "../components/AnimatedText";
+import { useLanguageStore } from "../../store/languageStore";
+import { useCameraStore } from "../../store/cameraStore";
+import AnimatedText from "../../components/AnimatedText";
 
 const gridLayouts = [
   { key: "1x1", icon: Maximize2,  cols: 1, label: "1×1" },

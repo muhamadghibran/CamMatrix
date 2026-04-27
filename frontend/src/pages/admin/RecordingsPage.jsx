@@ -1,7 +1,7 @@
 import { Film, Download, Play, Pause, Clock, HardDrive, Search, Filter, Calendar, ScanFace, X } from "lucide-react";
 import { useState, useMemo } from "react";
-import { useLanguageStore } from "../store/languageStore";
-import AnimatedText from "../components/AnimatedText";
+import { useLanguageStore } from "../../store/languageStore";
+import AnimatedText from "../../components/AnimatedText";
 import FaceAnalyticsPage from "./FaceAnalyticsPage";
 
 const allRecordings = [

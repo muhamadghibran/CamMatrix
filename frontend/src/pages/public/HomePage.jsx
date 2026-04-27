@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Shield, MonitorPlay, ScanFace, Film, ArrowRight, Camera, Lock, Zap, Sun, Moon } from "lucide-react";
-import { useThemeStore } from "../store/themeStore";
-import { useLanguageStore } from "../store/languageStore";
+import { useThemeStore } from "../../store/themeStore";
+import { useLanguageStore } from "../../store/languageStore";
 
 function AnimatedText({ text, delayOffset = 0, className = "", splitBy = "char" }) {
   const [isVisible, setIsVisible] = useState(false);
