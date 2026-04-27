@@ -12,6 +12,10 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState("");
+  
+  const [mustChangePass, setMustChangePass] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [tempToken, setTempToken] = useState("");
 
   const { setAuth }    = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
@@ -31,7 +35,15 @@ export default function LoginPage() {
         setError(data.detail || "Email atau password salah.");
         setLoading(false); return;
       }
-      const { access_token } = await res.json();
+      const resData = await res.json();
+      const access_token = resData.access_token;
+
+      if (resData.must_change_password) {
+        setTempToken(access_token);
+        setMustChangePass(true);
+        setLoading(false);
+        return;
+      }
       // Ambil profil
       const profileRes = await fetch(`${API}/auth/me`, {
         headers: { Authorization: `Bearer ${access_token}` },
@@ -40,6 +52,46 @@ export default function LoginPage() {
       const profile = await profileRes.json();
       setAuth({ name: profile.full_name, email: profile.email, role: profile.role }, access_token);
       localStorage.setItem("access_token", access_token);
+      navigate("/app/dashboard");
+    } catch {
+      setError("Tidak dapat terhubung ke server. Coba lagi.");
+    }
+    setLoading(false);
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setError(""); setLoading(true);
+    if (newPassword.length < 8) {
+      setError("Password baru minimal 8 karakter.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/auth/change-password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tempToken}`,
+        },
+        body: JSON.stringify({ new_password: newPassword }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.detail || "Gagal mengganti password.");
+        setLoading(false); return;
+      }
+      const data = await res.json();
+      const final_token = data.access_token;
+      
+      const profileRes = await fetch(`${API}/auth/me`, {
+        headers: { Authorization: `Bearer ${final_token}` },
+      });
+      if (!profileRes.ok) throw new Error("Gagal mengambil profil.");
+      const profile = await profileRes.json();
+      setAuth({ name: profile.full_name, email: profile.email, role: profile.role }, final_token);
+      localStorage.setItem("access_token", final_token);
       navigate("/app/dashboard");
     } catch {
       setError("Tidak dapat terhubung ke server. Coba lagi.");
@@ -172,6 +224,53 @@ export default function LoginPage() {
             {loading ? "Masuk..." : "Masuk"}
           </button>
         </form>
+
+        {/* Modal Ganti Password */}
+        {mustChangePass && (
+          <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.8)", backdropFilter: "blur(5px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 50
+          }}>
+            <div style={{
+              background: "#1e1e24", padding: "30px", borderRadius: "16px",
+              width: "100%", maxWidth: "350px", border: "1px solid rgba(255,255,255,0.1)"
+            }}>
+              <h2 style={{ color: "white", marginTop: 0, fontSize: "18px", marginBottom: "10px" }}>Wajib Ganti Password</h2>
+              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "13px", marginBottom: "20px" }}>
+                Demi keamanan, Anda diwajibkan mengganti password sementara ini sebelum melanjutkan.
+              </p>
+              <form onSubmit={handleChangePassword} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", color: "rgba(255,255,255,0.6)", marginBottom: "5px" }}>Password Baru</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Minimal 8 karakter"
+                    required
+                    style={{
+                      width: "100%", padding: "10px 14px", background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.2)", borderRadius: "8px", color: "white", outline: "none"
+                    }}
+                  />
+                </div>
+                {error && <div style={{ color: "#f87171", fontSize: "12px" }}>{error}</div>}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    padding: "10px", borderRadius: "8px", border: "none", color: "white", fontWeight: "bold",
+                    background: "linear-gradient(135deg,#8b5cf6,#06b6d4)", cursor: "pointer"
+                  }}
+                >
+                  {loading ? "Menyimpan..." : "Simpan & Lanjutkan"}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Link ke halaman publik */}
         <div style={{ marginTop: "28px", textAlign: "center" }}>
