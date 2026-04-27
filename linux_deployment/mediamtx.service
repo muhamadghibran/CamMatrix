@@ -5,6 +5,7 @@ After=network.target
 [Service]
 # N1: Load password publisher/viewer dari file env yang hanya bisa dibaca root
 EnvironmentFile=/etc/mediamtx/mediamtx.env
+EnvironmentFile=-/etc/mediamtx/cameras.env
 ExecStart=/usr/local/bin/mediamtx /etc/mediamtx/mediamtx.yml
 Restart=always
 RestartSec=3
