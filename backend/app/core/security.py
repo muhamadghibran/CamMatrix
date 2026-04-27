@@ -7,10 +7,10 @@ from passlib.context import CryptContext
 from cryptography.fernet import Fernet
 from app.core.config import settings
 
-# ─── Fernet Key — Derive dari SECRET_KEY agar tidak perlu env variable baru ───
+# ─── Fernet Key — Derive dari ENCRYPTION_KEY ───
 def _get_fernet() -> Fernet:
-    """Buat Fernet cipher dari SECRET_KEY. Menggunakan SHA-256 untuk normalisasi."""
-    key_bytes = hashlib.sha256(settings.SECRET_KEY.encode()).digest()
+    """Buat Fernet cipher dari ENCRYPTION_KEY. Menggunakan SHA-256 untuk normalisasi."""
+    key_bytes = hashlib.sha256(settings.ENCRYPTION_KEY.encode()).digest()
     fernet_key = base64.urlsafe_b64encode(key_bytes)
     return Fernet(fernet_key)
 

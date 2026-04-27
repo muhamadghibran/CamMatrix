@@ -10,12 +10,12 @@ const statusCfg = {
   recording: { color: "#ef4444", label: "recording", bg: "rgba(239,68,68,0.1)",   border: "rgba(239,68,68,0.25)" },
 };
 
-const emptyForm = { name: "", location: "", ip: "", port: "554", user: "", password: "" };
+const emptyForm = { name: "", location: "", ip: "", port: "554", user: "", password: "", is_public: false };
 
 function CameraModal({ onClose, onSave, editData }) {
   const { t } = useLanguageStore();
   const [form, setForm] = useState(editData
-    ? { name: editData.name, location: editData.location, ip: editData.rtsp_url, port: "554", user: editData.username || "", password: "" }
+    ? { name: editData.name, location: editData.location, ip: editData.rtsp_url, port: "554", user: editData.username || "", password: "", is_public: editData.is_public || false }
     : emptyForm
   );
   const isEdit = !!editData;
@@ -70,6 +70,18 @@ function CameraModal({ onClose, onSave, editData }) {
                 />
               </div>
             ))}
+            <div className="col-span-2 flex items-center justify-between p-3 mt-2 rounded-xl" style={{ backgroundColor: "var(--color-surface-elevated)", border: "1px solid var(--color-card-border)" }}>
+              <div>
+                <label className="block text-sm font-semibold" style={{ color: "var(--color-text-base)" }}>Kamera Publik</label>
+                <span className="text-[11px]" style={{ color: "var(--color-text-sub)" }}>Izinkan semua orang menonton (tanpa login)</span>
+              </div>
+              <button 
+                onClick={() => setForm({ ...form, is_public: !form.is_public })} 
+                className={`w-11 h-6 rounded-full relative transition-colors duration-200 ${form.is_public ? "bg-cyan-500" : "bg-gray-600"}`}
+              >
+                <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-all duration-200 ${form.is_public ? "left-6" : "left-1"}`} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -149,7 +161,8 @@ export default function CamerasPage() {
       location: form.location,
       rtsp_url: form.ip,
       username: form.user,
-      password: form.password
+      password: form.password,
+      is_public: form.is_public
     });
     setShowModal(false);
   };
@@ -160,6 +173,7 @@ export default function CamerasPage() {
       location: form.location,
       rtsp_url: form.ip,
       username: form.user,
+      is_public: form.is_public,
     };
     // M6: Hanya kirim password jika user mengisi field baru — jangan hapus password lama
     if (form.password) payload.password = form.password;
@@ -240,7 +254,10 @@ export default function CamerasPage() {
                         <Camera size={15} style={{ color: s.color }} />
                       </div>
                       <div>
-                        <span className="text-[13px] font-semibold block" style={{ color: "var(--color-text-base)" }}>{cam.name}</span>
+                        <span className="text-[13px] font-semibold flex items-center gap-2" style={{ color: "var(--color-text-base)" }}>
+                          {cam.name}
+                          {cam.is_public && <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-500 font-bold tracking-wider">PUBLIC</span>}
+                        </span>
                         <span className="text-[11px]" style={{ color: "var(--color-text-sub)" }}>ID #{cam.id.toString().padStart(3, "0")}</span>
                       </div>
                     </div>

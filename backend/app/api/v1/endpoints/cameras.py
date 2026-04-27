@@ -6,7 +6,8 @@ from sqlalchemy import select
 
 from app.api import deps
 from app.core.config import settings
-from app.core.security import encrypt_symmetric, decrypt_symmetric
+from app.core.security import encrypt_symmetric
+from app.services import mediamtx_client, decrypt_symmetric
 from app.models.camera import Camera
 from app.schemas.camera import CameraCreate, CameraUpdate, CameraResponse
 from app.models.user import User, UserRole
@@ -92,121 +93,22 @@ async def register_camera_to_mediamtx(user_id: int, camera_id: int, rtsp_url: st
     """Daftarkan RTSP source ke MediaMTX dengan path unik per pengguna."""
     try:
         path = _path_name(user_id, camera_id)
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            payload = {"source": rtsp_url}
-            if rtsp_url == "publisher":
-                payload = {} # Kosongkan source agar MediaMTX menerima PUSH
-            await client.post(
-                f"{MEDIAMTX_API}/v3/config/paths/add/{path}",
-                json=payload
-            )
-    except Exception:
-        pass
+        await mediamtx_client.add_path(path, rtsp_url)
+    except Exception as e:
+        print(f"Failed to register camera {camera_id}: {e}")
 
 
 async def remove_camera_from_mediamtx(user_id: int, camera_id: int):
     """Hapus path dari MediaMTX saat kamera dihapus."""
     try:
         path = _path_name(user_id, camera_id)
-        async with httpx.AsyncClient(timeout=2.0) as client:
-            await client.delete(f"{MEDIAMTX_API}/v3/config/paths/delete/{path}")
-    except Exception:
-        pass
-
-
-
-def write_cameras_paths(cameras: list):
-    """
-    N3+N4: Tulis paths kamera ke mediamtx.yml dengan aman.
-    Strategi:
-    - Baca base config dari mediamtx.yml (hanya sampai baris 'paths:')
-    - Tulis cameras.env (mode 600) berisi RTSP URL yang sudah di-decrypt
-    - Tambahkan paths ke bawah config dengan referensi ${CAM_x_RTSP_URL}
-    - Reload mediamtx agar config terbaca tanpa restart
-    """
-    import os, subprocess
-
-    config_path = settings.MEDIAMTX_CONFIG_PATH          # /etc/mediamtx/mediamtx.yml
-    env_path    = "/etc/mediamtx/cameras.env"
-
-    # ── 1. Baca base config (hanya sampai sebelum paths pertama yg dynamic) ──
-    base_lines = []
-    try:
-        with open(config_path, "r", encoding="utf-8") as f:
-            for line in f:
-                base_lines.append(line)
-                # Potong tepat setelah baris "  all_others:"
-                if line.strip() == "all_others:":
-                    break
-    except FileNotFoundError:
-        # Fallback kalau config belum ada sama sekali
-        base_lines = [
-            "###############################################################\n",
-            "# MediaMTX — Auto-generated (base config tidak ditemukan)\n",
-            "###############################################################\n",
-            "rtspAddress: :8554\n",
-            "hlsAddress: :8888\n",
-            "hlsAlwaysRemux: yes\n",
-            "api: yes\n",
-            "apiAddress: 127.0.0.1:9997\n",
-            "logLevel: info\n",
-            "logDestinations: [stdout]\n",
-            "paths:\n",
-            "  all_others:\n",
-        ]
-
-    # ── 2. Bangun cameras.env dan paths section ──────────────────────────────
-    env_lines   = ["# cameras.env — Di-generate otomatis oleh backend. Jangan edit manual.\n"]
-    paths_lines = []
-
-    for cam in cameras:
-        path_name = _path_name(cam.owner_id, cam.id)
-        env_key   = f"CAM_{cam.owner_id}_{cam.id}_RTSP_URL"
-
-        if cam.rtsp_url == "publisher":
-            # Mode push — tidak butuh source, tidak perlu env entry
-            paths_lines.append(f"\n  {path_name}:\n")
-        else:
-            # Decrypt RTSP URL + credentials → simpan ke env, referensi di yaml
-            full_url = _build_rtsp_with_auth(cam.rtsp_url, cam.username, cam.password)
-            env_lines.append(f"{env_key}={full_url}\n")
-            paths_lines.append(
-                f"\n  {path_name}:\n"
-                f"    source: ${{{env_key}}}\n"
-                f"    sourceOnDemandCloseAfter: 60s\n"
-            )
-
-    # ── 3. Tulis cameras.env (mode 600 agar hanya root yang bisa baca) ───────
-    try:
-        with open(env_path, "w", encoding="utf-8") as f:
-            f.writelines(env_lines)
-        os.chmod(env_path, 0o600)
+        await mediamtx_client.remove_path(path)
     except Exception as e:
-        print(f"⚠️  Gagal menulis cameras.env: {e}")
-
-    # ── 4. Tulis mediamtx.yml = base + dynamic paths ─────────────────────────
-    try:
-        with open(config_path, "w", encoding="utf-8") as f:
-            f.writelines(base_lines)
-            f.writelines(paths_lines)
-        print(f"✅ mediamtx.yml diperbarui dengan {len(cameras)} kamera")
-    except Exception as e:
-        print(f"⚠️  Gagal menulis mediamtx.yml: {e}")
-        return
-
-    # ── 5. Reload mediamtx agar paths langsung aktif ─────────────────────────
-    try:
-        subprocess.run(
-            ["systemctl", "reload", "mediamtx"],
-            check=False, timeout=5,
-            capture_output=True,
-        )
-    except Exception:
-        pass  # Di lingkungan dev (Windows), perintah ini tidak ada — tidak masalah
+        print(f"Failed to remove camera {camera_id}: {e}")
 
 
-# Alias backward-compat agar main.py tidak perlu diubah
-write_cameras_to_config = write_cameras_paths
+
+
 
 
 
@@ -238,7 +140,7 @@ async def read_cameras(
     db: deps.DbSession,
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     if current_user.role == UserRole.ADMIN:
         stmt = select(Camera).offset(skip).limit(limit)
@@ -257,7 +159,7 @@ async def read_cameras(
 @router.get("/statuses")
 async def get_all_camera_statuses(
     db: deps.DbSession,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     if current_user.role == UserRole.ADMIN:
         stmt = select(Camera.id, Camera.owner_id)
@@ -282,7 +184,7 @@ async def get_all_camera_statuses(
 async def get_camera_status(
     camera_id: int,
     db: deps.DbSession,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     camera = await _get_owned_camera(camera_id, current_user, db)
     cam_status = await get_mediamtx_status(camera.owner_id, camera_id)
@@ -297,7 +199,7 @@ async def create_camera(
     *,
     db: deps.DbSession,
     camera_in: CameraCreate,
-    current_user: User = Depends(deps.get_current_user)  # Semua user bisa tambah kamera
+    current_user: User = Depends(deps.get_current_user_full_scope)  # Semua user bisa tambah kamera
 ) -> Any:
     # C9: Validasi RTSP URL sebelum disimpan (cegah SSRF)
     validated_url = _validate_rtsp_url(camera_in.rtsp_url)
@@ -314,16 +216,10 @@ async def create_camera(
     await db.commit()
     await db.refresh(camera)
 
-    # Bangun URL RTSP yang sudah memiliki kredensial tersemat untuk MediaMTX
     authenticated_url = _build_rtsp_with_auth(
         camera.rtsp_url, camera.username, camera.password
     )
     await register_camera_to_mediamtx(current_user.id, camera.id, authenticated_url)
-
-    # Update mediamtx.yml
-    all_cams_result = await db.execute(select(Camera))
-    all_cams = all_cams_result.scalars().all()
-    write_cameras_to_config(all_cams)
 
     return camera_to_dict(camera, "offline")
 
@@ -337,7 +233,7 @@ async def update_camera(
     db: deps.DbSession,
     camera_id: int,
     camera_in: CameraUpdate,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     camera = await _get_owned_camera(camera_id, current_user, db)
 
@@ -359,6 +255,11 @@ async def update_camera(
     await db.refresh(camera)
 
     st = await get_mediamtx_status(camera.owner_id, camera.id)
+    
+    # Update MediaMTX config if RTSP URL changed
+    authenticated_url = _build_rtsp_with_auth(camera.rtsp_url, camera.username, camera.password)
+    await mediamtx_client.add_path(_path_name(camera.owner_id, camera.id), authenticated_url)
+
     return camera_to_dict(camera, st)
 
 
@@ -370,7 +271,7 @@ async def delete_camera(
     *,
     db: deps.DbSession,
     camera_id: int,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     camera = await _get_owned_camera(camera_id, current_user, db)
 
@@ -378,9 +279,6 @@ async def delete_camera(
     await db.delete(camera)
     await db.commit()
 
-    remaining_result = await db.execute(select(Camera))
-    remaining_cams = remaining_result.scalars().all()
-    write_cameras_to_config(remaining_cams)
     return {"message": "Camera deleted successfully"}
 
 

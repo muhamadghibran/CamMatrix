@@ -26,10 +26,19 @@ cp -r . $APP_DIR || true # Asumsi script dijalankan dari dalam project folder
 apt-get update -y
 apt-get install -y curl wget git python3 python3-venv python3-pip openssl build-essential libpq-dev
 
-# Generate Kredensial Acak Super Aman
+# === Network setup ===
+SERVER_IP=$(curl -s --max-time 5 ifconfig.me || echo "127.0.0.1")
+if [ -z "$SERVER_IP" ] || [ "$SERVER_IP" = "127.0.0.1" ]; then
+    echo "WARNING: cannot detect public IP. Using local IP."
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+fi
+echo "Detected SERVER_IP=${SERVER_IP}"
+
+# === Generate Kredensial Acak Super Aman ===
 DB_PASS=$(openssl rand -hex 12)
 MINIO_PASS=$(openssl rand -hex 16)
 JWT_SECRET=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
 
 # C3: Admin password — pakai env jika sudah di-set, atau auto-generate
 if [ -z "${ADMIN_INITIAL_PASSWORD}" ]; then
@@ -51,11 +60,13 @@ fi
 # N2: Generate password untuk MediaMTX publisher dan viewer
 MTX_PUBLISHER_PASS=$(openssl rand -hex 16)
 MTX_VIEWER_PASS=$(openssl rand -hex 16)
+MTX_MOBILE_PUBLISHER_PASS=$(openssl rand -hex 16)
 
 echo "[2/8] Membuat file konfigurasi Lingkungan (.env)..."
 cat <<EOF > $APP_DIR/backend/.env
 DATABASE_URL=postgresql+asyncpg://postgres:${DB_PASS}@localhost:5432/cctv_vms
 SECRET_KEY=${JWT_SECRET}
+ENCRYPTION_KEY=${ENCRYPTION_KEY}
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 DEBUG=false
@@ -67,7 +78,6 @@ CORS_ORIGINS=["http://${SERVER_IP}:5173","http://localhost:5173"]
 HLS_BASE_URL=http://${SERVER_IP}:8888
 EOF
 
-SERVER_IP=$(curl -s ifconfig.me)
 cat <<EOF > $APP_DIR/frontend/.env
 VITE_API_BASE_URL=http://${SERVER_IP}:8000/api/v1
 VITE_WS_BASE_URL=ws://${SERVER_IP}:8000/ws
@@ -119,6 +129,7 @@ cp $APP_DIR/media_server/mediamtx.yml /etc/mediamtx/mediamtx.yml
 cat <<EOF > /etc/mediamtx/mediamtx.env
 MTX_PUBLISHER_PASS=${MTX_PUBLISHER_PASS}
 MTX_VIEWER_PASS=${MTX_VIEWER_PASS}
+MTX_MOBILE_PUBLISHER_PASS=${MTX_MOBILE_PUBLISHER_PASS}
 EOF
 chmod 600 /etc/mediamtx/mediamtx.env
 echo "✅ /etc/mediamtx/mediamtx.env dibuat (mode 600)"
@@ -181,11 +192,17 @@ async def seed():
     session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)()
     hashed  = pwd_context.hash(password)
     async with session.begin():
-        await session.execute(text(
-            f"INSERT INTO users (full_name, email, hashed_password, role, is_active, must_change_password) "
-            f"VALUES ('System Admin', 'admin@vms.com', '{hashed}', 'ADMIN', true, true) "
-            f"ON CONFLICT (email) DO NOTHING;"
-        ))
+        sql = text("""
+            INSERT INTO users (full_name, email, hashed_password, role, is_active, must_change_password) 
+            VALUES (:name, :email, :password, :role, true, true) 
+            ON CONFLICT (email) DO NOTHING;
+        """)
+        await session.execute(sql, {
+            "name": "System Admin",
+            "email": "admin@vms.com",
+            "password": hashed,
+            "role": "ADMIN",
+        })
     await session.close()
     await engine.dispose()
 
@@ -222,6 +239,12 @@ echo ""
 echo "MinIO S3:"
 echo "  Password : ${MINIO_PASS}"
 echo "=========================================================="
+echo "=========================================================="
 echo "⚠️  Catat password di atas. Script ini tidak akan menampilkannya lagi."
+echo "=========================================================="
+echo "Larix mobile streaming:"
+echo "  Server: rtsp://${SERVER_IP}:8554/mobile_<NAMA_KAMERA>"
+echo "  User:   mobile_publisher"
+echo "  Pass:   ${MTX_MOBILE_PUBLISHER_PASS}"
 echo "=========================================================="
 

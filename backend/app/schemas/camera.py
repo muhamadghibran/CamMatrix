@@ -7,6 +7,7 @@ class CameraBase(BaseModel):
     rtsp_url: str
     username: Optional[str] = None
     password: Optional[str] = None
+    is_public: bool = False
 
 class CameraCreate(CameraBase):
     pass
@@ -17,6 +18,7 @@ class CameraUpdate(BaseModel):
     rtsp_url: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None
+    is_public: Optional[bool] = None
 
 class CameraResponse(CameraBase):
     id: int

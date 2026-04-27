@@ -41,8 +41,21 @@ async def get_current_user(
         
     return user
 
+async def get_current_user_full_scope(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: DbSession
+) -> User:
+    user = await get_current_user(token, db)
+    payload = decode_access_token(token)
+    if payload and payload.get("scope") == "password_change_only":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password must be changed before accessing this endpoint"
+        )
+    return user
+
 async def get_current_admin(
-    current_user: Annotated[User, Depends(get_current_user)]
+    current_user: Annotated[User, Depends(get_current_user_full_scope)]
 ) -> User:
     if current_user.role != UserRole.ADMIN:  # M1: pakai enum, bukan string
         raise HTTPException(

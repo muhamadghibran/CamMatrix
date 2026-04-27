@@ -222,17 +222,34 @@ Akun admin hanya dapat dibuat melalui terminal VPS (tidak ada form registrasi pu
 cd /var/www/CamMatrix/backend
 source venv/bin/activate
 python3 << 'EOF'
-import subprocess
+import asyncio, os
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 from passlib.context import CryptContext
+from sqlalchemy import text
 
 EMAIL    = "admin_baru@domain.com"
 PASSWORD = "PasswordKuat123!"
 NAME     = "Nama Admin"
 
-pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
-hashed = pwd.hash(PASSWORD)
-sql = f"INSERT INTO users (full_name, email, hashed_password, role, is_active) VALUES ('{NAME}', '{EMAIL}', '{hashed}', 'ADMIN', true) ON CONFLICT DO NOTHING;"
-subprocess.run(["sudo", "-u", "postgres", "psql", "-d", "cctv_vms", "-c", sql])
+# Gunakan parameter binding, JANGAN PAKAI f-string untuk SQL!
+# Detail: https://docs.sqlalchemy.org/en/20/core/tutorial.html#using-textual-sql
+async def seed():
+    engine  = create_async_engine(os.getenv("DATABASE_URL"))
+    session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)()
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    hashed = pwd_context.hash(PASSWORD)
+    
+    async with session.begin():
+        sql = text("""
+            INSERT INTO users (full_name, email, hashed_password, role, is_active, must_change_password) 
+            VALUES (:name, :email, :password, 'ADMIN', true, true) 
+            ON CONFLICT (email) DO NOTHING;
+        """)
+        await session.execute(sql, {"name": NAME, "email": EMAIL, "password": hashed})
+    await session.close()
+
+asyncio.run(seed())
 print(f"✅ Admin dibuat: {EMAIL}")
 EOF
 ```
@@ -242,6 +259,7 @@ EOF
 ```env
 DATABASE_URL=postgresql+asyncpg://postgres:PASSWORD@localhost:5432/cctv_vms
 SECRET_KEY=your-random-key-minimum-32-chars        # Generate: python -c "import secrets; print(secrets.token_hex(32))"
+ENCRYPTION_KEY=your-random-key-minimum-32-chars    # Generate: python -c "import secrets; print(secrets.token_hex(32))"
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 MINIO_ENDPOINT=localhost:9000

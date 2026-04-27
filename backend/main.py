@@ -19,7 +19,8 @@ async def lifespan(app: FastAPI):
         from app.core.database import AsyncSessionLocal
         from app.models.camera import Camera
         from app.core.security import verify_password
-        from app.api.v1.endpoints.cameras import write_cameras_to_config
+        from app.services import mediamtx_client
+        from app.api.v1.endpoints.cameras import _build_rtsp_with_auth, _path_name
 
         async with AsyncSessionLocal() as db:
 
@@ -35,13 +36,18 @@ async def lifespan(app: FastAPI):
                         "Ganti password admin sebelum menjalankan di production."
                     )
 
-            # ── Sinkronisasi semua kamera ke MediaMTX + tulis config ──
+            # ── Sinkronisasi semua kamera ke MediaMTX via API ──
             result = await db.execute(select(Camera))
             cameras = result.scalars().all()
 
-        # Tulis config mediamtx dengan paths yang aman (N3+N4)
-        write_cameras_to_config(cameras)
-        print(f"✅ Startup: {len(cameras)} kamera disinkronisasi ke MediaMTX config")
+        for cam in cameras:
+            full_url = "publisher" if cam.rtsp_url == "publisher" else _build_rtsp_with_auth(cam.rtsp_url, cam.username, cam.password)
+            try:
+                await mediamtx_client.add_path(_path_name(cam.owner_id, cam.id), full_url)
+            except Exception as e:
+                print(f"Failed to sync camera {cam.id} to MediaMTX: {e}")
+                
+        print(f"✅ Startup: {len(cameras)} kamera disinkronisasi ke MediaMTX API")
 
     except RuntimeError:
         raise  # Re-raise FATAL errors

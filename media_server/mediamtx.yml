@@ -27,9 +27,16 @@ logDestinations: [stdout]
 authInternalUsers:
   - user: publisher
     pass: ${MTX_PUBLISHER_PASS}
+    ips: [127.0.0.1/32]
     permissions:
       - action: publish
       - action: api
+
+  - user: mobile_publisher
+    pass: ${MTX_MOBILE_PUBLISHER_PASS}
+    permissions:
+      - action: publish
+        path: mobile_*
 
   - user: viewer
     pass: ${MTX_VIEWER_PASS}

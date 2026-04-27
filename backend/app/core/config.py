@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     # C10: Tidak ada default — raise di startup kalau kosong/default
     SECRET_KEY: str
+    ENCRYPTION_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
 
@@ -21,6 +22,15 @@ class Settings(BaseSettings):
             raise ValueError(
                 "SECRET_KEY harus diisi dengan nilai acak minimal 32 karakter. "
                 "Generate dengan: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        return v
+
+    @field_validator("ENCRYPTION_KEY")
+    @classmethod
+    def validate_encryption_key(cls, v: str) -> str:
+        if not v or len(v) < 64 or v.startswith("change-this"):
+            raise ValueError(
+                "ENCRYPTION_KEY must be set (64-char hex via openssl rand -hex 32)"
             )
         return v
 
@@ -35,6 +45,7 @@ class Settings(BaseSettings):
     MEDIAMTX_API_URL: str = "http://localhost:9997"
     MEDIAMTX_RTSP_BASE: str = "rtsp://localhost:8554"
     MEDIAMTX_CONFIG_PATH: str = "/etc/mediamtx/mediamtx.yml"
+    MTX_PUBLISHER_PASS: str = "publisher_pass" # Untuk integrasi API MediaMTX
 
     # C11: CORS dan HLS dari env, bukan hardcode IP
     CORS_ORIGINS: List[str] = Field(default=["http://localhost:5173"])

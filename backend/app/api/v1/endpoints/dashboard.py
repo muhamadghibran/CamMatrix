@@ -36,7 +36,7 @@ async def _check_cam_live(owner_id: int, cam_id: int) -> bool:
 @router.get("/stats")
 async def dashboard_stats(
     db: deps.DbSession,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     """
     Statistik dashboard: jumlah kamera, live, rekaman, pengguna, storage.
@@ -83,7 +83,7 @@ async def dashboard_stats(
 @router.get("/cameras-status")
 async def cameras_status(
     db: deps.DbSession,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     """
     Status real setiap kamera untuk tabel Status Kamera di dashboard.
