@@ -81,7 +81,10 @@ async def get_mediamtx_status(user_id: int, camera_id: int) -> str:
     try:
         path = _path_name(user_id, camera_id)
         async with httpx.AsyncClient(timeout=3.0) as client:
-            res = await client.get(f"{MEDIAMTX_API}/v3/paths/get/{path}")
+            res = await client.get(
+                f"{MEDIAMTX_API}/v3/paths/get/{path}",
+                auth=("publisher", settings.MTX_PUBLISHER_PASS),
+            )
             if res.status_code == 200 and (res.json().get("sourceReady") or res.json().get("ready")):
                 return "live"
     except Exception:
