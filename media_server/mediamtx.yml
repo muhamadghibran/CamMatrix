@@ -6,6 +6,7 @@
 
 # ── Network ────────────────────────────────────────────────
 rtspAddress: :8554
+rtspAuthMethods: [basic, digest]
 webrtcAddress: :8889
 
 hlsAddress: :8888
@@ -25,7 +26,6 @@ logDestinations: [stdout]
 # ── Auth — N2: hapus wildcard, pakai 2 role spesifik ───────
 # Basic auth dipakai agar kompatibel dengan Larix Broadcaster (mobile streaming)
 # Password diambil dari env /etc/mediamtx/mediamtx.env (mode 600)
-authMethod: basic
 authInternalUsers:
   - user: publisher
     pass: ${MTX_PUBLISHER_PASS}
