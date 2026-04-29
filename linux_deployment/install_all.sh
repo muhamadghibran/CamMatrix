@@ -125,14 +125,20 @@ rm mediamtx.tar.gz
 mkdir -p /etc/mediamtx
 cp $APP_DIR/media_server/mediamtx.yml /etc/mediamtx/mediamtx.yml
 
-# N1+N2: Buat mediamtx.env berisi password publisher/viewer (mode 600)
+# MediaMTX v1.9.0 tidak mengekspansi ${VAR} dari systemd EnvironmentFile.
+# Ganti placeholder langsung di file YAML dengan nilai yang sudah di-generate.
+sed -i "s|\${MTX_PUBLISHER_PASS}|${MTX_PUBLISHER_PASS}|g" /etc/mediamtx/mediamtx.yml
+sed -i "s|\${MTX_VIEWER_PASS}|${MTX_VIEWER_PASS}|g" /etc/mediamtx/mediamtx.yml
+sed -i "s|\${MTX_MOBILE_PUBLISHER_PASS}|${MTX_MOBILE_PUBLISHER_PASS}|g" /etc/mediamtx/mediamtx.yml
+
+# Simpan juga ke .env untuk referensi (backup password) — mode 600 agar hanya root yang bisa baca
 cat <<EOF > /etc/mediamtx/mediamtx.env
 MTX_PUBLISHER_PASS=${MTX_PUBLISHER_PASS}
 MTX_VIEWER_PASS=${MTX_VIEWER_PASS}
 MTX_MOBILE_PUBLISHER_PASS=${MTX_MOBILE_PUBLISHER_PASS}
 EOF
 chmod 600 /etc/mediamtx/mediamtx.env
-echo "✅ /etc/mediamtx/mediamtx.env dibuat (mode 600)"
+echo "✅ /etc/mediamtx/mediamtx.yml & mediamtx.env dibuat (mode 600)"
 
 # Buat cameras.env kosong dengan permission yang benar
 touch /etc/mediamtx/cameras.env
