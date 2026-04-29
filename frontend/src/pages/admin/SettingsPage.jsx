@@ -1,218 +1,1 @@
-import { Sun, Moon, Monitor, Bell, Shield, Database, Cpu, Globe, Save, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
-import { useThemeStore } from "../../store/themeStore";
-import { useLanguageStore } from "../../store/languageStore";
-import AnimatedText from "../../components/AnimatedText";
-
-// eslint-disable-next-line no-unused-vars
-function SectionCard({ icon: Icon, iconColor, title, children, delay = 0 }) {
-  return (
-    <div className="rounded-2xl overflow-hidden animate-slide-up opacity-0-init transition-all duration-300 group"
-      style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", animationDelay: `${delay}ms` }}
-      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,0.12), 0 0 0 1px ${iconColor}20`; e.currentTarget.style.borderColor = `${iconColor}30`; }}
-      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)"; e.currentTarget.style.borderColor = "var(--color-card-border)"; }}>
-      <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: "1px solid var(--color-card-border)" }}>
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300" style={{ backgroundColor: `${iconColor}15`, border: `1px solid ${iconColor}25` }}>
-          <Icon size={15} style={{ color: iconColor }} />
-        </div>
-        <h2 className="text-sm font-bold" style={{ color: "var(--color-text-base)" }}>{title}</h2>
-      </div>
-      <div className="px-6 py-1">{children}</div>
-    </div>
-  );
-}
-
-function SettingRow({ label, desc, children, noBorder = false }) {
-  return (
-    <div className="flex items-center justify-between py-4" style={{ borderBottom: noBorder ? "none" : "1px solid var(--color-card-border)" }}>
-      <div className="pr-6">
-        <p className="text-sm font-medium" style={{ color: "var(--color-text-base)" }}>{label}</p>
-        {desc && <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-sub)" }}>{desc}</p>}
-      </div>
-      <div className="shrink-0">{children}</div>
-    </div>
-  );
-}
-
-function Toggle({ checked, onChange }) {
-  return (
-    <button onClick={() => onChange(!checked)} className="relative rounded-full transition-all duration-300 focus:outline-none"
-      style={{ width: "42px", height: "24px", backgroundColor: checked ? "#06b6d4" : "var(--color-surface-elevated)", border: `1px solid ${checked ? "#06b6d4" : "var(--color-card-border)"}`, boxShadow: checked ? "0 0 12px rgba(6,182,212,0.4)" : "none", padding: "2px", display: "inline-flex", alignItems: "center" }}>
-      <span className="block rounded-full bg-white transition-all duration-300"
-        style={{ width: "18px", height: "18px", transform: checked ? "translateX(18px)" : "translateX(0px)", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }} />
-    </button>
-  );
-}
-
-function StyledSelect({ value, onChange, children }) {
-  return (
-    <select value={value} onChange={onChange} className="px-3 py-1.5 rounded-xl text-xs font-medium outline-none transition-all cursor-pointer"
-      style={{ backgroundColor: "var(--color-surface-elevated)", border: "1px solid var(--color-card-border)", color: "var(--color-text-base)", minWidth: "160px" }}>
-      {children}
-    </select>
-  );
-}
-
-export default function SettingsPage() {
-  const { theme, toggleTheme } = useThemeStore();
-  const { t, language, setLanguage } = useLanguageStore();
-  const [saved, setSaved] = useState(false);
-
-  // Notification toggles
-  const [notifFace,    setNotifFace]    = useState(true);
-  const [notifCamera,  setNotifCamera]  = useState(true);
-  const [notifStorage, setNotifStorage] = useState(false);
-
-  // AI Engine settings
-  const [aiDevice,     setAiDevice]     = useState("auto");
-  const [aiFrameRate,  setAiFrameRate]  = useState("balanced");
-  const [aiConfidence, setAiConfidence] = useState("balanced");
-
-  // Recording settings
-  const [recChunk,     setRecChunk]     = useState("30min");
-  const [autoDelete,   setAutoDelete]   = useState(true);
-  const [retention,    setRetention]    = useState("30d");
-
-  // Security settings
-  const [twoFA,        setTwoFA]        = useState(false);
-  const [sessionDur,   setSessionDur]   = useState("8hr");
-
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  };
-
-  return (
-    <div className="max-w-2xl space-y-5 relative z-10 animate-slide-up opacity-0-init delay-100 pb-10">
-
-      {/* Page header */}
-      <div className="mb-2">
-        <h1 className="text-2xl font-bold" style={{ color: "var(--color-text-base)" }}>
-          <AnimatedText text={t("settings.title")} delayOffset={0} splitBy="word" />
-        </h1>
-        <p className="text-sm mt-1" style={{ color: "var(--color-text-sub)" }}>{t("settings.subtitle")}</p>
-      </div>
-
-      {/* Appearance */}
-      <SectionCard icon={Monitor} iconColor="#06b6d4" title={t("settings.sections.appearance")} delay={100}>
-        <SettingRow label={t("settings.appearance.theme")} desc={t("settings.appearance.themeDesc")}>
-          <div className="flex items-center gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--color-surface-elevated)", border: "1px solid var(--color-card-border)" }}>
-            {[
-              { id: "light", icon: Sun,  label: t("settings.appearance.light") },
-              { id: "dark",  icon: Moon, label: t("settings.appearance.dark")  },
-            // eslint-disable-next-line no-unused-vars
-            ].map(({ id, icon: Icon, label }) => (
-              <button key={id} onClick={() => theme !== id && toggleTheme()}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200"
-                style={theme === id
-                  ? { background: "linear-gradient(135deg, #06b6d4, #00ffff)", color: "#fff", boxShadow: "0 2px 8px rgba(6,182,212,0.4)" }
-                  : { color: "var(--color-text-sub)" }}>
-                <Icon size={13} /> {label}
-              </button>
-            ))}
-          </div>
-        </SettingRow>
-      </SectionCard>
-
-      {/* Language */}
-      <SectionCard icon={Globe} iconColor="#06b6d4" title={t("settings.sections.language")} delay={200}>
-        <SettingRow label={t("settings.language.label")} desc={t("settings.language.desc")} noBorder>
-          <StyledSelect value={language} onChange={(e) => setLanguage(e.target.value)}>
-            <option value="id">🇮🇩 Indonesia</option>
-            <option value="en">🇺🇸 English (US)</option>
-            <option value="zh">🇨🇳 中文 (简体)</option>
-          </StyledSelect>
-        </SettingRow>
-      </SectionCard>
-
-      {/* Notifications */}
-      <SectionCard icon={Bell} iconColor="#f59e0b" title={t("settings.sections.notifications")} delay={300}>
-        <SettingRow label={t("settings.notifications.faceAlert")} desc={t("settings.notifications.faceAlertDesc")}>
-          <Toggle checked={notifFace} onChange={setNotifFace} />
-        </SettingRow>
-        <SettingRow label={t("settings.notifications.cameraAlert")} desc={t("settings.notifications.cameraAlertDesc")}>
-          <Toggle checked={notifCamera} onChange={setNotifCamera} />
-        </SettingRow>
-        <SettingRow label={t("settings.notifications.storageWarn")} desc={t("settings.notifications.storageWarnDesc")} noBorder>
-          <Toggle checked={notifStorage} onChange={setNotifStorage} />
-        </SettingRow>
-      </SectionCard>
-
-      {/* AI Engine */}
-      <SectionCard icon={Cpu} iconColor="#8b5cf6" title={t("settings.sections.aiEngine")} delay={400}>
-        <SettingRow label={t("settings.aiEngine.device")} desc={t("settings.aiEngine.deviceDesc")}>
-          <StyledSelect value={aiDevice} onChange={(e) => setAiDevice(e.target.value)}>
-            <option value="auto">{t("settings.aiEngine.deviceOptions.auto")}</option>
-            <option value="cpu">{t("settings.aiEngine.deviceOptions.cpu")}</option>
-            <option value="cuda">{t("settings.aiEngine.deviceOptions.cuda")}</option>
-          </StyledSelect>
-        </SettingRow>
-        <SettingRow label={t("settings.aiEngine.frameRate")} desc={t("settings.aiEngine.frameRateDesc")}>
-          <StyledSelect value={aiFrameRate} onChange={(e) => setAiFrameRate(e.target.value)}>
-            <option value="low">{t("settings.aiEngine.fpsOptions.low")}</option>
-            <option value="balanced">{t("settings.aiEngine.fpsOptions.balanced")}</option>
-            <option value="high">{t("settings.aiEngine.fpsOptions.high")}</option>
-            <option value="max">{t("settings.aiEngine.fpsOptions.max")}</option>
-          </StyledSelect>
-        </SettingRow>
-        <SettingRow label={t("settings.aiEngine.confidence")} desc={t("settings.aiEngine.confidenceDesc")} noBorder>
-          <StyledSelect value={aiConfidence} onChange={(e) => setAiConfidence(e.target.value)}>
-            <option value="relaxed">{t("settings.aiEngine.confOptions.relaxed")}</option>
-            <option value="balanced">{t("settings.aiEngine.confOptions.balanced")}</option>
-            <option value="strict">{t("settings.aiEngine.confOptions.strict")}</option>
-          </StyledSelect>
-        </SettingRow>
-      </SectionCard>
-
-      {/* Recording */}
-      <SectionCard icon={Database} iconColor="#10b981" title={t("settings.sections.recording")} delay={500}>
-        <SettingRow label={t("settings.recordingSection.chunk")} desc={t("settings.recordingSection.chunkDesc")}>
-          <StyledSelect value={recChunk} onChange={(e) => setRecChunk(e.target.value)}>
-            <option value="15min">{t("settings.recordingSection.chunkOptions.15min")}</option>
-            <option value="30min">{t("settings.recordingSection.chunkOptions.30min")}</option>
-            <option value="1hr">{t("settings.recordingSection.chunkOptions.1hr")}</option>
-          </StyledSelect>
-        </SettingRow>
-        <SettingRow label={t("settings.recordingSection.autoDelete")} desc={t("settings.recordingSection.autoDeleteDesc")}>
-          <Toggle checked={autoDelete} onChange={setAutoDelete} />
-        </SettingRow>
-        <SettingRow label={t("settings.recordingSection.retention")} desc={t("settings.recordingSection.retentionDesc")} noBorder>
-          <StyledSelect value={retention} onChange={(e) => setRetention(e.target.value)}>
-            <option value="7d">{t("settings.recordingSection.retentionOptions.7d")}</option>
-            <option value="14d">{t("settings.recordingSection.retentionOptions.14d")}</option>
-            <option value="30d">{t("settings.recordingSection.retentionOptions.30d")}</option>
-            <option value="90d">{t("settings.recordingSection.retentionOptions.90d")}</option>
-          </StyledSelect>
-        </SettingRow>
-      </SectionCard>
-
-      {/* Security */}
-      <SectionCard icon={Shield} iconColor="#ef4444" title={t("settings.sections.security")} delay={600}>
-        <SettingRow label={t("settings.security.twoFA")} desc={t("settings.security.twoFADesc")}>
-          <Toggle checked={twoFA} onChange={setTwoFA} />
-        </SettingRow>
-        <SettingRow label={t("settings.security.session")} desc={t("settings.security.sessionDesc")} noBorder>
-          <StyledSelect value={sessionDur} onChange={(e) => setSessionDur(e.target.value)}>
-            <option value="30min">{t("settings.security.sessionOptions.30min")}</option>
-            <option value="1hr">{t("settings.security.sessionOptions.1hr")}</option>
-            <option value="8hr">{t("settings.security.sessionOptions.8hr")}</option>
-            <option value="24hr">{t("settings.security.sessionOptions.24hr")}</option>
-          </StyledSelect>
-        </SettingRow>
-      </SectionCard>
-
-      {/* Save Button */}
-      <div className="flex justify-end animate-slide-up opacity-0-init delay-700">
-        <button onClick={handleSave}
-          className="flex items-center gap-2.5 px-6 py-3 rounded-xl text-white text-sm font-bold tracking-tight transition-all duration-300 hover:-translate-y-1 active:scale-95"
-          style={{
-            background: saved ? "linear-gradient(135deg, #10b981, #059669)" : "linear-gradient(135deg, #06b6d4, #00ffff)",
-            boxShadow: saved ? "0 4px 20px rgba(16,185,129,0.4)" : "0 4px 20px rgba(6,182,212,0.4)",
-          }}>
-          {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
-          {saved ? "Tersimpan!" : t("settings.saveChanges")}
-        </button>
-      </div>
-    </div>
-  );
-}
+import { Monitor, Bell, Shield, Database, Cpu, Globe, Save, CheckCircle2 } from "lucide-react";import { useState } from "react";import { useLanguageStore } from "../../store/languageStore";import AnimatedText from "../../components/AnimatedText";function SectionCard({ icon: Icon, iconColor, title, children, delay = 0 }) {  return (    <div className="rounded-2xl overflow-hidden animate-slide-up opacity-0-init transition-all duration-300 group"      style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)", boxShadow: "0 1px 3px rgba(0,0,0,0.1)", animationDelay: `${delay}ms` }}      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,0.12), 0 0 0 1px ${iconColor}20`; e.currentTarget.style.borderColor = `${iconColor}30`; }}      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)"; e.currentTarget.style.borderColor = "var(--color-card-border)"; }}>      <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: "1px solid var(--color-card-border)" }}>        <div className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300" style={{ backgroundColor: `${iconColor}15`, border: `1px solid ${iconColor}25` }}>          <Icon size={15} style={{ color: iconColor }} />        </div>        <h2 className="text-sm font-bold" style={{ color: "var(--color-text-base)" }}>{title}</h2>      </div>      <div className="px-6 py-1">{children}</div>    </div>  );}function SettingRow({ label, desc, children, noBorder = false }) {  return (    <div className="flex items-center justify-between py-4" style={{ borderBottom: noBorder ? "none" : "1px solid var(--color-card-border)" }}>      <div className="pr-6">        <p className="text-sm font-medium" style={{ color: "var(--color-text-base)" }}>{label}</p>        {desc && <p className="text-[12px] mt-0.5" style={{ color: "var(--color-text-sub)" }}>{desc}</p>}      </div>      <div className="shrink-0">{children}</div>    </div>  );}function Toggle({ checked, onChange }) {  return (    <button onClick={() => onChange(!checked)} className="relative rounded-full transition-all duration-300 focus:outline-none"      style={{ width: "42px", height: "24px", backgroundColor: checked ? "#06b6d4" : "var(--color-surface-elevated)", border: `1px solid ${checked ? "#06b6d4" : "var(--color-card-border)"}`, boxShadow: checked ? "0 0 12px rgba(6,182,212,0.4)" : "none", padding: "2px", display: "inline-flex", alignItems: "center" }}>      <span className="block rounded-full bg-white transition-all duration-300"        style={{ width: "18px", height: "18px", transform: checked ? "translateX(18px)" : "translateX(0px)", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }} />    </button>  );}function StyledSelect({ value, onChange, children }) {  return (    <select value={value} onChange={onChange} className="px-3 py-1.5 rounded-xl text-xs font-medium outline-none transition-all cursor-pointer"      style={{ backgroundColor: "var(--color-surface-elevated)", border: "1px solid var(--color-card-border)", color: "var(--color-text-base)", minWidth: "160px" }}>      {children}    </select>  );}export default function SettingsPage() {  const { t, language, setLanguage } = useLanguageStore();  const [saved, setSaved] = useState(false);  const [notifFace,    setNotifFace]    = useState(true);  const [notifCamera,  setNotifCamera]  = useState(true);  const [notifStorage, setNotifStorage] = useState(false);  const [aiDevice,     setAiDevice]     = useState("auto");  const [aiFrameRate,  setAiFrameRate]  = useState("balanced");  const [aiConfidence, setAiConfidence] = useState("balanced");  const [recChunk,     setRecChunk]     = useState("30min");  const [autoDelete,   setAutoDelete]   = useState(true);  const [retention,    setRetention]    = useState("30d");  const [twoFA,        setTwoFA]        = useState(false);  const [sessionDur,   setSessionDur]   = useState("8hr");  const handleSave = () => {    setSaved(true);    setTimeout(() => setSaved(false), 2500);  };  return (    <div className="max-w-2xl space-y-5 relative z-10 animate-slide-up opacity-0-init delay-100 pb-10">      <div className="mb-2">        <h1 className="text-2xl font-bold" style={{ color: "var(--color-text-base)" }}>          <AnimatedText text={t("settings.title")} delayOffset={0} splitBy="word" />        </h1>        <p className="text-sm mt-1" style={{ color: "var(--color-text-sub)" }}>{t("settings.subtitle")}</p>      </div>      <SectionCard icon={Globe} iconColor="#06b6d4" title={t("settings.sections.language")} delay={200}>        <SettingRow label={t("settings.language.label")} desc={t("settings.language.desc")} noBorder>          <StyledSelect value={language} onChange={(e) => setLanguage(e.target.value)}>            <option value="id">🇮🇩 Indonesia</option>            <option value="en">🇺🇸 English (US)</option>            <option value="zh">🇨🇳 中文 (简体)</option>          </StyledSelect>        </SettingRow>      </SectionCard>      <SectionCard icon={Bell} iconColor="#f59e0b" title={t("settings.sections.notifications")} delay={300}>        <SettingRow label={t("settings.notifications.faceAlert")} desc={t("settings.notifications.faceAlertDesc")}>          <Toggle checked={notifFace} onChange={setNotifFace} />        </SettingRow>        <SettingRow label={t("settings.notifications.cameraAlert")} desc={t("settings.notifications.cameraAlertDesc")}>          <Toggle checked={notifCamera} onChange={setNotifCamera} />        </SettingRow>        <SettingRow label={t("settings.notifications.storageWarn")} desc={t("settings.notifications.storageWarnDesc")} noBorder>          <Toggle checked={notifStorage} onChange={setNotifStorage} />        </SettingRow>      </SectionCard>      <SectionCard icon={Cpu} iconColor="#8b5cf6" title={t("settings.sections.aiEngine")} delay={400}>        <SettingRow label={t("settings.aiEngine.device")} desc={t("settings.aiEngine.deviceDesc")}>          <StyledSelect value={aiDevice} onChange={(e) => setAiDevice(e.target.value)}>            <option value="auto">{t("settings.aiEngine.deviceOptions.auto")}</option>            <option value="cpu">{t("settings.aiEngine.deviceOptions.cpu")}</option>            <option value="cuda">{t("settings.aiEngine.deviceOptions.cuda")}</option>          </StyledSelect>        </SettingRow>        <SettingRow label={t("settings.aiEngine.frameRate")} desc={t("settings.aiEngine.frameRateDesc")}>          <StyledSelect value={aiFrameRate} onChange={(e) => setAiFrameRate(e.target.value)}>            <option value="low">{t("settings.aiEngine.fpsOptions.low")}</option>            <option value="balanced">{t("settings.aiEngine.fpsOptions.balanced")}</option>            <option value="high">{t("settings.aiEngine.fpsOptions.high")}</option>            <option value="max">{t("settings.aiEngine.fpsOptions.max")}</option>          </StyledSelect>        </SettingRow>        <SettingRow label={t("settings.aiEngine.confidence")} desc={t("settings.aiEngine.confidenceDesc")} noBorder>          <StyledSelect value={aiConfidence} onChange={(e) => setAiConfidence(e.target.value)}>            <option value="relaxed">{t("settings.aiEngine.confOptions.relaxed")}</option>            <option value="balanced">{t("settings.aiEngine.confOptions.balanced")}</option>            <option value="strict">{t("settings.aiEngine.confOptions.strict")}</option>          </StyledSelect>        </SettingRow>      </SectionCard>      <SectionCard icon={Database} iconColor="#10b981" title={t("settings.sections.recording")} delay={500}>        <SettingRow label={t("settings.recordingSection.chunk")} desc={t("settings.recordingSection.chunkDesc")}>          <StyledSelect value={recChunk} onChange={(e) => setRecChunk(e.target.value)}>            <option value="15min">{t("settings.recordingSection.chunkOptions.15min")}</option>            <option value="30min">{t("settings.recordingSection.chunkOptions.30min")}</option>            <option value="1hr">{t("settings.recordingSection.chunkOptions.1hr")}</option>          </StyledSelect>        </SettingRow>        <SettingRow label={t("settings.recordingSection.autoDelete")} desc={t("settings.recordingSection.autoDeleteDesc")}>          <Toggle checked={autoDelete} onChange={setAutoDelete} />        </SettingRow>        <SettingRow label={t("settings.recordingSection.retention")} desc={t("settings.recordingSection.retentionDesc")} noBorder>          <StyledSelect value={retention} onChange={(e) => setRetention(e.target.value)}>            <option value="7d">{t("settings.recordingSection.retentionOptions.7d")}</option>            <option value="14d">{t("settings.recordingSection.retentionOptions.14d")}</option>            <option value="30d">{t("settings.recordingSection.retentionOptions.30d")}</option>            <option value="90d">{t("settings.recordingSection.retentionOptions.90d")}</option>          </StyledSelect>        </SettingRow>      </SectionCard>      <SectionCard icon={Shield} iconColor="#ef4444" title={t("settings.sections.security")} delay={600}>        <SettingRow label={t("settings.security.twoFA")} desc={t("settings.security.twoFADesc")}>          <Toggle checked={twoFA} onChange={setTwoFA} />        </SettingRow>        <SettingRow label={t("settings.security.session")} desc={t("settings.security.sessionDesc")} noBorder>          <StyledSelect value={sessionDur} onChange={(e) => setSessionDur(e.target.value)}>            <option value="30min">{t("settings.security.sessionOptions.30min")}</option>            <option value="1hr">{t("settings.security.sessionOptions.1hr")}</option>            <option value="8hr">{t("settings.security.sessionOptions.8hr")}</option>            <option value="24hr">{t("settings.security.sessionOptions.24hr")}</option>          </StyledSelect>        </SettingRow>      </SectionCard>      <div className="flex justify-end animate-slide-up opacity-0-init delay-700">        <button onClick={handleSave}          className="flex items-center gap-2.5 px-6 py-3 rounded-xl text-white text-sm font-bold tracking-tight transition-all duration-300 hover:-translate-y-1 active:scale-95"          style={{            background: saved ? "linear-gradient(135deg, #10b981, #059669)" : "linear-gradient(135deg, #06b6d4, #00ffff)",            boxShadow: saved ? "0 4px 20px rgba(16,185,129,0.4)" : "0 4px 20px rgba(6,182,212,0.4)",          }}>          {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}          {saved ? "Tersimpan!" : t("settings.saveChanges")}        </button>      </div>    </div>  );}

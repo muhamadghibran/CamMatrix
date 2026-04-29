@@ -1,361 +1,1 @@
-import { useState, useRef, useEffect } from "react";
-import { Maximize2, Grid2X2, Grid3X3, LayoutGrid, Camera, WifiOff, Expand, Minimize2, Clock, RefreshCw } from "lucide-react";
-import Hls from "hls.js";
-import { useLanguageStore } from "../../store/languageStore";
-import { useCameraStore } from "../../store/cameraStore";
-import AnimatedText from "../../components/AnimatedText";
-
-const gridLayouts = [
-  { key: "1x1", icon: Maximize2,  cols: 1, label: "1×1" },
-  { key: "2x2", icon: Grid2X2,   cols: 2, label: "2×2" },
-  { key: "3x3", icon: Grid3X3,   cols: 3, label: "3×3" },
-  { key: "4x4", icon: LayoutGrid, cols: 4, label: "4×4" },
-];
-
-const statusCfg = {
-  live:      { color: "#10b981", label: "live",      glow: "rgba(16,185,129,0.5)"  },
-  offline:   { color: "#6b7280", label: "offline",   glow: "rgba(107,114,128,0.4)" },
-  recording: { color: "#ef4444", label: "recording", glow: "rgba(239,68,68,0.5)"   },
-};
-
-function LiveClock() {
-  const [time, setTime] = useState(() => new Date().toLocaleTimeString("id-ID", { hour12: false }));
-  useEffect(() => {
-    const id = setInterval(() => setTime(new Date().toLocaleTimeString("id-ID", { hour12: false })), 1000);
-    return () => clearInterval(id);
-  }, []);
-  return <span className="font-mono text-[11px]" style={{ color: "#06b6d4", letterSpacing: "0.08em" }}>{time}</span>;
-}
-
-function HlsPlayer({ src }) {
-  const videoRef = useRef(null);
-  const hlsRef = useRef(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !src) return;
-
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        // LL-HLS mode — menghilangkan stutter dengan parts 250ms
-        lowLatencyMode: true,
-        enableWorker: true,
-        startPosition: -1,           // Mulai dari live edge
-
-        // Live sync: tetap 2 detik di belakang live edge
-        liveSyncDuration: 2,
-        liveMaxLatencyDuration: 8,
-        liveDurationInfinity: true,
-
-        // Buffer settings
-        maxBufferLength: 20,
-        maxMaxBufferLength: 30,
-        backBufferLength: 5,
-        maxBufferHole: 0.5,           // Toleransi gap 0.5 detik sebelum seek
-
-        // Retry settings untuk koneksi WiFi yang tidak stabil
-        manifestLoadingTimeOut: 10000,
-        manifestLoadingMaxRetry: 6,
-        levelLoadingTimeOut: 10000,
-        fragLoadingTimeOut: 20000,
-        fragLoadingMaxRetry: 6,
-      });
-      hlsRef.current = hls;
-      hls.loadSource(src);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(() => {});
-      });
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
-          setTimeout(() => {
-            hls.loadSource(src);
-            hls.startLoad();
-          }, 3000);
-        }
-      });
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = src;
-      video.play().catch(() => {});
-    }
-
-    return () => {
-      hlsRef.current?.destroy();
-    };
-  }, [src]);
-
-  return (
-    <video
-      ref={videoRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ objectFit: "cover", backgroundColor: "#000" }}
-      muted
-      playsInline
-      autoPlay
-    />
-  );
-}
-function CameraCell({ cam, t, index }) {
-  const [hovered, setHovered] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [entered, setEntered] = useState(false);
-  const cellRef = useRef(null);
-
-  const camStatus = cam.status || "offline";
-  const s = statusCfg[camStatus] || statusCfg.offline;
-  const isOffline   = camStatus === "offline";
-  const isRecording = camStatus === "recording";
-  const isLive      = camStatus === "live";
-
-  // Staggered entrance animation
-  useEffect(() => {
-    const timer = setTimeout(() => setEntered(true), 80 + index * 75);
-    return () => clearTimeout(timer);
-  }, [index]);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      cellRef.current?.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
-    } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
-    }
-  };
-
-  return (
-    <div
-      ref={cellRef}
-      className="relative rounded-2xl overflow-hidden aspect-video flex flex-col group cursor-pointer"
-      style={{
-        backgroundColor: "var(--color-surface)",
-        border: `1px solid ${hovered ? `${s.color}55` : "var(--color-card-border)"}`,
-        boxShadow: hovered
-          ? `0 0 0 1px ${s.color}30, 0 10px 40px ${s.color}20`
-          : "0 2px 8px rgba(0,0,0,0.12)",
-        opacity: entered ? 1 : 0,
-        transform: entered
-          ? hovered ? "scale(1.015) translateY(-2px)" : "scale(1) translateY(0)"
-          : "scale(0.94) translateY(18px)",
-        transition: entered
-          ? "opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.4s cubic-bezier(0.16,1,0.3,1), border-color 0.3s ease, box-shadow 0.35s ease"
-          : `opacity 0.55s cubic-bezier(0.16,1,0.3,1) ${index * 0.075}s, transform 0.55s cubic-bezier(0.16,1,0.3,1) ${index * 0.075}s`,
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* Video feed area */}
-      <div className="flex-1 flex items-center justify-center relative overflow-hidden"
-        style={{ backgroundColor: isOffline ? "var(--color-surface-elevated)" : "#02030d" }}>
-
-        {isOffline ? (
-          /* Tampilan Offline */
-          <div className="text-center space-y-2 transition-all duration-500" style={{ opacity: hovered ? 0.7 : 0.4 }}>
-            <WifiOff size={28} className="mx-auto" style={{ color: "var(--color-text-sub)" }} />
-            <p className="text-xs font-semibold" style={{ color: "var(--color-text-sub)" }}>{t("liveView.offline")}</p>
-            <p className="text-[10px]" style={{ color: "var(--color-text-sub)" }}>{cam.rtsp_url}</p>
-          </div>
-        ) : (
-          <>
-            {/* HLS Video Player - Stabil di Docker, tanpa WebRTC ICE issues */}
-            {cam.stream_url && (
-              <HlsPlayer src={cam.stream_url} />
-            )}
-
-            {/* Overlay efek visual */}
-            <div className="absolute inset-0 pointer-events-none" style={{
-              backgroundImage: "repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px)",
-            }} />
-            <div className="absolute inset-0 pointer-events-none" style={{
-              background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)",
-            }} />
-
-            {/* Scan line animasi */}
-            <div className="absolute left-0 right-0 h-px animate-scan pointer-events-none"
-              style={{
-                background: `linear-gradient(90deg, transparent 0%, ${s.color}50 30%, ${s.color} 50%, ${s.color}50 70%, transparent 100%)`,
-                opacity: 0.15,
-              }} />
-
-            {/* Corner brackets on hover */}
-            {["tl","tr","bl","br"].map(pos => (
-              <div key={pos} className="absolute pointer-events-none transition-all duration-400"
-                style={{
-                  width: 18, height: 18,
-                  top:    pos.startsWith("t") ? 8 : "auto",
-                  bottom: pos.startsWith("b") ? 8 : "auto",
-                  left:   pos.endsWith("l")   ? 8 : "auto",
-                  right:  pos.endsWith("r")   ? 8 : "auto",
-                  borderTop:    pos.startsWith("t") ? `2px solid ${s.color}` : "none",
-                  borderBottom: pos.startsWith("b") ? `2px solid ${s.color}` : "none",
-                  borderLeft:   pos.endsWith("l")   ? `2px solid ${s.color}` : "none",
-                  borderRight:  pos.endsWith("r")   ? `2px solid ${s.color}` : "none",
-                  opacity: hovered ? 0.85 : 0,
-                  transform: hovered ? "scale(1)" : pos === "tl" ? "translate(-4px,-4px)" : pos === "tr" ? "translate(4px,-4px)" : pos === "bl" ? "translate(-4px,4px)" : "translate(4px,4px)",
-                  transition: "opacity 0.35s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1)",
-                }} />
-            ))}
-
-            {/* REC indicator */}
-            {isRecording && (
-              <div className="absolute top-2.5 right-12 flex items-center gap-1.5 px-2.5 py-1 rounded-lg pointer-events-none"
-                style={{ backgroundColor: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.4)", backdropFilter: "blur(8px)" }}>
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-blink" />
-                <span className="text-[9px] font-bold text-red-400 tracking-widest">REC</span>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Status badge */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all duration-300 pointer-events-none z-10"
-          style={{
-            backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(10px)",
-            border: hovered ? `1px solid ${s.color}40` : "1px solid transparent",
-          }}>
-          {isLive ? (
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-70" style={{ backgroundColor: s.color }} />
-              <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: s.color }} />
-            </span>
-          ) : (
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
-          )}
-          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: s.color }}>
-            {t(`dashboard.status.${s.label}`) || s.label}
-          </span>
-        </div>
-
-        {/* Fullscreen button */}
-        <button
-          onClick={toggleFullscreen}
-          title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
-          className="absolute top-2 right-2 p-1.5 rounded-lg z-10"
-          style={{
-            backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(10px)",
-            color: hovered ? "#fff" : "#94a3b8",
-            opacity: hovered ? 1 : 0,
-            transform: hovered ? "scale(1) translateY(0)" : "scale(0.85) translateY(-4px)",
-            transition: "opacity 0.3s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1)",
-          }}>
-          {isFullscreen ? <Minimize2 size={13} /> : <Expand size={13} />}
-        </button>
-
-        {/* Timestamp */}
-        {!isOffline && (
-          <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-md pointer-events-none z-10"
-            style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", opacity: hovered ? 1 : 0.5, transition: "opacity 0.3s ease" }}>
-            <Clock size={9} style={{ color: s.color }} />
-            <LiveClock />
-          </div>
-        )}
-      </div>
-
-      {/* Info bar */}
-      <div className="px-4 py-3 shrink-0 flex items-center justify-between relative overflow-hidden"
-        style={{
-          borderTop: `1px solid ${hovered ? `${s.color}30` : "var(--color-card-border)"}`,
-          backgroundColor: hovered ? "var(--color-surface-elevated)" : "var(--color-surface)",
-          transition: "background-color 0.3s ease, border-color 0.3s ease",
-        }}>
-        <div className="relative z-10">
-          <p className="text-[13px] font-semibold leading-tight" style={{ color: "var(--color-text-base)" }}>{cam.name}</p>
-          <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-sub)" }}>{cam.location}</p>
-        </div>
-        <div className="relative z-10 flex items-center gap-2">
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md transition-all duration-300"
-            style={{ color: s.color, backgroundColor: `${s.color}12`, border: `1px solid ${s.color}25`, opacity: hovered ? 1 : 0.6 }}>
-            {isOffline ? "OFFLINE" : "WebRTC"}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function LiveViewPage() {
-  const [layout, setLayout] = useState("2x2");
-  const { t } = useLanguageStore();
-  const { cameras, fetchCameras, fetchStatuses, isLoading } = useCameraStore();
-
-  // Ambil kamera dari API saat halaman dibuka
-  useEffect(() => {
-    fetchCameras();
-    // Polling status tiap 15 detik
-    const interval = setInterval(() => fetchStatuses(), 15000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const currentLayout = gridLayouts.find(l => l.key === layout);
-  const cols = currentLayout?.cols || 2;
-  const visibleCameras = layout === "1x1" ? cameras.slice(0, 1)
-    : layout === "2x2" ? cameras.slice(0, 4)
-    : layout === "3x3" ? cameras.slice(0, 9)
-    : cameras;
-
-  const liveCount = cameras.filter(c => c.status === "live" || c.status === "recording").length;
-
-  return (
-    <div className="flex flex-col gap-5 h-full relative z-10 w-full">
-
-      {/* Toolbar */}
-      <div className="flex items-center justify-between animate-slide-up opacity-0-init shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--color-text-base)" }}>
-            <AnimatedText text={t("liveView.showing", { visible: visibleCameras.length, total: cameras.length })} delayOffset={200} splitBy="word" />
-          </div>
-          <span className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
-            style={{ color: "#10b981", backgroundColor: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)" }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" />
-            {liveCount} LIVE
-          </span>
-          {/* Tombol refresh manual */}
-          <button onClick={() => { fetchCameras(); }}
-            className="p-1.5 rounded-xl transition-all duration-200"
-            style={{ color: "var(--color-text-sub)", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)" }}
-            title="Refresh status kamera">
-            <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
-          </button>
-        </div>
-
-        {/* Layout selector */}
-        <div className="flex items-center gap-1 p-1.5 rounded-2xl"
-          style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)" }}>
-          {gridLayouts.map(({ key, icon: Icon, label }) => {
-            const isActive = layout === key;
-            return (
-              <button key={key} onClick={() => setLayout(key)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-semibold"
-                style={{
-                  transition: "all 0.25s cubic-bezier(0.16,1,0.3,1)",
-                  ...(isActive
-                    ? { background: "linear-gradient(135deg,#06b6d4,#00ffff)", color: "#fff", boxShadow: "0 2px 12px rgba(6,182,212,0.45)" }
-                    : { color: "var(--color-text-sub)" }
-                  ),
-                }}>
-                <Icon size={13} /> {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Kosong state */}
-      {cameras.length === 0 && !isLoading && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4" style={{ color: "var(--color-text-sub)" }}>
-          <Camera size={48} style={{ opacity: 0.3 }} />
-          <p className="text-sm font-semibold">Belum ada kamera terdaftar.</p>
-          <p className="text-[12px]">Tambahkan kamera RTSP terlebih dahulu di menu <strong>Kamera</strong>.</p>
-        </div>
-      )}
-
-      {/* Camera grid */}
-      {cameras.length > 0 && (
-        <div className="grid gap-4 flex-1 pb-2"
-          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-          {visibleCameras.map((cam, index) => (
-            <CameraCell key={`${layout}-${cam.id}`} cam={cam} t={t} index={index} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+import { useState, useRef, useEffect } from "react";import { Maximize2, Grid2X2, Grid3X3, LayoutGrid, Camera, WifiOff, Expand, Minimize2, Clock, RefreshCw } from "lucide-react";import Hls from "hls.js";import { useLanguageStore } from "../../store/languageStore";import { useCameraStore } from "../../store/cameraStore";import AnimatedText from "../../components/AnimatedText";const gridLayouts = [  { key: "1x1", icon: Maximize2,  cols: 1, label: "1×1" },  { key: "2x2", icon: Grid2X2,   cols: 2, label: "2×2" },  { key: "3x3", icon: Grid3X3,   cols: 3, label: "3×3" },  { key: "4x4", icon: LayoutGrid, cols: 4, label: "4×4" },];const statusCfg = {  live:      { color: "#10b981", label: "live",      glow: "rgba(16,185,129,0.5)"  },  offline:   { color: "#6b7280", label: "offline",   glow: "rgba(107,114,128,0.4)" },  recording: { color: "#ef4444", label: "recording", glow: "rgba(239,68,68,0.5)"   },};function LiveClock() {  const [time, setTime] = useState(() => new Date().toLocaleTimeString("id-ID", { hour12: false }));  useEffect(() => {    const id = setInterval(() => setTime(new Date().toLocaleTimeString("id-ID", { hour12: false })), 1000);    return () => clearInterval(id);  }, []);  return <span className="font-mono text-[11px]" style={{ color: "#06b6d4", letterSpacing: "0.08em" }}>{time}</span>;}function HlsPlayer({ src }) {  const videoRef = useRef(null);  const hlsRef = useRef(null);  useEffect(() => {    const video = videoRef.current;    if (!video || !src) return;    if (Hls.isSupported()) {      const hls = new Hls({        lowLatencyMode: true,        enableWorker: true,        startPosition: -1,                   liveSyncDuration: 2,        liveMaxLatencyDuration: 8,        liveDurationInfinity: true,        maxBufferLength: 20,        maxMaxBufferLength: 30,        backBufferLength: 5,        maxBufferHole: 0.5,                   manifestLoadingTimeOut: 10000,        manifestLoadingMaxRetry: 6,        levelLoadingTimeOut: 10000,        fragLoadingTimeOut: 20000,        fragLoadingMaxRetry: 6,      });      hlsRef.current = hls;      hls.loadSource(src);      hls.attachMedia(video);      hls.on(Hls.Events.MANIFEST_PARSED, () => {        video.play().catch(() => {});      });      hls.on(Hls.Events.ERROR, (_, data) => {        if (data.fatal) {          setTimeout(() => {            hls.loadSource(src);            hls.startLoad();          }, 3000);        }      });    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {      video.src = src;      video.play().catch(() => {});    }    return () => {      hlsRef.current?.destroy();    };  }, [src]);  return (    <video      ref={videoRef}      className="absolute inset-0 w-full h-full"      style={{ objectFit: "cover", backgroundColor: "#000" }}      muted      playsInline      autoPlay    />  );}function CameraCell({ cam, t, index }) {  const [hovered, setHovered] = useState(false);  const [isFullscreen, setIsFullscreen] = useState(false);  const [entered, setEntered] = useState(false);  const cellRef = useRef(null);  const camStatus = cam.status || "offline";  const s = statusCfg[camStatus] || statusCfg.offline;  const isOffline   = camStatus === "offline";  const isRecording = camStatus === "recording";  const isLive      = camStatus === "live";  useEffect(() => {    const timer = setTimeout(() => setEntered(true), 80 + index * 75);    return () => clearTimeout(timer);  }, [index]);  const toggleFullscreen = () => {    if (!document.fullscreenElement) {      cellRef.current?.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});    } else {      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});    }  };  return (    <div      ref={cellRef}      className="relative rounded-2xl overflow-hidden aspect-video flex flex-col group cursor-pointer"      style={{        backgroundColor: "var(--color-surface)",        border: `1px solid ${hovered ? `${s.color}55` : "var(--color-card-border)"}`,        boxShadow: hovered          ? `0 0 0 1px ${s.color}30, 0 10px 40px ${s.color}20`          : "0 2px 8px rgba(0,0,0,0.12)",        opacity: entered ? 1 : 0,        transform: entered          ? hovered ? "scale(1.015) translateY(-2px)" : "scale(1) translateY(0)"          : "scale(0.94) translateY(18px)",        transition: entered          ? "opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.4s cubic-bezier(0.16,1,0.3,1), border-color 0.3s ease, box-shadow 0.35s ease"          : `opacity 0.55s cubic-bezier(0.16,1,0.3,1) ${index * 0.075}s, transform 0.55s cubic-bezier(0.16,1,0.3,1) ${index * 0.075}s`,      }}      onMouseEnter={() => setHovered(true)}      onMouseLeave={() => setHovered(false)}    >      <div className="flex-1 flex items-center justify-center relative overflow-hidden"        style={{ backgroundColor: isOffline ? "var(--color-surface-elevated)" : "#02030d" }}>        {isOffline ? (          <div className="text-center space-y-2 transition-all duration-500" style={{ opacity: hovered ? 0.7 : 0.4 }}>            <WifiOff size={28} className="mx-auto" style={{ color: "var(--color-text-sub)" }} />            <p className="text-xs font-semibold" style={{ color: "var(--color-text-sub)" }}>{t("liveView.offline")}</p>            <p className="text-[10px]" style={{ color: "var(--color-text-sub)" }}>{cam.rtsp_url}</p>          </div>        ) : (          <>            {cam.stream_url && (              <HlsPlayer src={cam.stream_url} />            )}            <div className="absolute inset-0 pointer-events-none" style={{              backgroundImage: "repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px)",            }} />            <div className="absolute inset-0 pointer-events-none" style={{              background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)",            }} />            <div className="absolute left-0 right-0 h-px animate-scan pointer-events-none"              style={{                background: `linear-gradient(90deg, transparent 0%, ${s.color}50 30%, ${s.color} 50%, ${s.color}50 70%, transparent 100%)`,                opacity: 0.15,              }} />            {["tl","tr","bl","br"].map(pos => (              <div key={pos} className="absolute pointer-events-none transition-all duration-400"                style={{                  width: 18, height: 18,                  top:    pos.startsWith("t") ? 8 : "auto",                  bottom: pos.startsWith("b") ? 8 : "auto",                  left:   pos.endsWith("l")   ? 8 : "auto",                  right:  pos.endsWith("r")   ? 8 : "auto",                  borderTop:    pos.startsWith("t") ? `2px solid ${s.color}` : "none",                  borderBottom: pos.startsWith("b") ? `2px solid ${s.color}` : "none",                  borderLeft:   pos.endsWith("l")   ? `2px solid ${s.color}` : "none",                  borderRight:  pos.endsWith("r")   ? `2px solid ${s.color}` : "none",                  opacity: hovered ? 0.85 : 0,                  transform: hovered ? "scale(1)" : pos === "tl" ? "translate(-4px,-4px)" : pos === "tr" ? "translate(4px,-4px)" : pos === "bl" ? "translate(-4px,4px)" : "translate(4px,4px)",                  transition: "opacity 0.35s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1)",                }} />            ))}            {isRecording && (              <div className="absolute top-2.5 right-12 flex items-center gap-1.5 px-2.5 py-1 rounded-lg pointer-events-none"                style={{ backgroundColor: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.4)", backdropFilter: "blur(8px)" }}>                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-blink" />                <span className="text-[9px] font-bold text-red-400 tracking-widest">REC</span>              </div>            )}          </>        )}        <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all duration-300 pointer-events-none z-10"          style={{            backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(10px)",            border: hovered ? `1px solid ${s.color}40` : "1px solid transparent",          }}>          {isLive ? (            <span className="relative flex h-2 w-2">              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-70" style={{ backgroundColor: s.color }} />              <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: s.color }} />            </span>          ) : (            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />          )}          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: s.color }}>            {t(`dashboard.status.${s.label}`) || s.label}          </span>        </div>        <button          onClick={toggleFullscreen}          title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}          className="absolute top-2 right-2 p-1.5 rounded-lg z-10"          style={{            backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(10px)",            color: hovered ? "#fff" : "#94a3b8",            opacity: hovered ? 1 : 0,            transform: hovered ? "scale(1) translateY(0)" : "scale(0.85) translateY(-4px)",            transition: "opacity 0.3s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1)",          }}>          {isFullscreen ? <Minimize2 size={13} /> : <Expand size={13} />}        </button>        {!isOffline && (          <div className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-md pointer-events-none z-10"            style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", opacity: hovered ? 1 : 0.5, transition: "opacity 0.3s ease" }}>            <Clock size={9} style={{ color: s.color }} />            <LiveClock />          </div>        )}      </div>      <div className="px-4 py-3 shrink-0 flex items-center justify-between relative overflow-hidden"        style={{          borderTop: `1px solid ${hovered ? `${s.color}30` : "var(--color-card-border)"}`,          backgroundColor: hovered ? "var(--color-surface-elevated)" : "var(--color-surface)",          transition: "background-color 0.3s ease, border-color 0.3s ease",        }}>        <div className="relative z-10">          <p className="text-[13px] font-semibold leading-tight" style={{ color: "var(--color-text-base)" }}>{cam.name}</p>          <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-sub)" }}>{cam.location}</p>        </div>        <div className="relative z-10 flex items-center gap-2">          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md transition-all duration-300"            style={{ color: s.color, backgroundColor: `${s.color}12`, border: `1px solid ${s.color}25`, opacity: hovered ? 1 : 0.6 }}>            {isOffline ? "OFFLINE" : "WebRTC"}          </span>        </div>      </div>    </div>  );}export default function LiveViewPage() {  const [layout, setLayout] = useState("2x2");  const { t } = useLanguageStore();  const { cameras, fetchCameras, fetchStatuses, isLoading } = useCameraStore();  useEffect(() => {    fetchCameras();    const interval = setInterval(() => fetchStatuses(), 15000);    return () => clearInterval(interval);  }, []);  const currentLayout = gridLayouts.find(l => l.key === layout);  const cols = currentLayout?.cols || 2;  const visibleCameras = layout === "1x1" ? cameras.slice(0, 1)    : layout === "2x2" ? cameras.slice(0, 4)    : layout === "3x3" ? cameras.slice(0, 9)    : cameras;  const liveCount = cameras.filter(c => c.status === "live" || c.status === "recording").length;  return (    <div className="flex flex-col gap-5 h-full relative z-10 w-full">      <div className="flex items-center justify-between animate-slide-up opacity-0-init shrink-0">        <div className="flex items-center gap-3">          <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--color-text-base)" }}>            <AnimatedText text={t("liveView.showing", { visible: visibleCameras.length, total: cameras.length })} delayOffset={200} splitBy="word" />          </div>          <span className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"            style={{ color: "#10b981", backgroundColor: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)" }}>            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" />            {liveCount} LIVE          </span>          <button onClick={() => { fetchCameras(); }}            className="p-1.5 rounded-xl transition-all duration-200"            style={{ color: "var(--color-text-sub)", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)" }}            title="Refresh status kamera">            <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />          </button>        </div>        <div className="flex items-center gap-1 p-1.5 rounded-2xl"          style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)" }}>          {gridLayouts.map(({ key, icon: Icon, label }) => {            const isActive = layout === key;            return (              <button key={key} onClick={() => setLayout(key)}                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-semibold"                style={{                  transition: "all 0.25s cubic-bezier(0.16,1,0.3,1)",                  ...(isActive                    ? { background: "linear-gradient(135deg,#06b6d4,#00ffff)", color: "#fff", boxShadow: "0 2px 12px rgba(6,182,212,0.45)" }                    : { color: "var(--color-text-sub)" }                  ),                }}>                <Icon size={13} /> {label}              </button>            );          })}        </div>      </div>      {cameras.length === 0 && !isLoading && (        <div className="flex-1 flex flex-col items-center justify-center gap-4" style={{ color: "var(--color-text-sub)" }}>          <Camera size={48} style={{ opacity: 0.3 }} />          <p className="text-sm font-semibold">Belum ada kamera terdaftar.</p>          <p className="text-[12px]">Tambahkan kamera RTSP terlebih dahulu di menu <strong>Kamera</strong>.</p>        </div>      )}      {cameras.length > 0 && (        <div className="grid gap-4 flex-1 pb-2"          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>          {visibleCameras.map((cam, index) => (            <CameraCell key={`${layout}-${cam.id}`} cam={cam} t={t} index={index} />          ))}        </div>      )}    </div>  );}
