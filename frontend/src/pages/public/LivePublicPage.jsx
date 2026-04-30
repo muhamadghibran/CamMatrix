@@ -376,7 +376,7 @@ export default function LivePublicPage() {
                 color: "#FFFFFF",
               }}
             >
-              CamMatrix
+              Vektor
             </h1>
             <p
               style={{

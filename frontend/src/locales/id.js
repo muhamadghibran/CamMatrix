@@ -24,7 +24,7 @@ const id = {
   home: {
     badge: "Sistem Pemantauan Berbasis AI",
     title1: "Sistem",
-    titleAccent: "CamMatrix",
+    titleAccent: "Vektor",
     title2: "",
     subtitle:
       "Sistem pemantauan CCTV tingkat profesional dengan deteksi wajah AI secara real-time, tampilan multi-kamera langsung, dan manajemen rekaman video yang komprehensif.",
@@ -67,13 +67,13 @@ const id = {
         },
       ],
     },
-    footer: "CamMatrix. Sistem Manajemen Video Cerdas.",
+    footer: "Vektor. Sistem Manajemen Video Cerdas.",
     signIn: "Masuk",
     getStarted: "Mulai",
   },
   login: {
     welcomeBack: "Selamat Datang",
-    subtitle: "Masuk ke CamMatrix",
+    subtitle: "Masuk ke Vektor",
     emailLabel: "Alamat Email",
     passwordLabel: "Kata Sandi",
     signIn: "Masuk",

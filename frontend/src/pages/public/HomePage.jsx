@@ -65,7 +65,7 @@ function Navbar() {
         <div style={{ width: 27, height: 27, borderRadius: 6, background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Camera size={14} style={{ color: "#0A0A0F" }} />
         </div>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.02em" }}>CamMatrix</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.02em" }}>Vektor</span>
       </div>
       <div style={{ display: "flex", gap: 32 }}>
         {["Fitur","Teknologi","Keamanan"].map(n => (
@@ -274,7 +274,7 @@ function CTA() {
     <section style={{ padding:"100px 40px", position:"relative", zIndex:1, borderTop:"1px solid #1F1F2E" }}>
       <div ref={ref} className="sr" style={{ maxWidth:580, margin:"0 auto", textAlign:"center" }}>
         <h2 style={{ fontSize:"clamp(2rem,4vw,3.2rem)", fontWeight:800, letterSpacing:"-0.045em", color:"#FFFFFF", margin:"0 0 18px" }}>Siap memulai?</h2>
-        <p style={{ fontSize:16, color:"#71717A", margin:"0 0 38px", lineHeight:1.72 }}>Akses dashboard CamMatrix dan mulai pantau semua kamera dalam hitungan menit.</p>
+        <p style={{ fontSize:16, color:"#71717A", margin:"0 0 38px", lineHeight:1.72 }}>Akses dashboard Vektor dan mulai pantau semua kamera dalam hitungan menit.</p>
         <Link to="/login" style={{ display:"inline-flex", alignItems:"center", gap:9, padding:"13px 30px", borderRadius:5, fontSize:15, fontWeight:600, color:"#0A0A0F", background:"#FFFFFF", textDecoration:"none", transition:"background-color 0.15s, transform 0.15s" }}
           onMouseEnter={e=>{e.currentTarget.style.background="#E5E5E5";e.currentTarget.style.transform="translateY(-1px)"}}
           onMouseLeave={e=>{e.currentTarget.style.background="#FFFFFF";e.currentTarget.style.transform="translateY(0)"}}>
@@ -293,10 +293,10 @@ function Footer() {
         <div style={{ width:22, height:22, borderRadius:5, background:"#FFFFFF", display:"flex", alignItems:"center", justifyContent:"center" }}>
           <Camera size={11} style={{ color:"#0A0A0F" }} />
         </div>
-        <span style={{ fontSize:13, fontWeight:700, color:"#FFFFFF" }}>CamMatrix</span>
+        <span style={{ fontSize:13, fontWeight:700, color:"#FFFFFF" }}>Vektor</span>
         <span style={{ fontSize:12, color:"#71717A", marginLeft:4 }}>v2.1.0</span>
       </div>
-      <span style={{ fontSize:12, color:"#71717A" }}>© 2026 CamMatrix. All rights reserved.</span>
+      <span style={{ fontSize:12, color:"#71717A" }}>© 2026 Vektor. All rights reserved.</span>
     </footer>
   );
 }

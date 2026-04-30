@@ -306,7 +306,7 @@ export default function LoginPage() {
               transition: "opacity 0.7s ease 0.45s",
             }}
           >
-            CamMatrix — Panel Administrator
+            Vektor — Panel Administrator
           </p>
         </div>
 

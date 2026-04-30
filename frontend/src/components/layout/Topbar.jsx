@@ -413,7 +413,7 @@ export default function Topbar({ onMenuToggle }) {
   const notifRef = useRef(null);
   const isDark = true;
   const titleKey = pageTitles[pathname];
-  const title = titleKey ? t(`topbar.titles.${titleKey}`) : "CamMatrix";
+  const title = titleKey ? t(`topbar.titles.${titleKey}`) : "Vektor";
   const meta = pageMeta[pathname];
   const unread = notifications.filter((n) => !n.read).length;
   useEffect(() => {
