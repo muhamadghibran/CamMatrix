@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, MonitorPlay, ScanFace, Film, Lock, Zap, Camera, Shield, Activity, Server } from "lucide-react";
+import CamLogo from "../../components/CamLogo";
 
 /* ── IntersectionObserver scroll reveal ──────────── */
 function useSR(opts = {}) {
@@ -62,8 +63,8 @@ function Navbar() {
   return (
     <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 48px", height: 60, backgroundColor: scrolled ? "rgba(10,10,15,0.92)" : "transparent", borderBottom: scrolled ? "1px solid #1F1F2E" : "1px solid transparent", backdropFilter: scrolled ? "blur(14px)" : "none", transition: "all 0.3s ease" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-        <div style={{ width: 27, height: 27, borderRadius: 6, background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Camera size={14} style={{ color: "#0A0A0F" }} />
+        <div style={{ flexShrink: 0 }}>
+          <CamLogo size={27} color="#FFFFFF" />
         </div>
         <span style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.02em" }}>CamMatrix</span>
       </div>
@@ -290,9 +291,7 @@ function Footer() {
   return (
     <footer style={{ borderTop:"1px solid #1F1F2E", padding:"28px 48px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"relative", zIndex:1 }}>
       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-        <div style={{ width:22, height:22, borderRadius:5, background:"#FFFFFF", display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <Camera size={11} style={{ color:"#0A0A0F" }} />
-        </div>
+        <CamLogo size={18} color="#FFFFFF" />
         <span style={{ fontSize:13, fontWeight:700, color:"#FFFFFF" }}>CamMatrix</span>
         <span style={{ fontSize:12, color:"#71717A", marginLeft:4 }}>v2.1.0</span>
       </div>
