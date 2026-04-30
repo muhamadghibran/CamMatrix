@@ -347,7 +347,7 @@ export default function CamerasPage() {
       fetchCameras();
     }, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchCameras]);
   const filtered = cameras.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -602,7 +602,7 @@ export default function CamerasPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <span
-                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          className="w-1.5 h-1.5 rounded-full shrink-0"
                           style={{ backgroundColor: s.color }}
                         />
                         <span
