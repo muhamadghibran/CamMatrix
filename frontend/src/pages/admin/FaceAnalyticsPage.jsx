@@ -37,7 +37,8 @@ function ConfidenceBar({ value }) {
   );
 }
 
-function StatCard({ label, sub, value, color, icon: Icon, trend, trendUp, delay }) {
+function StatCard({ label, sub, value, color, icon: StatIcon, trend, trendUp, delay }) {
+  const Icon = StatIcon;
   const [hov, setHov] = useState(false);
   return (
     <div
