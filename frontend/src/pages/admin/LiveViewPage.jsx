@@ -161,9 +161,8 @@ function CameraCell({ cam, t, index }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="absolute inset-0 flex flex-col">
-        <div
-          className="flex-1 flex items-center justify-center relative overflow-hidden"
+      <div
+        className="absolute inset-0 flex items-center justify-center overflow-hidden"
         style={{
           backgroundColor: isOffline
             ? "var(--color-surface-elevated)"
@@ -339,44 +338,33 @@ function CameraCell({ cam, t, index }) {
           </div>
         )}
       </div>
-      <div
-        className="px-4 py-3 shrink-0 flex items-center justify-between relative overflow-hidden"
-        style={{
-          borderTop: `1px solid ${hovered ? `${s.color}30` : "var(--color-card-border)"}`,
-          backgroundColor: hovered
-            ? "var(--color-surface-elevated)"
-            : "var(--color-surface)",
-          transition: "background-color 0.3s ease, border-color 0.3s ease",
-        }}
-      >
-        <div className="relative z-10">
-          <p
-            className="text-[13px] font-semibold leading-tight"
-            style={{ color: "var(--color-text-base)" }}
-          >
-            {cam.name}
-          </p>
-          <p
-            className="text-[11px] mt-0.5"
-            style={{ color: "var(--color-text-sub)" }}
-          >
-            {cam.location}
-          </p>
+        {/* Modern Overlay Bottom Bar */}
+        <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between z-10 pointer-events-none">
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 to-transparent -z-10" />
+          
+          <div className="relative z-10">
+            <p className="text-[14px] font-bold text-white drop-shadow-md leading-tight tracking-wide">
+              {cam.name}
+            </p>
+            <p className="text-[11px] text-gray-300 font-medium mt-0.5 drop-shadow-md">
+              {cam.location}
+            </p>
+          </div>
+          
+          <div className="relative z-10 flex items-center gap-2">
+            <span
+              className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md"
+              style={{
+                color: isOffline ? "#9ca3af" : "#fff",
+                backgroundColor: isOffline ? "rgba(107,114,128,0.25)" : "rgba(6,182,212,0.25)",
+                border: isOffline ? "1px solid rgba(107,114,128,0.4)" : "1px solid rgba(6,182,212,0.4)",
+                backdropFilter: "blur(4px)",
+              }}
+            >
+              {isOffline ? "OFFLINE" : "WebRTC"}
+            </span>
+          </div>
         </div>
-        <div className="relative z-10 flex items-center gap-2">
-          <span
-            className="text-[10px] font-mono px-1.5 py-0.5 rounded-md transition-all duration-300"
-            style={{
-              color: s.color,
-              backgroundColor: `${s.color}12`,
-              border: `1px solid ${s.color}25`,
-              opacity: hovered ? 1 : 0.6,
-            }}
-          >
-            {isOffline ? "OFFLINE" : "WebRTC"}
-          </span>
-        </div>
-      </div>
       </div>
     </div>
   );
