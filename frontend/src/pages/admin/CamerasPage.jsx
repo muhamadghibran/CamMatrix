@@ -292,7 +292,7 @@ export default function CamerasPage() {
                       {cameras.length === 0 ? "Belum ada kamera" : "Tidak ditemukan"}
                     </p>
                     <p style={{ fontSize: 12, color: "#3D3D4F", margin: 0 }}>
-                      {cameras.length === 0 ? "Klik "+ Tambah Kamera" untuk memulai." : "Coba kata kunci lain."}
+                      {cameras.length === 0 ? "Klik tombol Tambah Kamera untuk memulai." : "Coba kata kunci lain."}
                     </p>
                   </div>
                 </td>
