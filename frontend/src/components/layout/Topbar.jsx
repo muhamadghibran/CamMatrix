@@ -454,48 +454,40 @@ export default function Topbar({ onMenuToggle }) {
           WebkitBackdropFilter: "blur(12px)",
         }}
       >
-        <div className="flex items-center gap-3">
-          <button
-            id="topbar-menu-toggle"
-            onClick={onMenuToggle}
-            className="p-2 rounded-xl transition-all duration-200 hover:scale-105"
-            style={{ color: "var(--color-text-sub)" }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor =
-                "var(--color-surface-elevated)")
-            }
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "")}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <h1
+            style={{
+              fontSize: 15, fontWeight: 700,
+              color: "#FFFFFF", letterSpacing: "-0.025em", margin: 0,
+            }}
           >
-            <Menu size={17} />
-          </button>
-          <div className="flex items-center gap-2.5">
-            <h1
-              className="text-[15px] font-bold"
-              style={{
-                color: "var(--color-text-base)",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              {title}
-            </h1>
-            {meta && (
+            {title}
+          </h1>
+          {meta && (
+            <>
+              <span style={{ width: 1, height: 14, background: "#1F1F2E", flexShrink: 0 }} />
               <span
-                className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-md shrink-0"
                 style={{
-                  color: "var(--color-text-sub)",
-                  backgroundColor: "var(--color-surface-elevated)",
-                  border: "1px solid var(--color-card-border)",
-                  letterSpacing: "0.03em",
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  fontSize: 11, fontWeight: 500, padding: "3px 9px",
+                  borderRadius: 5, flexShrink: 0,
+                  color: "#71717A",
+                  background: "#111118",
+                  border: "1px solid #1F1F2E",
                 }}
               >
                 <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ backgroundColor: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
+                  style={{
+                    width: 5, height: 5, borderRadius: "50%",
+                    background: "#FFFFFF",
+                    boxShadow: "0 0 6px rgba(255,255,255,0.5)",
+                    flexShrink: 0,
+                  }}
                 />
                 {meta.badge}
               </span>
-            )}
-          </div>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
