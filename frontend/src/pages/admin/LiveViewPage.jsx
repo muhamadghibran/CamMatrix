@@ -340,7 +340,7 @@ function CameraCell({ cam, t, index }) {
       </div>
         {/* Modern Overlay Bottom Bar */}
         <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between z-10 pointer-events-none">
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 to-transparent -z-10" />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/90 to-transparent -z-10" />
           
           <div className="relative z-10">
             <p className="text-[14px] font-bold text-white drop-shadow-md leading-tight tracking-wide">
@@ -365,7 +365,6 @@ function CameraCell({ cam, t, index }) {
             </span>
           </div>
         </div>
-      </div>
     </div>
   );
 }
