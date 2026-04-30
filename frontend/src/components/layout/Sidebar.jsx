@@ -44,12 +44,14 @@ export default function Sidebar({ collapsed, onToggle }) {
         overflow: "hidden",
         width: collapsed ? 64 : 232,
         transition: "width 0.28s cubic-bezier(0.4, 0, 0.2, 1)",
-        backgroundColor: "var(--color-surface)",
-        borderRight: "1px solid var(--color-card-border)",
+        backgroundColor: "rgba(22,27,34,0.92)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
+        borderRight: "1px solid #30363D",
       }}
     >
       {/* ── Logo ── */}
-      <div style={{ display: "flex", alignItems: "center", height: 56, padding: "0 16px", borderBottom: "1px solid var(--color-card-border)", flexShrink: 0, gap: 10, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", height: 56, padding: "0 16px", borderBottom: "1px solid #30363D", flexShrink: 0, gap: 10, overflow: "hidden" }}>
         <div style={{ flexShrink: 0 }}>
           <CamLogo size={30} radius="8px" />
         </div>
@@ -117,9 +119,9 @@ export default function Sidebar({ collapsed, onToggle }) {
                         }
                       }}
                     >
-                      {/* Active left bar */}
+                      {/* Active left bar - amber */}
                       {isActive && (
-                        <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 2, height: 16, borderRadius: "0 2px 2px 0", backgroundColor: "var(--color-text-sub)", opacity: 0.6 }} />
+                        <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 2, height: 16, borderRadius: "0 2px 2px 0", backgroundColor: "#FFB000" }} />
                       )}
                       <Icon size={15} style={{ flexShrink: 0, color: "inherit" }} />
                       {!collapsed && (
@@ -137,7 +139,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       </nav>
 
       {/* ── Footer ── */}
-      <div style={{ flexShrink: 0, padding: 8, borderTop: "1px solid var(--color-card-border)" }}>
+      <div style={{ flexShrink: 0, padding: 8, borderTop: "1px solid #30363D" }}>
         {/* User card */}
         {!collapsed && (
           <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 8, marginBottom: 4, backgroundColor: "var(--color-surface-elevated)", border: "1px solid var(--color-card-border)", overflow: "hidden" }}>
