@@ -88,10 +88,7 @@ function Hero() {
   const s = (d) => ({ opacity: rdy?1:0, transform: rdy?"translateY(0)":"translateY(28px)", transition:`opacity 0.8s ease ${d}ms, transform 0.8s cubic-bezier(0.16,1,0.3,1) ${d}ms` });
   return (
     <section style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"120px 24px 80px", position:"relative", zIndex:1 }}>
-      <div style={{ ...s(150), display:"inline-flex", alignItems:"center", gap:8, padding:"4px 14px", borderRadius:99, border:"1px solid #1F1F2E", marginBottom:32 }}>
-        <span style={{ width:5, height:5, borderRadius:"50%", background:"#FFF", display:"inline-block", opacity:0.6 }} />
-        <span style={{ fontSize:11, color:"#71717A", fontWeight:500 }}>Platform VMS Enterprise — v2.1.0</span>
-      </div>
+
       <h1 style={{ ...s(280), fontSize:"clamp(2.6rem,5.5vw,4.6rem)", fontWeight:800, letterSpacing:"-0.045em", lineHeight:1.05, color:"#FFFFFF", maxWidth:800, margin:"0 0 22px" }}>
         Keamanan cerdas untuk<br />pemantauan real-time
       </h1>
