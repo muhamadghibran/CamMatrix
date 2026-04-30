@@ -407,7 +407,7 @@ export default function CamerasPage() {
       )}
 
       {/* Page Content */}
-      <div className="flex flex-col gap-8">
+      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
         {/* Toolbar Row */}
         <div className="flex items-center justify-between gap-4">
           {/* Left: Stats */}
@@ -492,13 +492,14 @@ export default function CamerasPage() {
 
         {/* Table */}
         <div
-        className="rounded-[18px] overflow-hidden   "
-        style={{
-          backgroundColor: "var(--color-surface)",
-          border: "1px solid var(--color-card-border)",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-        }}
-      >
+          className="rounded-2xl overflow-hidden"
+          style={{
+            marginTop: 32,
+            backgroundColor: "var(--color-surface)",
+            border: "1px solid var(--color-card-border)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+        >
         <table className="w-full text-sm">
           <thead>
             <tr
