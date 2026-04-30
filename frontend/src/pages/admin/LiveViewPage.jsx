@@ -408,7 +408,7 @@ export default function LiveViewPage() {
             />
           </div>
           <span
-            className="flex items-center justify-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-lg leading-none"
+            className="flex items-center justify-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0"
             style={{
               color: "#fff",
               backgroundColor: "#10b981",
@@ -447,9 +447,8 @@ export default function LiveViewPage() {
               <button
                 key={item.key}
                 onClick={() => setLayout(item.key)}
-                className="flex items-center justify-center gap-2 px-3.5 h-8 rounded-xl text-[12px] font-bold leading-none"
+                className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all duration-200"
                 style={{
-                  transition: "all 0.25s cubic-bezier(0.16,1,0.3,1)",
                   ...(isActive
                     ? {
                         background: "linear-gradient(135deg,#06b6d4,#00ffff)",
@@ -459,7 +458,7 @@ export default function LiveViewPage() {
                     : { color: "var(--color-text-sub)" }),
                 }}
               >
-                <IconComponent size={14} className="mb-[1px]" />
+                <IconComponent size={14} />
                 <span>{item.label}</span>
               </button>
             );
@@ -481,7 +480,7 @@ export default function LiveViewPage() {
       )}
       {cameras.length > 0 && (
         <div
-          className="grid gap-4 flex-1 pb-2"
+          className="grid gap-4 flex-1 pb-4 overflow-y-auto min-h-0 pr-2"
           style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
         >
           {visibleCameras.map((cam, index) => (

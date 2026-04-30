@@ -489,7 +489,7 @@ export default function Topbar({ onMenuToggle }) {
             </h1>
             {meta && (
               <span
-                className="hidden sm:inline-flex items-center justify-center text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg leading-none"
+                className="hidden sm:inline-flex items-center justify-center text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shrink-0"
                 style={{
                   color: "#fff",
                   backgroundColor: meta.color,
