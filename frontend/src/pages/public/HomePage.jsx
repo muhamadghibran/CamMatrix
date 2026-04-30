@@ -107,8 +107,41 @@ function Hero() {
           <MonitorPlay size={14} /> Live Preview
         </Link>
       </div>
+      {/* Mockup Perspective */}
+      <div className="hero-mockup" style={{ marginTop: 60, width: "100%", maxWidth: 1040, zIndex: 10, marginBottom: 80 }}>
+        <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid #1F1F2E", backgroundColor: "#111118" }}>
+          <div style={{ padding: "12px 20px", borderBottom: "1px solid #1F1F2E", display: "flex", alignItems: "center", gap: 8, backgroundColor: "#0A0A0F" }}>
+            {["#333", "#444", "#555"].map(c=><div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />)}
+            <div style={{ flex: 1, height: 24, borderRadius: 4, background: "#1F1F2E", maxWidth: 300, marginLeft: 16 }} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", minHeight: 460, textAlign: "left" }}>
+            <div style={{ borderRight: "1px solid #1F1F2E", padding: 16, display: "flex", flexDirection: "column", gap: 4 }}>
+              {["Dashboard","Live View","Kamera","Rekaman","Pengguna","Pengaturan"].map((item,i)=>(
+                <div key={item} style={{ padding: "8px 12px", borderRadius: 6, fontSize: 13, fontWeight: i===0?600:500, color: i===0?"#FFFFFF":"#71717A", backgroundColor: i===0?"rgba(255,255,255,0.06)":"transparent", border: i===0?"1px solid rgba(255,255,255,0.1)":"none" }}>{item}</div>
+              ))}
+            </div>
+            <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+                {[["24","Kamera"],["7","Rekaman"],["2","Deteksi"]].map(([n,l])=>(
+                  <div key={l} style={{ borderRadius: 8, border: "1px solid #1F1F2E", padding: "16px 20px", backgroundColor: "#0A0A0F" }}>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: "#FFFFFF" }}>{n}</div>
+                    <div style={{ fontSize: 12, color: "#71717A", marginTop: 4, fontWeight: 500 }}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ borderRadius: 8, border: "1px solid #1F1F2E", padding: 20, backgroundColor: "#0A0A0F", flex: 1 }}>
+                <div style={{ fontSize: 11, color: "#71717A", marginBottom: 16, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Feed Kamera</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+                  {[1,2,3].map(i=><div key={i} style={{ borderRadius: 6, background: "#1F1F2E", aspectRatio: "16/9", display: "flex", alignItems: "center", justifyContent: "center" }}><Camera size={18} style={{ color: "#333" }} /></div>)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Stats */}
-      <div style={{ ...s(700), display:"grid", gridTemplateColumns:"repeat(4,1fr)", borderTop:"1px solid #1F1F2E", paddingTop:36, maxWidth:520, width:"100%" }}>
+      <div style={{ ...s(900), display:"grid", gridTemplateColumns:"repeat(4,1fr)", borderTop:"1px solid #1F1F2E", paddingTop:36, maxWidth:520, width:"100%" }}>
         {[["99.9%","Uptime SLA"],["50","Latensi ms"],["∞","Kamera IP"],["24","Monitoring /7"]].map(([v,l],i) => (
           <div key={l} style={{ textAlign:"center", borderRight:i<3?"1px solid #1F1F2E":"none", padding:"0 16px" }}>
             <div style={{ fontSize:24, fontWeight:800, color:"#FFFFFF", letterSpacing:"-0.035em", lineHeight:1 }}>
@@ -117,52 +150,6 @@ function Hero() {
             <div style={{ fontSize:10, color:"#71717A", textTransform:"uppercase", letterSpacing:"0.08em", marginTop:7, fontWeight:600 }}>{l}</div>
           </div>
         ))}
-      </div>
-    </section>
-  );
-}
-
-/* ── Dashboard Preview ───────────────────────────── */
-function DashboardPreview() {
-  const cardRef = useSR({ threshold: 0.08 });
-  const hdrRef = useSR();
-  return (
-    <section style={{ padding:"100px 40px", position:"relative", zIndex:1, borderTop:"1px solid #1F1F2E" }}>
-      <div style={{ maxWidth:960, margin:"0 auto" }}>
-        <div ref={hdrRef} className="sr" style={{ textAlign:"center", marginBottom:56 }}>
-          <div style={{ fontSize:10, color:"#71717A", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:12 }}>PRODUK</div>
-          <h2 style={{ fontSize:"clamp(1.9rem,3.5vw,2.9rem)", fontWeight:800, letterSpacing:"-0.04em", color:"#FFFFFF", margin:"0 0 14px" }}>Dashboard yang dirancang untuk efisiensi</h2>
-          <p style={{ fontSize:16, color:"#71717A", maxWidth:460, margin:"0 auto", lineHeight:1.7 }}>Semua kamera, rekaman, dan analitik dalam satu tampilan yang bersih.</p>
-        </div>
-        <div ref={cardRef} className="sr-scale" style={{ borderRadius:12, overflow:"hidden", border:"1px solid #1F1F2E", backgroundColor:"#111118" }}>
-          <div style={{ padding:"12px 20px", borderBottom:"1px solid #1F1F2E", display:"flex", alignItems:"center", gap:8, backgroundColor:"#0A0A0F" }}>
-            {["#EF4444","#F59E0B","#10B981"].map(c=><div key={c} style={{ width:8, height:8, borderRadius:"50%", background:c, opacity:0.7 }} />)}
-            <div style={{ flex:1, height:22, borderRadius:4, background:"#1F1F2E", maxWidth:240, marginLeft:8 }} />
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"180px 1fr", minHeight:320 }}>
-            <div style={{ borderRight:"1px solid #1F1F2E", padding:14, display:"flex", flexDirection:"column", gap:3 }}>
-              {["Dashboard","Live View","Kamera","Rekaman","Pengguna","Pengaturan"].map((item,i)=>(
-                <div key={item} style={{ padding:"7px 10px", borderRadius:5, fontSize:12, color:i===0?"#FFFFFF":"#71717A", backgroundColor:i===0?"rgba(255,255,255,0.06)":"transparent", border:i===0?"1px solid rgba(255,255,255,0.1)":"none" }}>{item}</div>
-              ))}
-            </div>
-            <div style={{ padding:18, display:"flex", flexDirection:"column", gap:12 }}>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
-                {[["24","Kamera"],["7","Rekaman"],["2","Deteksi"]].map(([n,l])=>(
-                  <div key={l} style={{ borderRadius:7, border:"1px solid #1F1F2E", padding:"14px 16px", backgroundColor:"#0A0A0F" }}>
-                    <div style={{ fontSize:22, fontWeight:800, color:"#FFFFFF" }}>{n}</div>
-                    <div style={{ fontSize:11, color:"#71717A", marginTop:3 }}>{l}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ borderRadius:7, border:"1px solid #1F1F2E", padding:14, backgroundColor:"#0A0A0F", flex:1 }}>
-                <div style={{ fontSize:10, color:"#71717A", marginBottom:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.07em" }}>Feed Kamera</div>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
-                  {[1,2,3].map(i=><div key={i} style={{ borderRadius:5, background:"#1F1F2E", aspectRatio:"16/9", display:"flex", alignItems:"center", justifyContent:"center" }}><Camera size={14} style={{ color:"#2D2D3F" }} /></div>)}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
@@ -321,7 +308,6 @@ export default function HomePage() {
       <GridBg />
       <Navbar />
       <Hero />
-      <DashboardPreview />
       <Features />
       <HowItWorks />
       <TechStack />
