@@ -386,7 +386,175 @@ export default function CamerasPage() {
     setDeleteTarget(null);
   };
   return (
-    <div className="relative z-10 w-full">
+    <div style={{ width: "100%", position: "relative" }}>
+      {showModal && <CameraModal onClose={() => setShowModal(false)} onSave={handleAdd} />}
+      {editCamera && <CameraModal onClose={() => setEditCamera(null)} onSave={handleEdit} editData={editCamera} />}
+      {deleteTarget && (
+        <ConfirmModal
+          message={`Yakin ingin menghapus kamera "${deleteTarget.name}"?`}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {/* ── Toolbar ── */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+        {/* Stats */}
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          {[
+            { label: "online",  count: counts.live,      dot: "#34d399" },
+            { label: "rekaman", count: counts.recording, dot: "#f87171" },
+            { label: "offline", count: counts.offline,   dot: "#4b5563" },
+          ].map(({ label, count, dot }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--color-text-sub)" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: dot, flexShrink: 0, display: "inline-block" }} />
+              <span style={{ color: count > 0 ? "var(--color-text-base)" : "var(--color-text-sub)" }}>
+                {count} {label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Search + Add */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ position: "relative" }}>
+            <Search size={13} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--color-text-sub)", pointerEvents: "none" }} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("cameras.searchPlaceholder")}
+              style={{
+                paddingLeft: 36, paddingRight: 16, paddingTop: 8, paddingBottom: 8,
+                borderRadius: 8, fontSize: 13, outline: "none", width: 208,
+                backgroundColor: "var(--color-surface)",
+                border: "1px solid var(--color-card-border)",
+                color: "var(--color-text-base)",
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "var(--color-card-border)"; }}
+            />
+          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              paddingLeft: 16, paddingRight: 16, paddingTop: 8, paddingBottom: 8,
+              borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer",
+              backgroundColor: "var(--color-surface-elevated)",
+              border: "1px solid var(--color-card-border)",
+              color: "var(--color-text-base)", whiteSpace: "nowrap",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--color-card-border)"; }}
+          >
+            <Plus size={14} />
+            {t("cameras.addCamera")}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Table ── */}
+      <div style={{ borderRadius: 16, overflow: "hidden", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--color-card-border)", backgroundColor: "var(--color-surface-elevated)" }}>
+              {["camera", "location", "ip", "fps", "status", "actions"].map((h) => (
+                <th key={h} style={{ textAlign: "left", padding: "14px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-sub)" }}>
+                  {t(`cameras.table.${h}`)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ padding: "40px 20px", textAlign: "center", fontSize: 14, color: "var(--color-text-sub)" }}>
+                  Tidak ada kamera ditemukan.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((cam, i) => {
+                const s = statusCfg[cam.status];
+                const isHov = hovered === cam.id;
+                return (
+                  <tr
+                    key={cam.id}
+                    style={{
+                      borderBottom: i < filtered.length - 1 ? "1px solid var(--color-card-border)" : "none",
+                      backgroundColor: isHov ? "var(--color-surface-elevated)" : "transparent",
+                      transition: "background-color 0.15s ease",
+                    }}
+                    onMouseEnter={() => setHovered(cam.id)}
+                    onMouseLeave={() => setHovered(null)}
+                  >
+                    <td style={{ padding: "16px 20px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "var(--color-surface-elevated)", flexShrink: 0 }}>
+                          <Camera size={14} style={{ color: "var(--color-text-sub)" }} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-base)", display: "flex", alignItems: "center", gap: 8 }}>
+                            {cam.name}
+                            {cam.is_public && (
+                              <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, backgroundColor: "rgba(6,182,212,0.15)", color: "#22d3ee", fontWeight: 700, letterSpacing: "0.05em" }}>PUBLIC</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 11, color: "var(--color-text-sub)" }}>ID #{cam.id.toString().padStart(3, "0")}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "16px 20px", fontSize: 13, color: "var(--color-text-sub)" }}>{cam.location}</td>
+                    <td style={{ padding: "16px 20px" }}>
+                      <span style={{ fontFamily: "monospace", fontSize: 12, padding: "3px 8px", borderRadius: 6, backgroundColor: "var(--color-surface-elevated)", color: "var(--color-text-base)", wordBreak: "break-all" }}>
+                        {cam.rtsp_url}
+                      </span>
+                    </td>
+                    <td style={{ padding: "16px 20px", fontSize: 13, color: "var(--color-text-sub)" }}>
+                      {cam.fps && cam.fps > 0 ? (
+                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <Signal size={12} style={{ color: "#10b981" }} />
+                          {cam.fps} FPS
+                        </span>
+                      ) : "—"}
+                    </td>
+                    <td style={{ padding: "16px 20px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: s.color, flexShrink: 0, display: "inline-block" }} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-base)" }}>{t(`cameras.status.${cam.status}`)}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: "16px 20px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <button
+                          onClick={() => setEditCamera(cam)}
+                          style={{ padding: 8, borderRadius: 8, border: "none", cursor: "pointer", color: "#06b6d4", backgroundColor: isHov ? "rgba(6,182,212,0.1)" : "transparent", transition: "background-color 0.15s" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(cam)}
+                          style={{ padding: 8, borderRadius: 8, border: "none", cursor: "pointer", color: "#ef4444", backgroundColor: isHov ? "rgba(239,68,68,0.1)" : "transparent", transition: "background-color 0.15s" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
       {/* Modals - rendered outside content flow */}
       {showModal && (
         <CameraModal onClose={() => setShowModal(false)} onSave={handleAdd} />
