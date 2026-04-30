@@ -407,7 +407,7 @@ export default function CamerasPage() {
       )}
 
       {/* Page Content */}
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-8">
         {/* Toolbar Row */}
         <div className="flex items-center justify-between gap-4">
           {/* Left: Stats */}
