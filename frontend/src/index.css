@@ -578,7 +578,7 @@ input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:foc
 }
 
 /* --------------------------------------
-   SCROLL REVEAL — PALO ALTO STYLE
+   SCROLL REVEAL ï¿½ PALO ALTO STYLE
 -------------------------------------- */
 .sr { opacity: 0; transform: translateY(32px) scale(0.97); transition: opacity 0.75s cubic-bezier(0.16,1,0.3,1), transform 0.75s cubic-bezier(0.16,1,0.3,1); }
 .sr.visible { opacity: 1; transform: translateY(0) scale(1); }
