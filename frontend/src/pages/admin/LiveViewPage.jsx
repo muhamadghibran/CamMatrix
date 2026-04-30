@@ -357,7 +357,7 @@ export default function LiveViewPage() {
           </button>
         </div>
         <div
-          className="flex items-center p-1 rounded-xl"
+          className="flex items-center p-1 rounded-xl gap-0.5"
           style={{
             backgroundColor: "var(--color-surface-elevated)",
             border: "1px solid var(--color-card-border)",
@@ -371,15 +371,14 @@ export default function LiveViewPage() {
                 key={item.key}
                 onClick={() => setLayout(item.key)}
                 title={item.label}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150"
+                className="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-150"
                 style={{
                   color: isActive ? "var(--color-text-base)" : "var(--color-text-sub)",
                   backgroundColor: isActive ? "var(--color-surface)" : "transparent",
-                  boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.3)" : "none",
+                  boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.25)" : "none",
                 }}
               >
-                <IconComponent size={13} />
-                <span>{item.label}</span>
+                <IconComponent size={14} />
               </button>
             );
           })}
