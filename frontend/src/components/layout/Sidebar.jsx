@@ -58,7 +58,7 @@ export default function Sidebar({ collapsed, onToggle }) {
         {!collapsed && (
           <div style={{ overflow: "hidden", minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-base)", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              Vektor
+              CamMatrix
             </div>
             <div style={{ fontSize: 10, color: "var(--color-text-sub)", whiteSpace: "nowrap" }}>
               v2.1.0 — Enterprise
