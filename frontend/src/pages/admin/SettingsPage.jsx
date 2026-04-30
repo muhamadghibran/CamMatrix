@@ -156,7 +156,7 @@ export default function SettingsPage() {
       {/* ── 2-col layout ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "start" }}>
 
-        {/* LEFT column */}
+        {/* LEFT column: Bahasa + Notifikasi + Keamanan */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionCard icon={Languages} title="Bahasa" desc="Preferensi tampilan antarmuka" index={0}>
             <SettingRow label="Bahasa Antarmuka" desc="Pilih bahasa yang digunakan di seluruh aplikasi" last>
@@ -167,27 +167,27 @@ export default function SettingsPage() {
             </SettingRow>
           </SectionCard>
 
-          <SectionCard icon={Shield} title="Keamanan" desc="Autentikasi dan manajemen sesi" index={1}>
-            <NotifRow label="Autentikasi Dua Faktor" desc="Wajibkan 2FA untuk semua akun admin" checked={twoFA} onChange={setTwoFA} />
-            <SettingRow label="Durasi Sesi" desc="Waktu otomatis logout setelah tidak aktif" last>
-              <Sel value={sessionDur} onChange={setSessionDur} options={[
-                { value: "2hr",   label: "2 jam"         },
-                { value: "8hr",   label: "8 jam"         },
-                { value: "24hr",  label: "24 jam"        },
-                { value: "never", label: "Tidak pernah"  },
-              ]} />
-            </SettingRow>
-          </SectionCard>
-        </div>
-
-        {/* RIGHT column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <SectionCard icon={Bell} title="Notifikasi" desc="Konfigurasi peringatan sistem" index={2}>
+          <SectionCard icon={Bell} title="Notifikasi" desc="Konfigurasi peringatan sistem" index={1}>
             <NotifRow label="Peringatan Deteksi Wajah" desc="Beritahu ketika wajah terdeteksi atau cocok"   checked={notifFace}    onChange={setNotifFace}    />
             <NotifRow label="Peringatan Kamera Mati"   desc="Beritahu ketika kamera tidak dapat dijangkau" checked={notifCamera}  onChange={setNotifCamera}  />
             <NotifRow label="Peringatan Penyimpanan"   desc="Beritahu ketika penyimpanan mencapai 80%"      checked={notifStorage} onChange={setNotifStorage} last />
           </SectionCard>
 
+          <SectionCard icon={Shield} title="Keamanan" desc="Autentikasi dan manajemen sesi" index={2}>
+            <NotifRow label="Autentikasi Dua Faktor" desc="Wajibkan 2FA untuk semua akun admin" checked={twoFA} onChange={setTwoFA} />
+            <SettingRow label="Durasi Sesi" desc="Waktu otomatis logout setelah tidak aktif" last>
+              <Sel value={sessionDur} onChange={setSessionDur} options={[
+                { value: "2hr",   label: "2 jam"        },
+                { value: "8hr",   label: "8 jam"        },
+                { value: "24hr",  label: "24 jam"       },
+                { value: "never", label: "Tidak pernah" },
+              ]} />
+            </SettingRow>
+          </SectionCard>
+        </div>
+
+        {/* RIGHT column: Mesin AI + Rekaman */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <SectionCard icon={Cpu} title="Mesin AI" desc="Parameter inferensi deteksi wajah" index={3}>
             <SettingRow label="Perangkat AI" desc="Perangkat keras pemrosesan untuk deteksi wajah">
               <Sel value={aiDevice} onChange={setAiDevice} options={[
@@ -199,15 +199,15 @@ export default function SettingsPage() {
             <SettingRow label="Laju Sampel Frame" desc="Frame per detik untuk diproses AI">
               <Sel value={aiFrameRate} onChange={setAiFrameRate} options={[
                 { value: "low",      label: "2 FPS (Hemat)"    },
-                { value: "balanced", label: "5 FPS (Seimbang)"  },
+                { value: "balanced", label: "5 FPS (Seimbang)" },
                 { value: "high",     label: "15 FPS (Penuh)"   },
               ]} />
             </SettingRow>
             <SettingRow label="Kepercayaan Deteksi" desc="Ambang batas minimum untuk pencocokan wajah" last>
               <Sel value={aiConfidence} onChange={setAiConfidence} options={[
-                { value: "low",      label: "60% (Longgar)"   },
-                { value: "balanced", label: "75% (Seimbang)"  },
-                { value: "strict",   label: "90% (Ketat)"     },
+                { value: "low",      label: "60% (Longgar)"  },
+                { value: "balanced", label: "75% (Seimbang)" },
+                { value: "strict",   label: "90% (Ketat)"    },
               ]} />
             </SettingRow>
           </SectionCard>
