@@ -47,11 +47,11 @@ export default function Sidebar({ collapsed, onToggle }) {
         backgroundColor: "rgba(17,17,24,0.96)",
         backdropFilter: "blur(10px)",
         WebkitBackdropFilter: "blur(10px)",
-        borderRight: "1px solid #30363D",
+        borderRight: "1px solid #1F1F2E",
       }}
     >
       {/* ── Logo ── */}
-      <div style={{ display: "flex", alignItems: "center", height: 56, padding: "0 16px", borderBottom: "1px solid #30363D", flexShrink: 0, gap: 10, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", height: 56, padding: "0 16px", borderBottom: "1px solid #1F1F2E", flexShrink: 0, gap: 10, overflow: "hidden" }}>
         <div style={{ flexShrink: 0 }}>
           <CamLogo size={30} radius="8px" />
         </div>
@@ -139,7 +139,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       </nav>
 
       {/* ── Footer ── */}
-      <div style={{ flexShrink: 0, padding: 8, borderTop: "1px solid #30363D" }}>
+      <div style={{ flexShrink: 0, padding: 8, borderTop: "1px solid #1F1F2E" }}>
         {/* User card */}
         {!collapsed && (
           <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 8, marginBottom: 4, backgroundColor: "var(--color-surface-elevated)", border: "1px solid var(--color-card-border)", overflow: "hidden" }}>

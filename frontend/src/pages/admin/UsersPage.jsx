@@ -1,85 +1,80 @@
 import { useState, useEffect, useCallback } from "react";
-import { Users, Plus, Edit2, Trash2, X, ShieldCheck, User, Search, Mail, Crown, Check, RefreshCw, AlertCircle } from "lucide-react";
+import { Users, Plus, Edit2, Trash2, X, Search, Mail, Check, RefreshCw, AlertCircle } from "lucide-react";
 import { useLanguageStore } from "../../store/languageStore";
 import api from "../../utils/api";
 
-/* ─── Role config ───────────────────────────────────────── */
 const ROLES = {
-  ADMIN:    { label: "Admin",    dot: "#e5e7eb" },
-  OPERATOR: { label: "Operator", dot: "#9ca3af" },
-  VIEWER:   { label: "Viewer",   dot: "#6b7280" },
+  ADMIN:    { label: "Admin",    dot: "#FFFFFF" },
+  OPERATOR: { label: "Operator", dot: "#A0A0A0" },
+  VIEWER:   { label: "Viewer",   dot: "#555555" },
 };
 
 function getInitial(name) { return (name || "?").charAt(0).toUpperCase(); }
 
-/* ─── UserModal ─────────────────────────────────────────── */
+const inputStyle = {
+  width: "100%", boxSizing: "border-box", padding: "9px 12px",
+  borderRadius: 7, fontSize: 13, outline: "none",
+  background: "#0A0A0F", border: "1px solid #1F1F2E", color: "#FFFFFF",
+  transition: "border-color 0.2s"
+};
+
+/* ── User Modal ── */
 function UserModal({ onClose, onSave, editData, loading }) {
   const { t } = useLanguageStore();
+  const isEdit = !!editData;
   const [form, setForm] = useState(
     editData ? { full_name: editData.full_name, email: editData.email, role: editData.role, password: "" }
              : { full_name: "", email: "", role: "VIEWER", password: "" }
   );
-  const isEdit = !!editData;
   const canSave = form.full_name.trim() && form.email.trim() && (isEdit || form.password.trim());
-
   const fields = [
-    { label: t("users.modal.name"),     key: "full_name", placeholder: t("users.modal.namePH"), type: "text" },
-    { label: t("users.modal.email"),    key: "email",     placeholder: t("users.modal.emailPH"), type: "email" },
-    ...(!isEdit ? [{ label: t("users.modal.password"), key: "password", placeholder: t("users.modal.passPH"), type: "password" }] : []),
+    { label: "Nama Lengkap", key: "full_name", placeholder: "John Doe", type: "text" },
+    { label: "Email",        key: "email",     placeholder: "john@example.com", type: "email" },
+    ...(!isEdit ? [{ label: "Password", key: "password", placeholder: "Min. 8 karakter", type: "password" }] : []),
   ];
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }}>
-      <div style={{ width: "100%", maxWidth: 380, borderRadius: 16, overflow: "hidden", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)", boxShadow: "0 32px 80px rgba(0,0,0,0.5)" }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--color-card-border)", backgroundColor: "var(--color-surface-elevated)" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(10,10,15,0.85)", backdropFilter: "blur(8px)" }}>
+      <div style={{ width: "100%", maxWidth: 400, borderRadius: 12, background: "#111118", border: "1px solid #1F1F2E", overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid #1F1F2E" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Users size={14} style={{ color: "var(--color-text-sub)" }} />
+            <div style={{ width: 30, height: 30, borderRadius: 7, background: "#0A0A0F", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Users size={14} style={{ color: "#71717A" }} />
             </div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-base)" }}>
-              {isEdit ? "Edit Pengguna" : t("users.modal.title")}
-            </span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#FFFFFF" }}>{isEdit ? "Edit Pengguna" : "Tambah Pengguna"}</span>
           </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 6, border: "none", cursor: "pointer", backgroundColor: "var(--color-surface)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <X size={14} style={{ color: "var(--color-text-sub)" }} />
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 6, background: "transparent", border: "none", color: "#71717A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+            onMouseEnter={e=>e.currentTarget.style.color="#FFF"} onMouseLeave={e=>e.currentTarget.style.color="#71717A"}>
+            <X size={14} />
           </button>
         </div>
-
-        {/* Fields */}
         <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           {fields.map(({ label, key, placeholder, type }) => (
             <div key={key}>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-sub)", marginBottom: 6 }}>{label}</label>
-              <input
-                type={type} value={form[key]} placeholder={placeholder}
-                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                style={{ width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: 8, fontSize: 13, outline: "none", backgroundColor: "var(--color-surface-elevated)", border: "1px solid var(--color-card-border)", color: "var(--color-text-base)" }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "var(--color-card-border)"; }}
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#71717A", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
+              <input type={type} value={form[key]} placeholder={placeholder} onChange={e => setForm({ ...form, [key]: e.target.value })}
+                style={inputStyle}
+                onFocus={e=>e.currentTarget.style.borderColor="rgba(255,255,255,0.3)"}
+                onBlur={e=>e.currentTarget.style.borderColor="#1F1F2E"}
               />
             </div>
           ))}
           <div>
-            <label style={{ display: "block", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-sub)", marginBottom: 6 }}>{t("users.modal.role")}</label>
-            <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-              style={{ width: "100%", padding: "9px 12px", borderRadius: 8, fontSize: 13, outline: "none", cursor: "pointer", backgroundColor: "var(--color-surface-elevated)", border: "1px solid var(--color-card-border)", color: "var(--color-text-base)" }}>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#71717A", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Role</label>
+            <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
+              style={{ ...inputStyle, cursor: "pointer" }}>
               <option value="ADMIN">Admin</option>
               <option value="OPERATOR">Operator</option>
               <option value="VIEWER">Viewer</option>
             </select>
           </div>
         </div>
-
-        {/* Actions */}
         <div style={{ display: "flex", gap: 10, padding: "0 20px 20px" }}>
-          <button onClick={onClose} style={{ flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer", border: "1px solid var(--color-card-border)", backgroundColor: "transparent", color: "var(--color-text-sub)" }}>
-            {t("users.modal.cancel")}
-          </button>
-          <button onClick={() => canSave && onSave(form)} disabled={!canSave || loading}
-            style={{ flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: canSave ? "pointer" : "not-allowed", border: "1px solid var(--color-card-border)", backgroundColor: "var(--color-surface-elevated)", color: "var(--color-text-base)", opacity: loading ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            {loading ? <RefreshCw size={13} style={{ animation: "spin 1s linear infinite" }} /> : <Check size={14} />}
-            {isEdit ? "Simpan" : t("users.modal.add")}
+          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "transparent", border: "1px solid #1F1F2E", color: "#71717A", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Batal</button>
+          <button onClick={() => canSave && !loading && onSave(form)} disabled={!canSave || loading}
+            style={{ flex: 1, padding: "10px", borderRadius: 8, background: "#FFFFFF", color: "#0A0A0F", border: "none", fontSize: 13, fontWeight: 600, cursor: canSave ? "pointer" : "not-allowed", opacity: loading ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            {loading ? <RefreshCw size={13} style={{ animation: "spin 1s linear infinite" }} /> : <Check size={13} />}
+            {isEdit ? "Simpan" : "Tambah Pengguna"}
           </button>
         </div>
       </div>
@@ -87,43 +82,39 @@ function UserModal({ onClose, onSave, editData, loading }) {
   );
 }
 
-/* ─── ConfirmModal ──────────────────────────────────────── */
+/* ── Confirm Delete ── */
 function ConfirmModal({ message, onConfirm, onCancel, loading }) {
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }}>
-      <div style={{ width: "100%", maxWidth: 340, borderRadius: 16, overflow: "hidden", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)", boxShadow: "0 32px 80px rgba(0,0,0,0.5)" }}>
-        <div style={{ padding: 24, textAlign: "center" }}>
-          <div style={{ width: 44, height: 44, borderRadius: "50%", margin: "0 auto 16px", backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Trash2 size={20} style={{ color: "#ef4444" }} />
-          </div>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text-base)", margin: "0 0 6px" }}>Konfirmasi Hapus</p>
-          <p style={{ fontSize: 12, color: "var(--color-text-sub)", margin: "0 0 20px" }}>{message}</p>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={onCancel} style={{ flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer", border: "1px solid var(--color-card-border)", backgroundColor: "transparent", color: "var(--color-text-sub)" }}>Batal</button>
-            <button onClick={onConfirm} disabled={loading}
-              style={{ flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1px solid rgba(239,68,68,0.3)", backgroundColor: "rgba(239,68,68,0.08)", color: "#ef4444", opacity: loading ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-              {loading && <RefreshCw size={13} style={{ animation: "spin 1s linear infinite" }} />}
-              Hapus
-            </button>
-          </div>
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(10,10,15,0.85)", backdropFilter: "blur(8px)" }}>
+      <div style={{ width: "100%", maxWidth: 340, borderRadius: 12, background: "#111118", border: "1px solid #1F1F2E", padding: 24 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: "#0A0A0F", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+          <Trash2 size={16} style={{ color: "#71717A" }} />
+        </div>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF", margin: "0 0 8px", textAlign: "center" }}>Konfirmasi Hapus</h3>
+        <p style={{ fontSize: 13, color: "#71717A", margin: "0 0 20px", textAlign: "center" }}>{message}</p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "transparent", border: "1px solid #1F1F2E", color: "#71717A", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Batal</button>
+          <button onClick={onConfirm} disabled={loading} style={{ flex: 1, padding: "10px", borderRadius: 8, background: "#FFFFFF", color: "#0A0A0F", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Menghapus..." : "Hapus"}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ─── Main Page ─────────────────────────────────────────── */
+/* ── Main Page ── */
 export default function UsersPage() {
   const { t } = useLanguageStore();
-  const [users, setUsers]             = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [saving, setSaving]           = useState(false);
-  const [error, setError]             = useState(null);
-  const [showModal, setShowModal]     = useState(false);
-  const [editUser, setEditUser]       = useState(null);
+  const [users, setUsers]               = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [saving, setSaving]             = useState(false);
+  const [error, setError]               = useState(null);
+  const [showModal, setShowModal]       = useState(false);
+  const [editUser, setEditUser]         = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [hovered, setHovered]         = useState(null);
-  const [search, setSearch]           = useState("");
+  const [hoveredRow, setHoveredRow]     = useState(null);
+  const [search, setSearch]             = useState("");
 
   const fetchUsers = useCallback(async () => {
     try { setLoading(true); setError(null); const r = await api.get("/users/"); setUsers(r.data); }
@@ -133,7 +124,7 @@ export default function UsersPage() {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  const filtered = users.filter((u) =>
+  const filtered = users.filter(u =>
     (u.full_name || "").toLowerCase().includes(search.toLowerCase()) ||
     (u.email || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -144,7 +135,7 @@ export default function UsersPage() {
     finally { setSaving(false); }
   };
   const handleEdit = async (form) => {
-    try { setSaving(true); await api.put(`/users/${editUser.id}`, { ...form, ...(form.password ? {} : { password: undefined }) }); setEditUser(null); await fetchUsers(); }
+    try { setSaving(true); await api.put(`/users/${editUser.id}`, form); setEditUser(null); await fetchUsers(); }
     catch (e) { setError(e.response?.data?.detail || "Gagal mengubah pengguna."); }
     finally { setSaving(false); }
   };
@@ -156,163 +147,137 @@ export default function UsersPage() {
 
   const fmt = (iso) => iso ? new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-";
 
-  const stats = [
-    { label: t("users.stats.total"),   value: users.length },
-    { label: t("users.stats.admins"),  value: users.filter((u) => u.role === "ADMIN").length },
-    { label: t("users.stats.active"),  value: users.filter((u) => u.is_active !== false).length },
-  ];
-
   return (
-    <div style={{ width: "100%", position: "relative" }}>
-      {/* spin keyframe */}
+    <div style={{ width: "100%" }}>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
 
       {showModal    && <UserModal    onClose={() => setShowModal(false)}   onSave={handleAdd}    loading={saving} />}
       {editUser     && <UserModal    onClose={() => setEditUser(null)}      onSave={handleEdit}   editData={editUser} loading={saving} />}
       {deleteTarget && <ConfirmModal onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} message={`Yakin ingin menghapus "${deleteTarget.full_name}"?`} loading={saving} />}
 
-      {/* ── Stats row ── */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 28 }}>
-        {stats.map(({ label, value }) => (
-          <div key={label} style={{ flex: 1, padding: "18px 20px", borderRadius: 12, backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)" }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: "var(--color-text-base)", lineHeight: 1 }}>{value}</div>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--color-text-sub)", marginTop: 6 }}>{label}</div>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#FFFFFF", margin: "0 0 4px", letterSpacing: "-0.025em" }}>Pengguna</h1>
+          <p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>{users.length} pengguna terdaftar</p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ position: "relative" }}>
+            <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#71717A", pointerEvents: "none" }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari pengguna..."
+              style={{ ...inputStyle, paddingLeft: 32, width: 200 }}
+              onFocus={e=>e.currentTarget.style.borderColor="rgba(255,255,255,0.3)"}
+              onBlur={e=>e.currentTarget.style.borderColor="#1F1F2E"}
+            />
+          </div>
+          <button onClick={fetchUsers} style={{ width: 34, height: 34, borderRadius: 7, background: "transparent", border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+            onMouseEnter={e=>e.currentTarget.style.color="#FFF"} onMouseLeave={e=>e.currentTarget.style.color="#71717A"}>
+            <RefreshCw size={13} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
+          </button>
+          <button onClick={() => setShowModal(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 8, background: "#FFFFFF", color: "#0A0A0F", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            <Plus size={14} /> Tambah Pengguna
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+        {[
+          { label: "Total Pengguna", value: users.length },
+          { label: "Admin", value: users.filter(u => u.role === "ADMIN").length },
+          { label: "Aktif", value: users.filter(u => u.is_active !== false).length },
+        ].map(({ label, value }) => (
+          <div key={label} style={{ padding: "16px 20px", borderRadius: 10, background: "#111118", border: "1px solid #1F1F2E" }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.03em", lineHeight: 1, marginBottom: 4 }}>{value}</div>
+            <div style={{ fontSize: 12, color: "#71717A", fontWeight: 500 }}>{label}</div>
           </div>
         ))}
       </div>
 
-      {/* ── Toolbar ── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, gap: 12 }}>
-        <div style={{ position: "relative", flex: 1, maxWidth: 320 }}>
-          <Search size={13} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--color-text-sub)", pointerEvents: "none" }} />
-          <input value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Cari ${users.length} pengguna...`}
-            style={{ width: "100%", boxSizing: "border-box", paddingLeft: 36, paddingRight: 16, paddingTop: 8, paddingBottom: 8, borderRadius: 8, fontSize: 13, outline: "none", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)", color: "var(--color-text-base)" }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "var(--color-card-border)"; }}
-          />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={fetchUsers} title="Refresh"
-            style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid var(--color-card-border)", backgroundColor: "var(--color-surface)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <RefreshCw size={14} style={{ color: "var(--color-text-sub)", animation: loading ? "spin 1s linear infinite" : "none" }} />
-          </button>
-          <button onClick={() => setShowModal(true)}
-            style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer", border: "1px solid var(--color-card-border)", backgroundColor: "var(--color-surface-elevated)", color: "var(--color-text-base)", whiteSpace: "nowrap" }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--color-card-border)"; }}>
-            <Plus size={14} /> {t("users.addUser")}
-          </button>
-        </div>
-      </div>
-
-      {/* ── Error banner ── */}
+      {/* Error */}
       {error && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: 8, marginBottom: 16, backgroundColor: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444", fontSize: 13 }}>
-          <AlertCircle size={14} />
-          <span style={{ flex: 1 }}>{error}</span>
-          <button onClick={fetchUsers} style={{ fontSize: 12, textDecoration: "underline", background: "none", border: "none", cursor: "pointer", color: "#ef4444" }}>Coba lagi</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 8, marginBottom: 16, background: "rgba(255,255,255,0.04)", border: "1px solid #1F1F2E", color: "#71717A", fontSize: 13 }}>
+          <AlertCircle size={14} /><span style={{ flex: 1 }}>{error}</span>
+          <button onClick={fetchUsers} style={{ fontSize: 12, textDecoration: "underline", background: "none", border: "none", cursor: "pointer", color: "#FFFFFF" }}>Coba lagi</button>
         </div>
       )}
 
-      {/* ── Table ── */}
-      <div style={{ borderRadius: 14, overflow: "hidden", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-card-border)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+      {/* Table */}
+      <div style={{ borderRadius: 10, overflow: "hidden", background: "#111118", border: "1px solid #1F1F2E" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
-            <tr style={{ borderBottom: "1px solid var(--color-card-border)", backgroundColor: "var(--color-surface-elevated)" }}>
-              {["user", "email", "role", "status", "joined", "actions"].map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: "13px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-sub)" }}>
-                  {t(`users.table.${h}`)}
-                </th>
+            <tr style={{ borderBottom: "1px solid #1A1A26" }}>
+              {["Pengguna", "Email", "Role", "Status", "Bergabung", "Aksi"].map(h => (
+                <th key={h} style={{ textAlign: "left", padding: "11px 16px", fontSize: 11, fontWeight: 600, color: "#71717A", letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              [1, 2, 3].map((i) => (
-                <tr key={i} style={{ borderBottom: "1px solid var(--color-card-border)" }}>
-                  {[140, 160, 80, 60, 80, 60].map((w, j) => (
-                    <td key={j} style={{ padding: "16px 20px" }}>
-                      <div style={{ height: 14, borderRadius: 6, width: w, backgroundColor: "var(--color-surface-elevated)", opacity: 0.6 }} />
+              [1,2,3].map(i => (
+                <tr key={i} style={{ borderBottom: "1px solid #1A1A26" }}>
+                  {[140,160,80,60,80,60].map((w,j) => (
+                    <td key={j} style={{ padding: "14px 16px" }}>
+                      <div style={{ height: 12, borderRadius: 4, width: w, background: "#1A1A26" }} />
                     </td>
                   ))}
                 </tr>
               ))
             ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ padding: "40px 20px", textAlign: "center", fontSize: 13, color: "var(--color-text-sub)" }}>
-                  {users.length === 0 ? "Belum ada pengguna terdaftar." : "Tidak ada pengguna ditemukan."}
-                </td>
-              </tr>
-            ) : (
-              filtered.map((u, i) => {
-                const rc = ROLES[u.role] || ROLES.VIEWER;
-                const isHov = hovered === u.id;
-                const initial = getInitial(u.full_name);
-                return (
-                  <tr key={u.id}
-                    style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--color-card-border)" : "none", backgroundColor: isHov ? "var(--color-surface-elevated)" : "transparent", transition: "background-color 0.12s" }}
-                    onMouseEnter={() => setHovered(u.id)} onMouseLeave={() => setHovered(null)}>
-
-                    {/* User */}
-                    <td style={{ padding: "14px 20px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 8, flexShrink: 0, backgroundColor: "var(--color-surface-elevated)", border: "1px solid var(--color-card-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "var(--color-text-base)" }}>
-                          {initial}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-base)" }}>{u.full_name || "—"}</div>
-                          {u.role === "ADMIN" && (
-                            <div style={{ fontSize: 10, fontWeight: 700, color: "var(--color-text-sub)", letterSpacing: "0.06em", textTransform: "uppercase" }}>Admin</div>
-                          )}
-                        </div>
+              <tr><td colSpan={6} style={{ padding: "48px 16px", textAlign: "center", color: "#71717A" }}>
+                {users.length === 0 ? "Belum ada pengguna." : "Tidak ada pengguna ditemukan."}
+              </td></tr>
+            ) : filtered.map((u, i) => {
+              const rc = ROLES[u.role] || ROLES.VIEWER;
+              const isHov = hoveredRow === u.id;
+              return (
+                <tr key={u.id}
+                  onMouseEnter={() => setHoveredRow(u.id)} onMouseLeave={() => setHoveredRow(null)}
+                  style={{ borderBottom: i < filtered.length - 1 ? "1px solid #1A1A26" : "none", background: isHov ? "#0D0D14" : "transparent", transition: "background 0.15s" }}
+                >
+                  <td style={{ padding: "13px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 30, height: 30, borderRadius: 7, flexShrink: 0, background: "#0A0A0F", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#71717A" }}>
+                        {getInitial(u.full_name)}
                       </div>
-                    </td>
-
-                    {/* Email */}
-                    <td style={{ padding: "14px 20px" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-sub)" }}>
-                        <Mail size={11} style={{ opacity: 0.5, flexShrink: 0 }} />
-                        {u.email}
-                      </span>
-                    </td>
-
-                    {/* Role */}
-                    <td style={{ padding: "14px 20px" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 500, color: "var(--color-text-sub)", padding: "4px 10px", borderRadius: 6, backgroundColor: "var(--color-surface-elevated)", border: "1px solid var(--color-card-border)" }}>
-                        <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: rc.dot, display: "inline-block", flexShrink: 0 }} />
-                        {rc.label}
-                      </span>
-                    </td>
-
-                    {/* Status */}
-                    <td style={{ padding: "14px 20px" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: u.is_active !== false ? "var(--color-text-base)" : "var(--color-text-sub)" }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, display: "inline-block", backgroundColor: u.is_active !== false ? "#34d399" : "#4b5563" }} />
-                        {u.is_active !== false ? t("users.status.active") : t("users.status.inactive")}
-                      </span>
-                    </td>
-
-                    {/* Joined */}
-                    <td style={{ padding: "14px 20px", fontSize: 12, color: "var(--color-text-sub)" }}>{fmt(u.created_at)}</td>
-
-                    {/* Actions */}
-                    <td style={{ padding: "14px 20px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <button onClick={() => setEditUser(u)}
-                          style={{ padding: 7, borderRadius: 6, border: "none", cursor: "pointer", backgroundColor: isHov ? "var(--color-surface)" : "transparent", color: "var(--color-text-sub)", transition: "background-color 0.12s" }}>
-                          <Edit2 size={13} />
-                        </button>
-                        <button onClick={() => setDeleteTarget(u)}
-                          style={{ padding: 7, borderRadius: 6, border: "none", cursor: "pointer", backgroundColor: isHov ? "rgba(239,68,68,0.08)" : "transparent", color: "#ef4444", transition: "background-color 0.12s" }}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#FFFFFF" }}>{u.full_name || "—"}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "13px 16px" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#71717A" }}>
+                      <Mail size={11} style={{ flexShrink: 0 }} />{u.email}
+                    </span>
+                  </td>
+                  <td style={{ padding: "13px 16px" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 500, padding: "3px 9px", borderRadius: 5, background: "#0A0A0F", border: "1px solid #1F1F2E", color: "#71717A" }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: rc.dot, flexShrink: 0 }} />
+                      {rc.label}
+                    </span>
+                  </td>
+                  <td style={{ padding: "13px 16px" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: u.is_active !== false ? "#FFFFFF" : "#71717A" }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0, background: u.is_active !== false ? "#FFFFFF" : "#2D2D3F", boxShadow: u.is_active !== false ? "0 0 6px rgba(255,255,255,0.4)" : "none" }} />
+                      {u.is_active !== false ? "Aktif" : "Tidak Aktif"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "13px 16px", fontSize: 12, color: "#71717A" }}>{fmt(u.created_at)}</td>
+                  <td style={{ padding: "13px 16px" }}>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button onClick={() => setEditUser(u)} style={{ width: 28, height: 28, borderRadius: 6, background: "transparent", border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                        onMouseEnter={e=>{e.currentTarget.style.color="#FFF"; e.currentTarget.style.borderColor="#2D2D3F"}}
+                        onMouseLeave={e=>{e.currentTarget.style.color="#71717A"; e.currentTarget.style.borderColor="#1F1F2E"}}>
+                        <Edit2 size={12} />
+                      </button>
+                      <button onClick={() => setDeleteTarget(u)} style={{ width: 28, height: 28, borderRadius: 6, background: "transparent", border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                        onMouseEnter={e=>{e.currentTarget.style.color="#FFF"; e.currentTarget.style.borderColor="#2D2D3F"}}
+                        onMouseLeave={e=>{e.currentTarget.style.color="#71717A"; e.currentTarget.style.borderColor="#1F1F2E"}}>
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
