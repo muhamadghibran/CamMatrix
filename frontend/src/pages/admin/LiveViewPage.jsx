@@ -141,7 +141,7 @@ function CameraCell({ cam, t, index }) {
   return (
     <div
       ref={cellRef}
-      className="relative rounded-2xl overflow-hidden aspect-video flex flex-col group cursor-pointer"
+      className="relative rounded-2xl overflow-hidden flex flex-col group cursor-pointer"
       style={{
         backgroundColor: "var(--color-surface)",
         border: `1px solid ${hovered ? `${s.color}55` : "var(--color-card-border)"}`,
@@ -162,7 +162,7 @@ function CameraCell({ cam, t, index }) {
       onMouseLeave={() => setHovered(false)}
     >
       <div
-        className="flex-1 flex items-center justify-center relative overflow-hidden"
+        className="w-full aspect-video flex items-center justify-center relative overflow-hidden"
         style={{
           backgroundColor: isOffline
             ? "var(--color-surface-elevated)"
