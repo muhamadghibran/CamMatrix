@@ -5,9 +5,9 @@
 @theme {
   --color-bg-base: #0A0A0F;
   --color-bg-surface: #111118;
-  --color-brand: #6366F1;
-  --color-brand-light: #818CF8;
-  --color-brand-dark: #4F46E5;
+  --color-brand: #FFFFFF;
+  --color-brand-light: #FFFFFF;
+  --color-brand-dark: #E5E5E5;
   --font-family-sans: 'Inter', system-ui, sans-serif;
   --font-family-mono: 'JetBrains Mono', monospace;
   --width-sidebar: 240px;
@@ -377,15 +377,15 @@ html.dark .dot-grid {
 /* ══════════════════════════════════════
    TEXT GRADIENTS
 ══════════════════════════════════════ */
-.text-gradient-brand  { background:linear-gradient(135deg,#6366F1,#4F46E5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
-.text-gradient-glow   { background:linear-gradient(135deg,#ffffff 20%,#6366F1 60%,#4338CA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
-.text-gradient-multi  { background:linear-gradient(90deg,#6366F1,#8b5cf6,#ec4899,#6366F1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
-.text-gradient-blue   { background:linear-gradient(135deg,#60a5fa,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.text-gradient-brand  { background:linear-gradient(135deg,#FFFFFF,#D4D4D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.text-gradient-glow   { background:linear-gradient(135deg,#ffffff 20%,#FFFFFF 60%,#D4D4D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.text-gradient-multi  { background:linear-gradient(90deg,#FFFFFF,#8b5cf6,#ec4899,#FFFFFF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.text-gradient-blue   { background:linear-gradient(135deg,#60a5fa,#FFFFFF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
 .text-gradient-purple { background:linear-gradient(135deg,#c084fc,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
 .text-gradient-green  { background:linear-gradient(135deg,#34d399,#10b981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
 
 .shimmer-text {
-  background: linear-gradient(90deg, var(--color-text-base) 30%, #6366F1 50%, var(--color-text-base) 70%);
+  background: linear-gradient(90deg, var(--color-text-base) 30%, #FFFFFF 50%, var(--color-text-base) 70%);
   background-size: 200% auto;
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   animation: shimmer 3.5s linear infinite;
@@ -395,13 +395,13 @@ html.dark .dot-grid {
    SIDEBAR ACTIVE
 ══════════════════════════════════════ */
 .sidebar-item-active {
-  background-color: rgba(99,102,241,0.1);
-  border: 1px solid rgba(99,102,241,0.2);
+  background-color: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
   color: #FFFFFF;
 }
 html.light .sidebar-item-active {
-  background-color: rgba(99,102,241,0.08);
-  border: 1px solid rgba(99,102,241,0.15);
+  background-color: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
   color: #111827;
 }
 
@@ -470,8 +470,8 @@ html.light .btn-secondary {
   border: 1px solid #D1D5DB !important;
 }
 html.light .btn-secondary:hover {
-  border-color: #6366F1 !important;
-  background: rgba(99,102,241,0.05);
+  border-color: #333333 !important;
+  background: rgba(0,0,0,0.04);
 }
 
 /* ── GHOST ── */
@@ -540,7 +540,7 @@ html.light .btn-secondary:hover {
    NEON BORDER
 ══════════════════════════════════════ */
 .neon-border {
-  border: 1px solid rgba(99,102,241,0.2);
+  border: 1px solid rgba(255,255,255,0.2);
 }
 
 /* ══════════════════════════════════════
@@ -565,8 +565,8 @@ body {
 /* ══════════════════════════════════════
    SELECTION & FOCUS
 ══════════════════════════════════════ */
-::selection { background: rgba(99,102,241,0.25); color: inherit; }
-:focus-visible { outline: 2px solid rgba(99,102,241,0.5); outline-offset: 2px; border-radius: 4px; }
+::selection { background: rgba(255,255,255,0.12); color: inherit; }
+:focus-visible { outline: 2px solid rgba(255,255,255,0.35); outline-offset: 2px; border-radius: 4px; }
 
 /* ══════════════════════════════════════
    AUTOFILL OVERRIDE

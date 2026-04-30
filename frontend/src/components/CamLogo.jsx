@@ -16,8 +16,8 @@ export default function CamLogo({ size = 34, radius = "10px" }) {
         background: "linear-gradient(145deg, #071520 0%, #0a2030 100%)",
         border: "none",
         boxShadow: hov
-          ? "0 0 0 1px rgba(99,102,241,0.4), 0 0 18px rgba(99,102,241,0.45)"
-          : "0 0 0 1px rgba(99,102,241,0.1), 0 0 8px rgba(99,102,241,0.12)",
+          ? "0 0 0 1px rgba(255,255,255,0.4), 0 0 18px rgba(255,255,255,0.45)"
+          : "0 0 0 1px rgba(255,255,255,0.1), 0 0 8px rgba(255,255,255,0.12)",
         animation: "borderGlow 3s ease-in-out infinite",
         transition: "box-shadow 0.3s ease, transform 0.2s ease",
         transform: hov ? "scale(1.07)" : "scale(1)",
@@ -35,8 +35,8 @@ export default function CamLogo({ size = 34, radius = "10px" }) {
       >
         <defs>
           <radialGradient id="camLensGrad" cx="50%" cy="40%" r="55%">
-            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.9" />
-            <stop offset="60%" stopColor="#4F46E5" stopOpacity="0.8" />
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
+            <stop offset="60%" stopColor="#E5E5E5" stopOpacity="0.8" />
             <stop offset="100%" stopColor="#0c4a6e" stopOpacity="1" />
           </radialGradient>
           <radialGradient id="camPupilGrad" cx="40%" cy="35%" r="60%">
@@ -49,7 +49,7 @@ export default function CamLogo({ size = 34, radius = "10px" }) {
           cy="12"
           r="11"
           fill="none"
-          stroke={hov ? "rgba(99,102,241,0.7)" : "rgba(99,102,241,0.35)"}
+          stroke={hov ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.35)"}
           strokeWidth="1"
           style={{ transition: "stroke 0.3s ease" }}
         />
@@ -58,7 +58,7 @@ export default function CamLogo({ size = 34, radius = "10px" }) {
           cy="12"
           r="8.5"
           fill="none"
-          stroke="rgba(99,102,241,0.15)"
+          stroke="rgba(255,255,255,0.15)"
           strokeWidth="0.7"
           strokeDasharray="2.5 2"
           style={{
@@ -91,7 +91,7 @@ export default function CamLogo({ size = 34, radius = "10px" }) {
           cx="12"
           cy="12"
           r="1.4"
-          fill={hov ? "#6366F1" : "#6366F1"}
+          fill={hov ? "#FFFFFF" : "#FFFFFF"}
           style={{
             animation: "logoPulse 2.5s ease-in-out infinite",
             transition: "fill 0.25s ease",

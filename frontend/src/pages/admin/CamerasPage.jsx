@@ -108,7 +108,7 @@ function CameraModal({ onClose, onSave, editData }) {
             <div
               className="w-8 h-8 rounded-xl flex items-center justify-center"
               style={{
-                background: "linear-gradient(135deg,#6366F1,#00ffff)",
+                background: "linear-gradient(135deg,#FFFFFF,#00ffff)",
                 boxShadow: "none",
               }}
             >
@@ -176,9 +176,9 @@ function CameraModal({ onClose, onSave, editData }) {
                     transition: "border-color 0.2s ease, box-shadow 0.2s ease",
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.borderColor = "#6366F1";
+                    e.currentTarget.style.borderColor = "#FFFFFF";
                     e.currentTarget.style.boxShadow =
-                      "0 0 0 3px rgba(99,102,241,0.1)";
+                      "0 0 0 3px rgba(255,255,255,0.1)";
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.borderColor =
@@ -241,19 +241,19 @@ function CameraModal({ onClose, onSave, editData }) {
             onClick={handleSave}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2"
             style={{
-              background: "linear-gradient(135deg,#6366F1,#00ffff)",
-              boxShadow: "0 4px 14px rgba(99,102,241,0.45)",
+              background: "linear-gradient(135deg,#FFFFFF,#00ffff)",
+              boxShadow: "0 4px 14px rgba(255,255,255,0.45)",
               transition: "transform 0.15s, box-shadow 0.15s",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-1px)";
               e.currentTarget.style.boxShadow =
-                "0 6px 20px rgba(99,102,241,0.55)";
+                "0 6px 20px rgba(255,255,255,0.55)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "";
               e.currentTarget.style.boxShadow =
-                "0 4px 14px rgba(99,102,241,0.45)";
+                "0 4px 14px rgba(255,255,255,0.45)";
             }}
           >
             <Check size={15} />{" "}
@@ -497,7 +497,7 @@ export default function CamerasPage() {
                           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-base)", display: "flex", alignItems: "center", gap: 8 }}>
                             {cam.name}
                             {cam.is_public && (
-                              <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, backgroundColor: "rgba(99,102,241,0.1)", color: "#6366F1", fontWeight: 700, letterSpacing: "0.05em" }}>PUBLIC</span>
+                              <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, backgroundColor: "rgba(255,255,255,0.1)", color: "#FFFFFF", fontWeight: 700, letterSpacing: "0.05em" }}>PUBLIC</span>
                             )}
                           </div>
                           <div style={{ fontSize: 11, color: "var(--color-text-sub)" }}>ID #{cam.id.toString().padStart(3, "0")}</div>
@@ -528,7 +528,7 @@ export default function CamerasPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <button
                           onClick={() => setEditCamera(cam)}
-                          style={{ padding: 8, borderRadius: 8, border: "none", cursor: "pointer", color: "#6366F1", backgroundColor: isHov ? "rgba(99,102,241,0.07)" : "transparent", transition: "background-color 0.15s" }}
+                          style={{ padding: 8, borderRadius: 8, border: "none", cursor: "pointer", color: "#FFFFFF", backgroundColor: isHov ? "rgba(255,255,255,0.07)" : "transparent", transition: "background-color 0.15s" }}
                           onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.1)"; }}
                           onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
                         >

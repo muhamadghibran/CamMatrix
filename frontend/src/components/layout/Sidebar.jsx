@@ -121,7 +121,7 @@ export default function Sidebar({ collapsed, onToggle }) {
                     >
                       {/* Active left bar - amber */}
                       {isActive && (
-                        <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 2, height: 16, borderRadius: "0 2px 2px 0", backgroundColor: "#6366F1" }} />
+                        <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 2, height: 16, borderRadius: "0 2px 2px 0", backgroundColor: "rgba(255,255,255,0.85)" }} />
                       )}
                       <Icon size={15} style={{ flexShrink: 0, color: "inherit" }} />
                       {!collapsed && (

@@ -43,7 +43,7 @@ function Navbar() {
   return (
     <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", height: 60, backgroundColor: scrolled ? "rgba(10,10,15,0.95)" : "transparent", borderBottom: scrolled ? "1px solid #1F1F2E" : "1px solid transparent", backdropFilter: scrolled ? "blur(12px)" : "none", transition: "background-color 0.3s ease, border-color 0.3s ease" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ width: 28, height: 28, borderRadius: 7, background: "#6366F1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 28, height: 28, borderRadius: 7, background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Camera size={14} style={{ color: "#fff" }} />
         </div>
         <span style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.02em" }}>CamMatrix</span>
@@ -57,9 +57,9 @@ function Navbar() {
           </span>
         ))}
       </div>
-      <Link to="/login" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600, color: "#FFFFFF", background: "#6366F1", textDecoration: "none", transition: "background-color 0.15s" }}
-        onMouseEnter={e => e.currentTarget.style.background="#4F46E5"}
-        onMouseLeave={e => e.currentTarget.style.background="#6366F1"}>
+      <Link to="/login" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600, color: "#0A0A0F", background: "#FFFFFF", textDecoration: "none", transition: "background-color 0.15s" }}
+        onMouseEnter={e => e.currentTarget.style.background="#EBEBEB"}
+        onMouseLeave={e => e.currentTarget.style.background="#FFFFFF"}>
         Masuk <ArrowRight size={13} />
       </Link>
     </nav>
@@ -74,15 +74,15 @@ function Hero() {
   return (
     <section style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "120px 24px 80px", position: "relative", zIndex: 1 }}>
       {/* Tag */}
-      <div style={{ ...fade(200), display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 14px", borderRadius: 99, border: "1px solid #1F1F2E", backgroundColor: "rgba(99,102,241,0.08)", marginBottom: 32 }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#6366F1", display: "inline-block" }} />
+      <div style={{ ...fade(200), display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 14px", borderRadius: 99, border: "1px solid #1F1F2E", backgroundColor: "rgba(255,255,255,0.08)", marginBottom: 32 }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundcolor: "#FFFFFF", display: "inline-block" }} />
         <span style={{ fontSize: 12, color: "#71717A", fontWeight: 500 }}>Platform VMS Enterprise — v2.1.0</span>
       </div>
       {/* Headline */}
       <h1 style={{ ...fade(350), fontSize: "clamp(2.4rem,5.5vw,4.4rem)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.06, color: "#FFFFFF", maxWidth: 780, margin: "0 0 20px" }}>
         Keamanan cerdas untuk
         <br />
-        <span style={{ color: "#6366F1" }}>pemantauan real-time</span>
+        <span style={{ color: "#FFFFFF" }}>pemantauan real-time</span>
       </h1>
       {/* Subtitle */}
       <p style={{ ...fade(500), fontSize: 17, color: "#71717A", lineHeight: 1.7, maxWidth: 520, margin: "0 0 44px", fontWeight: 400 }}>
@@ -90,9 +90,9 @@ function Hero() {
       </p>
       {/* CTA */}
       <div style={{ ...fade(650), display: "flex", alignItems: "center", gap: 12, marginBottom: 72 }}>
-        <Link to="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 24px", borderRadius: 6, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: "#6366F1", textDecoration: "none", transition: "background-color 0.15s, transform 0.15s" }}
-          onMouseEnter={e => { e.currentTarget.style.background="#4F46E5"; e.currentTarget.style.transform="translateY(-1px)"; }}
-          onMouseLeave={e => { e.currentTarget.style.background="#6366F1"; e.currentTarget.style.transform="translateY(0)"; }}>
+        <Link to="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 24px", borderRadius: 6, fontSize: 14, fontWeight: 600, color: "#0A0A0F", background: "#FFFFFF", textDecoration: "none", transition: "background-color 0.15s, transform 0.15s" }}
+          onMouseEnter={e => { e.currentTarget.style.background="#EBEBEB"; e.currentTarget.style.transform="translateY(-1px)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background="#FFFFFF"; e.currentTarget.style.transform="translateY(0)"; }}>
           Mulai Sekarang <ArrowRight size={15} />
         </Link>
         <Link to="/live" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 24px", borderRadius: 6, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: "transparent", border: "1px solid rgba(255,255,255,0.15)", textDecoration: "none", transition: "border-color 0.15s, background-color 0.15s, transform 0.15s" }}
@@ -105,7 +105,7 @@ function Hero() {
       <div style={{ ...fade(800), display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 0, borderTop: "1px solid #1F1F2E", paddingTop: 36, maxWidth: 520, width: "100%" }}>
         {[["99.9%","Uptime SLA"],["<50ms","Latensi Stream"],["∞","Kamera IP"],["24/7","Monitoring AI"]].map(([v,l]) => (
           <div key={l} style={{ textAlign: "center", borderRight: "1px solid #1F1F2E", padding: "0 20px" }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#6366F1", letterSpacing: "-0.03em", lineHeight: 1 }}>{v}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.03em", lineHeight: 1 }}>{v}</div>
             <div style={{ fontSize: 10, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 6, fontWeight: 600 }}>{l}</div>
           </div>
         ))}
@@ -121,7 +121,7 @@ function DashboardPreview() {
     <section ref={ref} style={{ padding: "100px 40px", position: "relative", zIndex: 1 }}>
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
         <Reveal><div style={{ textAlign: "center", marginBottom: 60 }}>
-          <div style={{ fontSize: 11, color: "#6366F1", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>PRODUK</div>
+          <div style={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>PRODUK</div>
           <h2 style={{ fontSize: "clamp(1.8rem,3.5vw,2.8rem)", fontWeight: 800, letterSpacing: "-0.035em", color: "#FFFFFF", margin: "0 0 16px" }}>Dashboard yang dirancang untuk efisiensi</h2>
           <p style={{ fontSize: 16, color: "#71717A", maxWidth: 480, margin: "0 auto" }}>Semua kamera, rekaman, dan analitik dalam satu tampilan yang bersih dan intuitif.</p>
         </div></Reveal>
@@ -139,7 +139,7 @@ function DashboardPreview() {
             {/* Sidebar mock */}
             <div style={{ borderRight: "1px solid #1F1F2E", padding: 16, display: "flex", flexDirection: "column", gap: 4 }}>
               {["Dashboard","Live View","Kamera","Rekaman","Pengguna","Pengaturan"].map((item, i) => (
-                <div key={item} style={{ padding: "7px 10px", borderRadius: 6, fontSize: 12, color: i === 0 ? "#FFFFFF" : "#71717A", backgroundColor: i === 0 ? "rgba(99,102,241,0.12)" : "transparent", border: i === 0 ? "1px solid rgba(99,102,241,0.2)" : "1px solid transparent" }}>{item}</div>
+                <div key={item} style={{ padding: "7px 10px", borderRadius: 6, fontSize: 12, color: i === 0 ? "#FFFFFF" : "#71717A", backgroundColor: i === 0 ? "rgba(255,255,255,0.12)" : "transparent", border: i === 0 ? "1px solid rgba(255,255,255,0.2)" : "1px solid transparent" }}>{item}</div>
               ))}
             </div>
             {/* Main mock */}
@@ -147,7 +147,7 @@ function DashboardPreview() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
                 {[["24","Kamera Online"],["7","Rekaman Hari Ini"],["2","Deteksi Wajah"]].map(([n,l]) => (
                   <div key={l} style={{ borderRadius: 8, border: "1px solid #1F1F2E", padding: "14px 16px", backgroundColor: "#0A0A0F" }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: "#6366F1" }}>{n}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: "#FFFFFF" }}>{n}</div>
                     <div style={{ fontSize: 11, color: "#71717A", marginTop: 4 }}>{l}</div>
                   </div>
                 ))}
@@ -185,7 +185,7 @@ function Features() {
     <section style={{ padding: "100px 40px", position: "relative", zIndex: 1, borderTop: "1px solid #1F1F2E" }}>
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
         <Reveal><div style={{ marginBottom: 60 }}>
-          <div style={{ fontSize: 11, color: "#6366F1", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>FITUR</div>
+          <div style={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>FITUR</div>
           <h2 style={{ fontSize: "clamp(1.8rem,3.5vw,2.8rem)", fontWeight: 800, letterSpacing: "-0.035em", color: "#FFFFFF", margin: 0 }}>Semua yang Anda butuhkan,<br />dalam satu platform.</h2>
         </div></Reveal>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 1, border: "1px solid #1F1F2E", borderRadius: 12, overflow: "hidden" }}>
@@ -223,7 +223,7 @@ function HowItWorks() {
     <section style={{ padding: "100px 40px", position: "relative", zIndex: 1, borderTop: "1px solid #1F1F2E" }}>
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
         <Reveal><div style={{ textAlign: "center", marginBottom: 72 }}>
-          <div style={{ fontSize: 11, color: "#6366F1", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>CARA KERJA</div>
+          <div style={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>CARA KERJA</div>
           <h2 style={{ fontSize: "clamp(1.8rem,3.5vw,2.8rem)", fontWeight: 800, letterSpacing: "-0.035em", color: "#FFFFFF", margin: 0 }}>Setup dalam 3 langkah</h2>
         </div></Reveal>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 32, position: "relative" }}>
@@ -233,7 +233,7 @@ function HowItWorks() {
             <Reveal key={n} delay={i * 120}>
               <div style={{ position: "relative", zIndex: 1 }}>
                 <div style={{ width: 48, height: 48, borderRadius: "50%", border: "1px solid #1F1F2E", backgroundColor: "#111118", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
-                  <Icon size={18} style={{ color: "#6366F1" }} />
+                  <Icon size={18} style={{ color: "#FFFFFF" }} />
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#71717A", letterSpacing: "0.08em", marginBottom: 8 }}>{n}</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "#FFFFFF", marginBottom: 10 }}>{title}</div>
@@ -262,7 +262,7 @@ function TechStack() {
     <section style={{ padding: "100px 40px", position: "relative", zIndex: 1, borderTop: "1px solid #1F1F2E" }}>
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
         <Reveal><div style={{ textAlign: "center", marginBottom: 56 }}>
-          <div style={{ fontSize: 11, color: "#6366F1", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>TEKNOLOGI</div>
+          <div style={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>TEKNOLOGI</div>
           <h2 style={{ fontSize: "clamp(1.6rem,3vw,2.4rem)", fontWeight: 800, letterSpacing: "-0.035em", color: "#FFFFFF", margin: 0 }}>Dibangun di atas fondasi yang solid</h2>
         </div></Reveal>
         <Reveal delay={100}>
@@ -293,9 +293,9 @@ function CTA() {
         <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "center" }}>
           <h2 style={{ fontSize: "clamp(2rem,4vw,3rem)", fontWeight: 800, letterSpacing: "-0.04em", color: "#FFFFFF", margin: "0 0 20px" }}>Siap memulai?</h2>
           <p style={{ fontSize: 16, color: "#71717A", margin: "0 0 36px", lineHeight: 1.7 }}>Akses dashboard CamMatrix dan mulai pantau semua kamera dalam hitungan menit.</p>
-          <Link to="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 6, fontSize: 15, fontWeight: 600, color: "#FFFFFF", background: "#6366F1", textDecoration: "none", transition: "background-color 0.15s, transform 0.15s" }}
-            onMouseEnter={e => { e.currentTarget.style.background="#4F46E5"; e.currentTarget.style.transform="translateY(-1px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background="#6366F1"; e.currentTarget.style.transform="translateY(0)"; }}>
+          <Link to="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 6, fontSize: 15, fontWeight: 600, color: "#0A0A0F", background: "#FFFFFF", textDecoration: "none", transition: "background-color 0.15s, transform 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.background="#EBEBEB"; e.currentTarget.style.transform="translateY(-1px)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background="#FFFFFF"; e.currentTarget.style.transform="translateY(0)"; }}>
             Mulai Sekarang <ArrowRight size={16} />
           </Link>
         </div>
@@ -309,7 +309,7 @@ function Footer() {
   return (
     <footer style={{ borderTop: "1px solid #1F1F2E", padding: "32px 40px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", zIndex: 1 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ width: 22, height: 22, borderRadius: 5, background: "#6366F1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 22, height: 22, borderRadius: 5, background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Camera size={11} style={{ color: "#fff" }} />
         </div>
         <span style={{ fontSize: 13, fontWeight: 700, color: "#FFFFFF" }}>CamMatrix</span>

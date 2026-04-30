@@ -144,7 +144,7 @@ export function Nebula() {
           right: "-10%",
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(139,92,246,0.09) 0%, rgba(99,102,241,0.03) 45%, transparent 70%)",
+            "radial-gradient(circle, rgba(139,92,246,0.09) 0%, rgba(255,255,255,0.03) 45%, transparent 70%)",
           filter: `blur(${blur})`,
           willChange: "transform",
         }}

@@ -138,9 +138,9 @@ function DetectionRow({ det, index, isLast }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
-        <div style={{ width: "32px", height: "1px", background: "linear-gradient(90deg, rgba(99,102,241,0.12), rgba(99,102,241,0.5))", borderRadius: "99px" }} />
-        <ArrowRight size={13} style={{ color: "#6366F1" }} />
-        <div style={{ width: "32px", height: "1px", background: "linear-gradient(90deg, rgba(99,102,241,0.5), rgba(99,102,241,0.12))", borderRadius: "99px" }} />
+        <div style={{ width: "32px", height: "1px", background: "linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.5))", borderRadius: "99px" }} />
+        <ArrowRight size={13} style={{ color: "#FFFFFF" }} />
+        <div style={{ width: "32px", height: "1px", background: "linear-gradient(90deg, rgba(255,255,255,0.5), rgba(255,255,255,0.12))", borderRadius: "99px" }} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -163,8 +163,8 @@ export default function FaceAnalyticsPage() {
   const { t } = useLanguageStore();
 
   const statItems = [
-    { label: t("analytics.stats.total"),   sub: t("analytics.period.last24h"),    value: "237", color: "#6366F1", icon: ScanFace,    trend: "+18%", trendUp: true,  delay: 0   },
-    { label: t("analytics.stats.unique"),  sub: t("analytics.period.identified"), value: "41",  color: "#6366F1", icon: Shield,       trend: "+5",   trendUp: true,  delay: 100 },
+    { label: t("analytics.stats.total"),   sub: t("analytics.period.last24h"),    value: "237", color: "#FFFFFF", icon: ScanFace,    trend: "+18%", trendUp: true,  delay: 0   },
+    { label: t("analytics.stats.unique"),  sub: t("analytics.period.identified"), value: "41",  color: "#FFFFFF", icon: Shield,       trend: "+5",   trendUp: true,  delay: 100 },
     { label: t("analytics.stats.matches"), sub: t("analytics.period.today"),      value: "18",  color: "#10b981", icon: TrendingUp,   trend: "+3",   trendUp: true,  delay: 200 },
   ];
 
