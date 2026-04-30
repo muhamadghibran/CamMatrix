@@ -2,6 +2,7 @@ import {
   Film, Download, Play, Pause, Search, Filter, Clock,
   HardDrive, X, ScanFace, ChevronDown, Calendar, RefreshCw
 } from "lucide-react";
+import VideoPlayerModal from "../../components/VideoPlayerModal";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useLanguageStore } from "../../store/languageStore";
 import FaceAnalyticsPage from "./FaceAnalyticsPage";
@@ -137,7 +138,7 @@ function Toast({ filename, onClose }) {
 export default function RecordingsPage() {
   const { t } = useLanguageStore();
   const [hoveredRow, setHoveredRow] = useState(null);
-  const [playing, setPlaying]       = useState(null);
+  const [selectedRec, setSelectedRec] = useState(null);
   const [activeTab, setActiveTab]   = useState("recordings");
   const [search, setSearch]         = useState("");
   const [filterCamera, setFilterCamera] = useState("Semua");
@@ -198,6 +199,7 @@ export default function RecordingsPage() {
       `}</style>
 
       {toast && <Toast filename={toast} onClose={() => setToast(null)} />}
+  {selectedRec && <VideoPlayerModal rec={selectedRec} onClose={() => setSelectedRec(null)} onDownload={handleDownload} />}
 
       {/* ── Header ── */}
       <div style={{ marginBottom: 28, animation: "fadeUp 0.4s ease both" }}>
@@ -303,7 +305,6 @@ export default function RecordingsPage() {
                   </tr>
                 ) : filtered.map((rec, i) => {
                   const isHov  = hoveredRow === rec.id;
-                  const isPlay = playing === rec.id;
                   return (
                     <tr key={rec.id}
                       onMouseEnter={() => setHoveredRow(rec.id)} onMouseLeave={() => setHoveredRow(null)}
@@ -346,15 +347,15 @@ export default function RecordingsPage() {
                       {/* Actions */}
                       <td style={{ padding: "13px 20px", textAlign: "right" }}>
                         <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                          <button onClick={() => setPlaying(playing === rec.id ? null : rec.id)} title={isPlay ? "Pause" : "Putar"} style={{
-                            width: 30, height: 30, borderRadius: 7, background: isPlay ? "#1F1F2E" : "transparent",
-                            border: "1px solid #1F1F2E", color: isPlay ? "#FFFFFF" : "#71717A", cursor: "pointer",
+                          <button onClick={() => setSelectedRec(rec)} title="Putar" style={{
+                            width: 30, height: 30, borderRadius: 7, background: "transparent",
+                            border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer",
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            opacity: isHov || isPlay ? 1 : 0.4, transition: "opacity 0.15s, background 0.15s, color 0.15s"
+                            opacity: isHov ? 1 : 0.4, transition: "opacity 0.15s, color 0.15s"
                           }}
                           onMouseEnter={e => { e.currentTarget.style.color = "#FFF"; e.currentTarget.style.borderColor = "#2D2D3F"; }}
-                          onMouseLeave={e => { if (!isPlay) { e.currentTarget.style.color = "#71717A"; e.currentTarget.style.borderColor = "#1F1F2E"; } }}>
-                            {isPlay ? <Pause size={12} /> : <Play size={12} />}
+                          onMouseLeave={e => { e.currentTarget.style.color = "#71717A"; e.currentTarget.style.borderColor = "#1F1F2E"; }}>
+                            <Play size={12} />
                           </button>
                           <button onClick={() => handleDownload(rec)} title="Unduh" style={{
                             width: 30, height: 30, borderRadius: 7, background: "transparent",
