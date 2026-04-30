@@ -174,7 +174,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 28, maxWidth: 1200 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 28, width: "100%" }}>
       <style>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(14px); }
