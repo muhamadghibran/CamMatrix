@@ -21,15 +21,7 @@ const pageTitles = {
   "/app/users": "users",
   "/app/settings": "settings",
 };
-const pageMeta = {
-  "/app/dashboard": { badge: "Overview", color: "#FFFFFF" },
-  "/app/live": { badge: "Real-time", color: "#10b981" },
-  "/app/cameras": { badge: "Management", color: "#FFFFFF" },
-  "/app/recordings": { badge: "Archive", color: "#f59e0b" },
-  "/app/analytics": { badge: "AI Powered", color: "#a78bfa" },
-  "/app/users": { badge: "Access Control", color: "#FFFFFF" },
-  "/app/settings": { badge: "Configuration", color: "#6b7280" },
-};
+
 const searchItems = [
   {
     label: "Dashboard",
@@ -414,7 +406,6 @@ export default function Topbar({ onMenuToggle }) {
   const isDark = true;
   const titleKey = pageTitles[pathname];
   const title = titleKey ? t(`topbar.titles.${titleKey}`) : "CamMatrix";
-  const meta = pageMeta[pathname];
   const unread = notifications.filter((n) => !n.read).length;
   useEffect(() => {
     const handler = (e) => {
@@ -446,49 +437,25 @@ export default function Topbar({ onMenuToggle }) {
         <SearchModal onClose={() => setShowSearch(false)} isDark={isDark} />
       )}
       <header
-        className="h-14 flex items-center justify-between px-5 shrink-0"
         style={{
+          height: 56, display: "flex", alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 28px 0 24px",
+          flexShrink: 0,
           backgroundColor: "rgba(10,10,15,0.95)",
           borderBottom: "1px solid #1F1F2E",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <h1
-            style={{
-              fontSize: 15, fontWeight: 700,
-              color: "#FFFFFF", letterSpacing: "-0.025em", margin: 0,
-            }}
-          >
-            {title}
-          </h1>
-          {meta && (
-            <>
-              <span style={{ width: 1, height: 14, background: "#1F1F2E", flexShrink: 0 }} />
-              <span
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  fontSize: 11, fontWeight: 500, padding: "3px 9px",
-                  borderRadius: 5, flexShrink: 0,
-                  color: "#71717A",
-                  background: "#111118",
-                  border: "1px solid #1F1F2E",
-                }}
-              >
-                <span
-                  style={{
-                    width: 5, height: 5, borderRadius: "50%",
-                    background: "#FFFFFF",
-                    boxShadow: "0 0 6px rgba(255,255,255,0.5)",
-                    flexShrink: 0,
-                  }}
-                />
-                {meta.badge}
-              </span>
-            </>
-          )}
-        </div>
+        <h1
+          style={{
+            fontSize: 15, fontWeight: 600,
+            color: "#FFFFFF", letterSpacing: "-0.02em", margin: 0,
+          }}
+        >
+          {title}
+        </h1>
         <div className="flex items-center gap-2">
           <button
             id="topbar-search-btn"
