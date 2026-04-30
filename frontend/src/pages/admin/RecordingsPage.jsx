@@ -313,12 +313,11 @@ export default function RecordingsPage() {
                       {/* Camera */}
                       <td style={{ padding: "13px 20px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                          <div style={{ width: 32, height: 32, borderRadius: 7, background: isPlay ? "#1F1F2E" : "#0A0A0F", border: `1px solid ${isPlay ? "#2D2D3F" : "#1F1F2E"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 0.2s" }}>
-                            {isPlay ? <Pause size={12} style={{ color: "#FFFFFF" }} /> : <Film size={12} style={{ color: "#71717A" }} />}
+                          <div style={{ width: 32, height: 32, borderRadius: 7, background: "#0A0A0F", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <Film size={12} style={{ color: "#71717A" }} />
                           </div>
                           <div>
                             <span style={{ fontSize: 13, fontWeight: 700, color: "#FFFFFF", display: "block" }}>{rec.camera}</span>
-                            {isPlay && <span style={{ fontSize: 10, color: "#71717A", fontWeight: 600, letterSpacing: "0.05em" }}>▶ MEMUTAR</span>}
                           </div>
                         </div>
                       </td>
