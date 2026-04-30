@@ -404,48 +404,23 @@ export default function CamerasPage() {
           onCancel={() => setDeleteTarget(null)}
         />
       )}
-      <div className="flex items-center gap-3  ">
+      <div className="flex items-center gap-4">
         {[
-          { label: `${counts.live} LIVE`, color: "#10b981" },
-          { label: `${counts.recording} REKAM`, color: "#ef4444" },
-          { label: `${counts.offline} OFFLINE`, color: "#6b7280" },
-        ].map(({ label, color }) => (
+          { label: "online", count: counts.live, dot: "#34d399" },
+          { label: "rekaman", count: counts.recording, dot: "#f87171" },
+          { label: "offline", count: counts.offline, dot: "#4b5563" },
+        ].map(({ label, count, dot }) => (
           <div
             key={label}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "5px 12px",
-              borderRadius: "6px",
-              border: `1px solid ${color}40`,
-              background: `${color}15`,
-              fontFamily: "'JetBrains Mono', monospace",
-            }}
+            className="flex items-center gap-2 text-[12px]"
+            style={{ color: "var(--color-text-sub)" }}
           >
             <span
-              style={{
-                width: "5px",
-                height: "5px",
-                borderRadius: "50%",
-                background: color,
-                boxShadow: `0 0 8px ${color}`,
-                animation:
-                  color !== "#6b7280"
-                    ? "blinkDot 2s ease-in-out infinite"
-                    : "none",
-                flexShrink: 0,
-              }}
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: dot }}
             />
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: 700,
-                color: color,
-                letterSpacing: "0.08em",
-              }}
-            >
-              {label}
+            <span style={{ color: count > 0 ? "var(--color-text-base)" : "var(--color-text-sub)" }}>
+              {count} {label}
             </span>
           </div>
         ))}
@@ -482,22 +457,22 @@ export default function CamerasPage() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150"
           style={{
-            background: "linear-gradient(135deg,#06b6d4,#00ffff)",
-            boxShadow: "0 4px 14px rgba(6,182,212,0.4)",
-            transition: "transform 0.2s ease, box-shadow 0.2s ease",
+            backgroundColor: "var(--color-surface-elevated)",
+            border: "1px solid var(--color-card-border)",
+            color: "var(--color-text-base)",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "translateY(-2px)";
-            e.currentTarget.style.boxShadow = "0 6px 20px rgba(6,182,212,0.55)";
+            e.currentTarget.style.backgroundColor = "var(--color-surface)";
+            e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "";
-            e.currentTarget.style.boxShadow = "0 4px 14px rgba(6,182,212,0.4)";
+            e.currentTarget.style.backgroundColor = "var(--color-surface-elevated)";
+            e.currentTarget.style.borderColor = "var(--color-card-border)";
           }}
         >
-          <Plus size={16} /> {t("cameras.addCamera")}
+          <Plus size={15} /> {t("cameras.addCamera")}
         </button>
       </div>
       <div
@@ -565,13 +540,12 @@ export default function CamerasPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center"
                           style={{
-                            backgroundColor: `${s.color}10`,
-                            border: `1px solid ${s.color}22`,
+                            backgroundColor: "var(--color-surface-elevated)",
                           }}
                         >
-                          <Camera size={15} style={{ color: s.color }} />
+                          <Camera size={14} style={{ color: "var(--color-text-sub)" }} />
                         </div>
                         <div>
                           <span
@@ -627,18 +601,13 @@ export default function CamerasPage() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
-                        {cam.status === "offline" ? (
-                          <WifiOff size={12} style={{ color: s.color }} />
-                        ) : (
-                          <Wifi size={12} style={{ color: s.color }} />
-                        )}
                         <span
-                          className="text-[11px] font-bold px-2.5 py-1 rounded-lg"
-                          style={{
-                            backgroundColor: s.bg,
-                            color: s.color,
-                            border: `1px solid ${s.border}`,
-                          }}
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: s.color }}
+                        />
+                        <span
+                          className="text-[12px] font-medium"
+                          style={{ color: "var(--color-text-base)" }}
                         >
                           {t(`cameras.status.${cam.status}`)}
                         </span>
