@@ -376,7 +376,7 @@ export default function LiveViewPage() {
     fetchCameras();
     const interval = setInterval(() => fetchStatuses(), 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchCameras, fetchStatuses]);
   const currentLayout = gridLayouts.find((l) => l.key === layout);
   const cols = currentLayout?.cols || 2;
   const visibleCameras =
@@ -440,7 +440,7 @@ export default function LiveViewPage() {
             border: "1px solid var(--color-card-border)",
           }}
         >
-          {gridLayouts.map(({ key, icon: Icon, label }) => {
+          {gridLayouts.map(({ key, icon: IconComponent, label }) => {
             const isActive = layout === key;
             return (
               <button
@@ -458,7 +458,7 @@ export default function LiveViewPage() {
                     : { color: "var(--color-text-sub)" }),
                 }}
               >
-                <Icon size={13} /> {label}
+                <IconComponent size={13} /> {label}
               </button>
             );
           })}
