@@ -141,7 +141,7 @@ function CameraCell({ cam, t, index }) {
   return (
     <div
       ref={cellRef}
-      className="relative rounded-2xl overflow-hidden flex flex-col group cursor-pointer"
+      className="relative rounded-2xl overflow-hidden aspect-video group cursor-pointer"
       style={{
         backgroundColor: "var(--color-surface)",
         border: `1px solid ${hovered ? `${s.color}55` : "var(--color-card-border)"}`,
@@ -161,8 +161,9 @@ function CameraCell({ cam, t, index }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div
-        className="w-full aspect-video flex items-center justify-center relative overflow-hidden"
+      <div className="absolute inset-0 flex flex-col">
+        <div
+          className="flex-1 flex items-center justify-center relative overflow-hidden"
         style={{
           backgroundColor: isOffline
             ? "var(--color-surface-elevated)"
@@ -375,6 +376,7 @@ function CameraCell({ cam, t, index }) {
             {isOffline ? "OFFLINE" : "WebRTC"}
           </span>
         </div>
+      </div>
       </div>
     </div>
   );
