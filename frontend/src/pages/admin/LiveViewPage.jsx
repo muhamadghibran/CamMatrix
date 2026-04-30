@@ -440,12 +440,13 @@ export default function LiveViewPage() {
             border: "1px solid var(--color-card-border)",
           }}
         >
-          {gridLayouts.map(({ key, icon: IconComponent, label }) => {
-            const isActive = layout === key;
+          {gridLayouts.map((item) => {
+            const isActive = layout === item.key;
+            const IconComponent = item.icon;
             return (
               <button
-                key={key}
-                onClick={() => setLayout(key)}
+                key={item.key}
+                onClick={() => setLayout(item.key)}
                 className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-semibold"
                 style={{
                   transition: "all 0.25s cubic-bezier(0.16,1,0.3,1)",
@@ -458,7 +459,7 @@ export default function LiveViewPage() {
                     : { color: "var(--color-text-sub)" }),
                 }}
               >
-                <IconComponent size={13} /> {label}
+                <IconComponent size={13} /> {item.label}
               </button>
             );
           })}
