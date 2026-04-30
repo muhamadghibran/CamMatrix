@@ -386,7 +386,8 @@ export default function CamerasPage() {
     setDeleteTarget(null);
   };
   return (
-    <div className="space-y-6 relative z-10 w-full">
+    <div className="relative z-10 w-full">
+      {/* Modals - rendered outside content flow */}
       {showModal && (
         <CameraModal onClose={() => setShowModal(false)} onSave={handleAdd} />
       )}
@@ -404,84 +405,93 @@ export default function CamerasPage() {
           onCancel={() => setDeleteTarget(null)}
         />
       )}
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
-        {/* Left: Stats */}
-        <div className="flex items-center gap-5">
-          {[
-            { label: "online", count: counts.live, dot: "#34d399" },
-            { label: "rekaman", count: counts.recording, dot: "#f87171" },
-            { label: "offline", count: counts.offline, dot: "#4b5563" },
-          ].map(({ label, count, dot }) => (
-            <div
-              key={label}
-              className="flex items-center gap-2 text-[12px]"
-              style={{ color: "var(--color-text-sub)" }}
-            >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: dot }}
-              />
-              <span
-                style={{
-                  color: count > 0 ? "var(--color-text-base)" : "var(--color-text-sub)",
-                }}
-              >
-                {count} {label}
-              </span>
-            </div>
-          ))}
-        </div>
 
-        {/* Right: Search + Add button */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search
-              size={13}
-              className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ color: "var(--color-text-sub)" }}
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("cameras.searchPlaceholder")}
-              className="pl-9 pr-4 py-2 rounded-lg text-[13px] outline-none w-56"
+      {/* Page Content */}
+      <div className="flex flex-col gap-5">
+        {/* Toolbar Row */}
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: Stats */}
+          <div className="flex items-center gap-6">
+            {[
+              { label: "online", count: counts.live, dot: "#34d399" },
+              { label: "rekaman", count: counts.recording, dot: "#f87171" },
+              { label: "offline", count: counts.offline, dot: "#4b5563" },
+            ].map(({ label, count, dot }) => (
+              <div
+                key={label}
+                className="flex items-center gap-2 text-[12px]"
+                style={{ color: "var(--color-text-sub)" }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: dot }}
+                />
+                <span
+                  style={{
+                    color:
+                      count > 0
+                        ? "var(--color-text-base)"
+                        : "var(--color-text-sub)",
+                  }}
+                >
+                  {count} {label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Right: Search + Add button */}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search
+                size={13}
+                className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: "var(--color-text-sub)" }}
+              />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("cameras.searchPlaceholder")}
+                className="pl-9 pr-4 py-2 rounded-lg text-[13px] outline-none w-52"
+                style={{
+                  backgroundColor: "var(--color-surface)",
+                  border: "1px solid var(--color-card-border)",
+                  color: "var(--color-text-base)",
+                  transition: "border-color 0.15s ease",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor =
+                    "var(--color-card-border)";
+                }}
+              />
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium transition-colors duration-150 shrink-0"
               style={{
-                backgroundColor: "var(--color-surface)",
+                backgroundColor: "var(--color-surface-elevated)",
                 border: "1px solid var(--color-card-border)",
                 color: "var(--color-text-base)",
-                transition: "border-color 0.15s ease",
               }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
               }}
-              onBlur={(e) => {
+              onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = "var(--color-card-border)";
               }}
-            />
+            >
+              <Plus size={14} />
+              {t("cameras.addCamera")}
+            </button>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium transition-colors duration-150 shrink-0"
-            style={{
-              backgroundColor: "var(--color-surface-elevated)",
-              border: "1px solid var(--color-card-border)",
-              color: "var(--color-text-base)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--color-card-border)";
-            }}
-          >
-            <Plus size={14} />
-            {t("cameras.addCamera")}
-          </button>
         </div>
-      </div>
-      <div
+
+        {/* Table */}
+        <div
         className="rounded-[18px] overflow-hidden   "
         style={{
           backgroundColor: "var(--color-surface)",
@@ -669,6 +679,7 @@ export default function CamerasPage() {
             )}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );
