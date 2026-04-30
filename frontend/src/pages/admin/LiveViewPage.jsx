@@ -329,17 +329,18 @@ export default function LiveViewPage() {
               splitBy="word"
             />
           </div>
-          <span
-            className="flex items-center justify-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg shrink-0"
-            style={{
-              color: "#fff",
-              backgroundColor: "#10b981",
-              boxShadow: "0 2px 10px rgba(16,185,129,0.4)",
-            }}
+          <div
+            className="flex items-center gap-2 text-[12px]"
+            style={{ color: "var(--color-text-sub)" }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-blink" />
-            {liveCount} LIVE
-          </span>
+            <span
+              className="w-2 h-2 rounded-full animate-blink"
+              style={{ backgroundColor: liveCount > 0 ? "#34d399" : "#4b5563" }}
+            />
+            <span style={{ color: liveCount > 0 ? "var(--color-text-base)" : "var(--color-text-sub)" }}>
+              {liveCount} online
+            </span>
+          </div>
           <button
             onClick={() => {
               fetchCameras();
@@ -356,9 +357,9 @@ export default function LiveViewPage() {
           </button>
         </div>
         <div
-          className="flex items-center gap-1 p-1.5 rounded-2xl"
+          className="flex items-center p-1 rounded-xl"
           style={{
-            backgroundColor: "var(--color-surface)",
+            backgroundColor: "var(--color-surface-elevated)",
             border: "1px solid var(--color-card-border)",
           }}
         >
@@ -369,18 +370,15 @@ export default function LiveViewPage() {
               <button
                 key={item.key}
                 onClick={() => setLayout(item.key)}
-                className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all duration-200"
+                title={item.label}
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150"
                 style={{
-                  ...(isActive
-                    ? {
-                        background: "linear-gradient(135deg,#06b6d4,#00ffff)",
-                        color: "#fff",
-                        boxShadow: "0 2px 12px rgba(6,182,212,0.45)",
-                      }
-                    : { color: "var(--color-text-sub)" }),
+                  color: isActive ? "var(--color-text-base)" : "var(--color-text-sub)",
+                  backgroundColor: isActive ? "var(--color-surface)" : "transparent",
+                  boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.3)" : "none",
                 }}
               >
-                <IconComponent size={14} />
+                <IconComponent size={13} />
                 <span>{item.label}</span>
               </button>
             );
