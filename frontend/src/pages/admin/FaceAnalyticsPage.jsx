@@ -16,7 +16,7 @@ function ConfidenceBar({ value }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-        <span style={{ fontSize: "10px", color: "rgba(226,240,255,0.4)" }}>Kepercayaan</span>
+        <span style={{ fontSize: "10px", color: "#94A3B8" }}>Kepercayaan</span>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span style={{ fontSize: "12px", fontWeight: 700, color }}>{value}%</span>
           <span style={{ fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "4px", color, background: `${color}18`, border: `1px solid ${color}30` }}>
@@ -86,8 +86,8 @@ function StatCard({ label, sub, value, color, icon: StatIcon, trend, trendUp, de
       <div style={{ fontSize: "38px", fontWeight: 800, color, letterSpacing: "-0.04em", lineHeight: 1, marginBottom: "6px", fontFamily: "'Inter', system-ui, sans-serif" }}>
         {value}
       </div>
-      <p style={{ fontSize: "13px", fontWeight: 600, color: "#e2f0ff", margin: "0 0 3px" }}>{label}</p>
-      <p style={{ fontSize: "11px", color: "rgba(226,240,255,0.4)", margin: 0 }}>{sub}</p>
+      <p style={{ fontSize: "13px", fontWeight: 600, color: "#FFFFFF", margin: "0 0 3px" }}>{label}</p>
+      <p style={{ fontSize: "11px", color: "#94A3B8", margin: 0 }}>{sub}</p>
     </div>
   );
 }
@@ -113,7 +113,7 @@ function DetectionRow({ det, index, isLast }) {
     >
       <div style={{ display: "flex", alignItems: "center", gap: "11px", minWidth: 0 }}>
         <div style={{
-          width: "36px", height: "36px", borderRadius: "10px", flexShrink: 0,
+          width: "36px", height: "36px", borderRadius: "4px", flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
           background: "linear-gradient(135deg, rgba(139,92,246,0.25), rgba(139,92,246,0.08))",
           border: "1px solid rgba(139,92,246,0.3)",
@@ -121,36 +121,36 @@ function DetectionRow({ det, index, isLast }) {
           <ScanFace size={16} style={{ color: "#a78bfa" }} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <span style={{ fontSize: "13px", fontWeight: 600, color: "#e2f0ff", display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{det.face}</span>
+          <span style={{ fontSize: "13px", fontWeight: 600, color: "#FFFFFF", display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{det.face}</span>
           <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "#a78bfa" }}>UNKNOWN</span>
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Camera size={10} style={{ color: "rgba(226,240,255,0.35)", flexShrink: 0 }} />
-          <span style={{ fontSize: "12px", fontWeight: 500, color: "#e2f0ff" }}>{det.cam1}</span>
+          <Camera size={10} style={{ color: "rgba(148,163,184,0.7)", flexShrink: 0 }} />
+          <span style={{ fontSize: "12px", fontWeight: 500, color: "#FFFFFF" }}>{det.cam1}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Clock size={10} style={{ color: "rgba(226,240,255,0.35)", flexShrink: 0 }} />
-          <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "rgba(226,240,255,0.45)" }}>{det.time1}</span>
+          <Clock size={10} style={{ color: "rgba(148,163,184,0.7)", flexShrink: 0 }} />
+          <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#94A3B8" }}>{det.time1}</span>
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
-        <div style={{ width: "32px", height: "1px", background: "linear-gradient(90deg, rgba(6,182,212,0.2), rgba(6,182,212,0.6))", borderRadius: "99px" }} />
-        <ArrowRight size={13} style={{ color: "#22d3ee" }} />
-        <div style={{ width: "32px", height: "1px", background: "linear-gradient(90deg, rgba(6,182,212,0.6), rgba(6,182,212,0.2))", borderRadius: "99px" }} />
+        <div style={{ width: "32px", height: "1px", background: "linear-gradient(90deg, rgba(255,176,0,0.12), rgba(255,176,0,0.5))", borderRadius: "99px" }} />
+        <ArrowRight size={13} style={{ color: "#FFB000" }} />
+        <div style={{ width: "32px", height: "1px", background: "linear-gradient(90deg, rgba(255,176,0,0.5), rgba(255,176,0,0.12))", borderRadius: "99px" }} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Camera size={10} style={{ color: "rgba(226,240,255,0.35)", flexShrink: 0 }} />
-          <span style={{ fontSize: "12px", fontWeight: 500, color: "#e2f0ff" }}>{det.cam2}</span>
+          <Camera size={10} style={{ color: "rgba(148,163,184,0.7)", flexShrink: 0 }} />
+          <span style={{ fontSize: "12px", fontWeight: 500, color: "#FFFFFF" }}>{det.cam2}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Clock size={10} style={{ color: "rgba(226,240,255,0.35)", flexShrink: 0 }} />
-          <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "rgba(226,240,255,0.45)" }}>{det.time2}</span>
+          <Clock size={10} style={{ color: "rgba(148,163,184,0.7)", flexShrink: 0 }} />
+          <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#94A3B8" }}>{det.time2}</span>
         </div>
       </div>
 
@@ -163,8 +163,8 @@ export default function FaceAnalyticsPage() {
   const { t } = useLanguageStore();
 
   const statItems = [
-    { label: t("analytics.stats.total"),   sub: t("analytics.period.last24h"),    value: "237", color: "#8b5cf6", icon: ScanFace,    trend: "+18%", trendUp: true,  delay: 0   },
-    { label: t("analytics.stats.unique"),  sub: t("analytics.period.identified"), value: "41",  color: "#06b6d4", icon: Shield,       trend: "+5",   trendUp: true,  delay: 100 },
+    { label: t("analytics.stats.total"),   sub: t("analytics.period.last24h"),    value: "237", color: "#FFB000", icon: ScanFace,    trend: "+18%", trendUp: true,  delay: 0   },
+    { label: t("analytics.stats.unique"),  sub: t("analytics.period.identified"), value: "41",  color: "#FFB000", icon: Shield,       trend: "+5",   trendUp: true,  delay: 100 },
     { label: t("analytics.stats.matches"), sub: t("analytics.period.today"),      value: "18",  color: "#10b981", icon: TrendingUp,   trend: "+3",   trendUp: true,  delay: 200 },
   ];
 
@@ -192,7 +192,7 @@ export default function FaceAnalyticsPage() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div style={{
-            width: "36px", height: "36px", borderRadius: "10px",
+            width: "36px", height: "36px", borderRadius: "4px",
             display: "flex", alignItems: "center", justifyContent: "center",
             background: "linear-gradient(135deg, rgba(139,92,246,0.2), rgba(139,92,246,0.05))",
             border: "1px solid rgba(139,92,246,0.25)",
@@ -200,10 +200,10 @@ export default function FaceAnalyticsPage() {
             <ScanFace size={16} style={{ color: "#a78bfa" }} />
           </div>
           <div>
-            <h2 style={{ fontSize: "14px", fontWeight: 700, color: "#e2f0ff", margin: 0 }}>
+            <h2 style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF", margin: 0 }}>
               {t("analytics.table.title")}
             </h2>
-            <p style={{ fontSize: "11px", color: "rgba(226,240,255,0.4)", margin: "2px 0 0" }}>
+            <p style={{ fontSize: "11px", color: "#94A3B8", margin: "2px 0 0" }}>
               {t("analytics.table.subtitle")}
             </p>
           </div>
@@ -230,7 +230,7 @@ export default function FaceAnalyticsPage() {
           borderBottom: "1px solid rgba(255,255,255,0.04)",
         }}>
           {["Wajah", "Kamera Asal", "", "Kamera Tujuan", "Kepercayaan"].map((h, i) => (
-            <span key={i} style={{ fontSize: "10px", fontWeight: 700, color: "rgba(226,240,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{h}</span>
+            <span key={i} style={{ fontSize: "10px", fontWeight: 700, color: "rgba(148,163,184,0.6)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{h}</span>
           ))}
         </div>
 

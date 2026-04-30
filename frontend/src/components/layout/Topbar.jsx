@@ -22,12 +22,12 @@ const pageTitles = {
   "/app/settings": "settings",
 };
 const pageMeta = {
-  "/app/dashboard": { badge: "Overview", color: "#06b6d4" },
+  "/app/dashboard": { badge: "Overview", color: "#FFB000" },
   "/app/live": { badge: "Real-time", color: "#10b981" },
-  "/app/cameras": { badge: "Management", color: "#8b5cf6" },
+  "/app/cameras": { badge: "Management", color: "#FFB000" },
   "/app/recordings": { badge: "Archive", color: "#f59e0b" },
   "/app/analytics": { badge: "AI Powered", color: "#a78bfa" },
-  "/app/users": { badge: "Access Control", color: "#06b6d4" },
+  "/app/users": { badge: "Access Control", color: "#FFB000" },
   "/app/settings": { badge: "Configuration", color: "#6b7280" },
 };
 const searchItems = [
@@ -103,7 +103,7 @@ const mockNotifications = [
     time: "3 jam lalu",
     read: false,
     icon: "🌙",
-    color: "#8b5cf6",
+    color: "#FFB000",
   },
   {
     id: 4,
@@ -113,7 +113,7 @@ const mockNotifications = [
     time: "1 hari lalu",
     read: true,
     icon: "🤖",
-    color: "#06b6d4",
+    color: "#FFB000",
   },
   {
     id: 5,
@@ -161,10 +161,10 @@ function SearchModal({ onClose, isDark }) {
       <div
         className="w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl animate-card-enter"
         style={{
-          backgroundColor: "var(--color-surface)",
+          backgroundColor: "rgba(22,27,34,0.85)",
           border: "1px solid var(--color-card-border)",
           boxShadow: isDark
-            ? "0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(6,182,212,0.1)"
+            ? "0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,176,0,0.07)"
             : "0 20px 60px rgba(15,23,42,0.16), 0 0 0 1px rgba(15,23,42,0.04)",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -275,7 +275,7 @@ function NotificationPanel({
     <div
       className="absolute top-14 right-0 z-50 w-80 rounded-2xl overflow-hidden animate-card-enter"
       style={{
-        backgroundColor: "var(--color-surface)",
+        backgroundColor: "rgba(22,27,34,0.85)",
         border: "1px solid var(--color-card-border)",
         boxShadow: isDark
           ? "0 24px 64px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)"
@@ -284,7 +284,7 @@ function NotificationPanel({
     >
       <div
         className="flex items-center justify-between px-5 py-3.5"
-        style={{ borderBottom: "1px solid var(--color-card-border)" }}
+        style={{ borderBottom: "1px solid #30363D", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}
       >
         <div>
           <p
@@ -308,8 +308,8 @@ function NotificationPanel({
               onClick={onMarkAllRead}
               className="text-[11px] font-semibold px-2.5 py-1 rounded-lg"
               style={{
-                color: "#06b6d4",
-                backgroundColor: "rgba(6,182,212,0.08)",
+                color: "#FFB000",
+                backgroundColor: "rgba(255,176,0,0.06)",
               }}
             >
               Tandai semua
@@ -448,8 +448,8 @@ export default function Topbar({ onMenuToggle }) {
       <header
         className="h-14 flex items-center justify-between px-5 shrink-0 relative"
         style={{
-          backgroundColor: "var(--color-surface)",
-          borderBottom: "1px solid var(--color-card-border)",
+          backgroundColor: "rgba(22,27,34,0.85)",
+          borderBottom: "1px solid #30363D", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
           boxShadow: isDark
             ? "0 1px 12px rgba(0,0,0,0.3)"
             : "0 1px 8px rgba(15,23,42,0.06)",
@@ -459,8 +459,8 @@ export default function Topbar({ onMenuToggle }) {
           className="absolute bottom-0 left-0 right-0 h-px"
           style={{
             background: isDark
-              ? "linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.25) 30%, rgba(56,189,248,0.2) 70%, transparent 100%)"
-              : "linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.15) 50%, transparent 100%)",
+              ? "linear-gradient(90deg, transparent 0%, rgba(255,176,0,0.15) 30%, rgba(255,195,51,0.2) 70%, transparent 100%)"
+              : "linear-gradient(90deg, transparent 0%, rgba(255,176,0,0.1) 50%, transparent 100%)",
           }}
         />
         <div className="flex items-center gap-3">
@@ -517,8 +517,8 @@ export default function Topbar({ onMenuToggle }) {
               color: "var(--color-text-sub)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#06b6d4";
-              e.currentTarget.style.color = "#06b6d4";
+              e.currentTarget.style.borderColor = "#FFB000";
+              e.currentTarget.style.color = "#FFB000";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.borderColor = "var(--color-card-border)";

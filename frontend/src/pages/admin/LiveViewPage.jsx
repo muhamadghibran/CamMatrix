@@ -48,7 +48,7 @@ function LiveClock() {
   return (
     <span
       className="font-mono text-[11px]"
-      style={{ color: "#06b6d4", letterSpacing: "0.08em" }}
+      style={{ color: "#FFB000", letterSpacing: "0.08em" }}
     >
       {time}
     </span>

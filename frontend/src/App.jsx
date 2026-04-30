@@ -48,13 +48,13 @@ export default function App() {
           }
         >
           <Route index element={<Navigate to="/app/dashboard" replace />} />
-          <Route path="dashboard"  element={<DashboardPage />} />
-          <Route path="live"       element={<LiveViewPage />} />
-          <Route path="cameras"    element={<CamerasPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="live" element={<LiveViewPage />} />
+          <Route path="cameras" element={<CamerasPage />} />
           <Route path="recordings" element={<RecordingsPage />} />
-          <Route path="face"       element={<FaceAnalyticsPage />} />
-          <Route path="settings"   element={<SettingsPage />} />
-          <Route path="users"      element={<UsersPage />} />
+          <Route path="face" element={<FaceAnalyticsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="users" element={<UsersPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
