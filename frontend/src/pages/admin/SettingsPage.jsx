@@ -11,7 +11,8 @@ import {
 import { useState } from "react";
 import { useLanguageStore } from "../../store/languageStore";
 import AnimatedText from "../../components/AnimatedText";
-function SectionCard({ icon: Icon, iconColor, title, children, delay = 0 }) {
+function SectionCard({ icon: SectionIcon, iconColor, title, children, delay = 0 }) {
+  const Icon = SectionIcon;
   return (
     <div
       className="rounded-2xl overflow-hidden transition-all duration-300 group"
