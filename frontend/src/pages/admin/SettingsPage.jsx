@@ -153,98 +153,100 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 12, alignItems: "start" }}>
+      {/* ── 2-col layout ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "start" }}>
 
-        {/* ── Bahasa ── */}
-        <SectionCard icon={Languages} title="Bahasa" desc="Preferensi tampilan antarmuka" index={0}>
-          <SettingRow label="Bahasa Antarmuka" desc="Pilih bahasa yang digunakan di seluruh aplikasi" last>
-            <Sel value={language} onChange={setLanguage} options={[
-              { value: "id", label: "🇮🇩  Indonesia" },
-              { value: "en", label: "🇺🇸  English" },
-            ]} />
-          </SettingRow>
-        </SectionCard>
-
-        {/* ── Notifikasi ── */}
-        <SectionCard icon={Bell} title="Notifikasi" desc="Konfigurasi peringatan sistem" index={1}>
-          <NotifRow label="Peringatan Deteksi Wajah"  desc="Beritahu ketika wajah terdeteksi atau cocok"    checked={notifFace}    onChange={setNotifFace}    />
-          <NotifRow label="Peringatan Kamera Mati"     desc="Beritahu ketika kamera tidak dapat dijangkau"  checked={notifCamera}  onChange={setNotifCamera}  />
-          <NotifRow label="Peringatan Penyimpanan"     desc="Beritahu ketika penyimpanan mencapai 80%"       checked={notifStorage} onChange={setNotifStorage} last />
-        </SectionCard>
-
-        {/* ── Mesin AI ── */}
-        <SectionCard icon={Cpu} title="Mesin AI" desc="Parameter inferensi deteksi wajah" index={2}>
-          <SettingRow label="Perangkat AI" desc="Perangkat keras pemrosesan untuk deteksi wajah">
-            <Sel value={aiDevice} onChange={setAiDevice} options={[
-              { value: "auto",  label: "Otomatis (Disarankan)" },
-              { value: "gpu",   label: "GPU (CUDA / NVIDIA)"   },
-              { value: "cpu",   label: "CPU"                   },
-            ]} />
-          </SettingRow>
-          <SettingRow label="Laju Sampel Frame" desc="Frame per detik untuk diproses AI">
-            <Sel value={aiFrameRate} onChange={setAiFrameRate} options={[
-              { value: "low",      label: "2 FPS (Hemat)"   },
-              { value: "balanced", label: "5 FPS (Seimbang)" },
-              { value: "high",     label: "15 FPS (Penuh)"  },
-            ]} />
-          </SettingRow>
-          <SettingRow label="Kepercayaan Deteksi" desc="Ambang batas kepercayaan minimum untuk pencocokan wajah" last>
-            <Sel value={aiConfidence} onChange={setAiConfidence} options={[
-              { value: "low",      label: "60% (Longgar)"    },
-              { value: "balanced", label: "75% (Seimbang)"   },
-              { value: "strict",   label: "90% (Ketat)"      },
-            ]} />
-          </SettingRow>
-        </SectionCard>
-
-        {/* ── Rekaman ── */}
-        <SectionCard icon={Database} title="Rekaman" desc="Manajemen penyimpanan dan retensi video" index={3}>
-          <SettingRow label="Durasi Segmen" desc="Durasi maksimum per file rekaman">
-            <Sel value={recChunk} onChange={setRecChunk} options={[
-              { value: "10min", label: "10 menit" },
-              { value: "30min", label: "30 menit" },
-              { value: "60min", label: "60 menit" },
-            ]} />
-          </SettingRow>
-          <NotifRow label="Hapus Otomatis" desc="Hapus rekaman lama secara otomatis" checked={autoDelete} onChange={setAutoDelete} />
-          {autoDelete && (
-            <SettingRow label="Retensi Data" desc="Hapus rekaman setelah periode ini" last>
-              <Sel value={retention} onChange={setRetention} options={[
-                { value: "7d",  label: "7 hari"  },
-                { value: "14d", label: "14 hari" },
-                { value: "30d", label: "30 hari" },
-                { value: "90d", label: "90 hari" },
+        {/* LEFT column */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <SectionCard icon={Languages} title="Bahasa" desc="Preferensi tampilan antarmuka" index={0}>
+            <SettingRow label="Bahasa Antarmuka" desc="Pilih bahasa yang digunakan di seluruh aplikasi" last>
+              <Sel value={language} onChange={setLanguage} options={[
+                { value: "id", label: "🇮🇩  Indonesia" },
+                { value: "en", label: "🇺🇸  English" },
               ]} />
             </SettingRow>
-          )}
-          {!autoDelete && (
-            <div style={{ padding: "14px 0", display: "flex", alignItems: "center", gap: 8 }}>
-              <Info size={13} style={{ color: "#3D3D4F", flexShrink: 0 }} />
-              <p style={{ fontSize: 12, color: "#3D3D4F", margin: 0 }}>Rekaman akan disimpan selamanya hingga dihapus manual.</p>
-            </div>
-          )}
-        </SectionCard>
+          </SectionCard>
 
-        {/* ── Keamanan ── */}
-        <SectionCard icon={Shield} title="Keamanan" desc="Autentikasi dan manajemen sesi" index={4}>
-          <NotifRow label="Autentikasi Dua Faktor" desc="Wajibkan 2FA untuk semua akun admin" checked={twoFA} onChange={setTwoFA} />
-          <SettingRow label="Durasi Sesi" desc="Waktu otomatis logout setelah tidak aktif" last>
-            <Sel value={sessionDur} onChange={setSessionDur} options={[
-              { value: "2hr",   label: "2 jam"    },
-              { value: "8hr",   label: "8 jam"    },
-              { value: "24hr",  label: "24 jam"   },
-              { value: "never", label: "Tidak pernah" },
-            ]} />
-          </SettingRow>
-        </SectionCard>
+          <SectionCard icon={Shield} title="Keamanan" desc="Autentikasi dan manajemen sesi" index={1}>
+            <NotifRow label="Autentikasi Dua Faktor" desc="Wajibkan 2FA untuk semua akun admin" checked={twoFA} onChange={setTwoFA} />
+            <SettingRow label="Durasi Sesi" desc="Waktu otomatis logout setelah tidak aktif" last>
+              <Sel value={sessionDur} onChange={setSessionDur} options={[
+                { value: "2hr",   label: "2 jam"         },
+                { value: "8hr",   label: "8 jam"         },
+                { value: "24hr",  label: "24 jam"        },
+                { value: "never", label: "Tidak pernah"  },
+              ]} />
+            </SettingRow>
+          </SectionCard>
+        </div>
 
-        {/* ── Save footer ── */}
-        <div style={{ padding: "20px", borderRadius: 12, background: "rgba(17,17,24,0.6)", border: "1px solid #1F1F2E", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, gridColumn: "1 / -1" }}>
+        {/* RIGHT column */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <SectionCard icon={Bell} title="Notifikasi" desc="Konfigurasi peringatan sistem" index={2}>
+            <NotifRow label="Peringatan Deteksi Wajah" desc="Beritahu ketika wajah terdeteksi atau cocok"   checked={notifFace}    onChange={setNotifFace}    />
+            <NotifRow label="Peringatan Kamera Mati"   desc="Beritahu ketika kamera tidak dapat dijangkau" checked={notifCamera}  onChange={setNotifCamera}  />
+            <NotifRow label="Peringatan Penyimpanan"   desc="Beritahu ketika penyimpanan mencapai 80%"      checked={notifStorage} onChange={setNotifStorage} last />
+          </SectionCard>
+
+          <SectionCard icon={Cpu} title="Mesin AI" desc="Parameter inferensi deteksi wajah" index={3}>
+            <SettingRow label="Perangkat AI" desc="Perangkat keras pemrosesan untuk deteksi wajah">
+              <Sel value={aiDevice} onChange={setAiDevice} options={[
+                { value: "auto", label: "Otomatis (Disarankan)" },
+                { value: "gpu",  label: "GPU (CUDA / NVIDIA)"   },
+                { value: "cpu",  label: "CPU"                   },
+              ]} />
+            </SettingRow>
+            <SettingRow label="Laju Sampel Frame" desc="Frame per detik untuk diproses AI">
+              <Sel value={aiFrameRate} onChange={setAiFrameRate} options={[
+                { value: "low",      label: "2 FPS (Hemat)"    },
+                { value: "balanced", label: "5 FPS (Seimbang)"  },
+                { value: "high",     label: "15 FPS (Penuh)"   },
+              ]} />
+            </SettingRow>
+            <SettingRow label="Kepercayaan Deteksi" desc="Ambang batas minimum untuk pencocokan wajah" last>
+              <Sel value={aiConfidence} onChange={setAiConfidence} options={[
+                { value: "low",      label: "60% (Longgar)"   },
+                { value: "balanced", label: "75% (Seimbang)"  },
+                { value: "strict",   label: "90% (Ketat)"     },
+              ]} />
+            </SettingRow>
+          </SectionCard>
+
+          <SectionCard icon={Database} title="Rekaman" desc="Manajemen penyimpanan dan retensi video" index={4}>
+            <SettingRow label="Durasi Segmen" desc="Durasi maksimum per file rekaman">
+              <Sel value={recChunk} onChange={setRecChunk} options={[
+                { value: "10min", label: "10 menit" },
+                { value: "30min", label: "30 menit" },
+                { value: "60min", label: "60 menit" },
+              ]} />
+            </SettingRow>
+            <NotifRow label="Hapus Otomatis" desc="Hapus rekaman lama secara otomatis" checked={autoDelete} onChange={setAutoDelete} />
+            {autoDelete && (
+              <SettingRow label="Retensi Data" desc="Hapus rekaman setelah periode ini" last>
+                <Sel value={retention} onChange={setRetention} options={[
+                  { value: "7d",  label: "7 hari"  },
+                  { value: "14d", label: "14 hari" },
+                  { value: "30d", label: "30 hari" },
+                  { value: "90d", label: "90 hari" },
+                ]} />
+              </SettingRow>
+            )}
+            {!autoDelete && (
+              <div style={{ padding: "14px 0", display: "flex", alignItems: "center", gap: 8 }}>
+                <Info size={13} style={{ color: "#3D3D4F", flexShrink: 0 }} />
+                <p style={{ fontSize: 12, color: "#3D3D4F", margin: 0 }}>Rekaman disimpan selamanya hingga dihapus manual.</p>
+              </div>
+            )}
+          </SectionCard>
+        </div>
+
+        {/* Footer — spans both cols */}
+        <div style={{ gridColumn: "1 / -1", padding: "18px 22px", borderRadius: 12, background: "rgba(17,17,24,0.6)", border: "1px solid #1F1F2E", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
           <p style={{ fontSize: 12, color: "#3D3D4F", margin: 0 }}>
             Perubahan disimpan secara lokal dan diterapkan segera setelah disimpan.
           </p>
           <button onClick={handleSave} style={{
-            display: "flex", alignItems: "center", gap: 7, padding: "9px 18px",
+            display: "flex", alignItems: "center", gap: 7, padding: "9px 20px",
             borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", border: "none",
             background: saved ? "#1F1F2E" : "#FFFFFF",
             color: saved ? "#71717A" : "#0A0A0F",
