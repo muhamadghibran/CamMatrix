@@ -109,12 +109,12 @@ function Hero() {
         Platform CCTV profesional dengan deteksi wajah AI, streaming multi-kamera, dan manajemen rekaman terpadu.
       </p>
       <div style={{ ...s(560), display:"flex", gap:12, marginBottom:80 }}>
-        <Link to="/login" style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 26px", borderRadius:5, fontSize:14, fontWeight:600, color:"#0A0A0F", background:"#FFFFFF", textDecoration:"none", transition:"background-color 0.15s, transform 0.15s" }}
+        <Link to="/login" style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 26px", borderRadius:99, fontSize:14, fontWeight:600, color:"#0A0A0F", background:"#FFFFFF", textDecoration:"none", transition:"background-color 0.15s, transform 0.15s" }}
           onMouseEnter={e=>{e.currentTarget.style.background="#E5E5E5";e.currentTarget.style.transform="translateY(-1px)"}}
           onMouseLeave={e=>{e.currentTarget.style.background="#FFFFFF";e.currentTarget.style.transform="translateY(0)"}}>
           Mulai Sekarang <ArrowRight size={14} />
         </Link>
-        <Link to="/live" style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 26px", borderRadius:5, fontSize:14, fontWeight:600, color:"#FFFFFF", background:"transparent", border:"1px solid rgba(255,255,255,0.16)", textDecoration:"none", transition:"border-color 0.15s, background 0.15s, transform 0.15s" }}
+        <Link to="/live" style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 26px", borderRadius:99, fontSize:14, fontWeight:600, color:"#FFFFFF", background:"transparent", border:"1px solid rgba(255,255,255,0.16)", textDecoration:"none", transition:"border-color 0.15s, background 0.15s, transform 0.15s" }}
           onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,0.38)";e.currentTarget.style.background="rgba(255,255,255,0.05)";e.currentTarget.style.transform="translateY(-1px)"}}
           onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,0.16)";e.currentTarget.style.background="transparent";e.currentTarget.style.transform="translateY(0)"}}>
           <MonitorPlay size={14} /> Live Preview
@@ -288,7 +288,7 @@ function CTA() {
       <div ref={ref} className="sr" style={{ maxWidth:580, margin:"0 auto", textAlign:"center" }}>
         <h2 style={{ fontSize:"clamp(2rem,4vw,3.2rem)", fontWeight:800, letterSpacing:"-0.045em", color:"#FFFFFF", margin:"0 0 18px" }}>Siap memulai?</h2>
         <p style={{ fontSize:16, color:"#71717A", margin:"0 0 38px", lineHeight:1.72 }}>Akses dashboard CamMatrix dan mulai pantau semua kamera dalam hitungan menit.</p>
-        <Link to="/login" style={{ display:"inline-flex", alignItems:"center", gap:9, padding:"13px 30px", borderRadius:5, fontSize:15, fontWeight:600, color:"#0A0A0F", background:"#FFFFFF", textDecoration:"none", transition:"background-color 0.15s, transform 0.15s" }}
+        <Link to="/login" style={{ display:"inline-flex", alignItems:"center", gap:9, padding:"13px 30px", borderRadius:99, fontSize:15, fontWeight:600, color:"#0A0A0F", background:"#FFFFFF", textDecoration:"none", transition:"background-color 0.15s, transform 0.15s" }}
           onMouseEnter={e=>{e.currentTarget.style.background="#E5E5E5";e.currentTarget.style.transform="translateY(-1px)"}}
           onMouseLeave={e=>{e.currentTarget.style.background="#FFFFFF";e.currentTarget.style.transform="translateY(0)"}}>
           Mulai Sekarang <ArrowRight size={16} />
