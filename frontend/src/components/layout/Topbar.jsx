@@ -284,7 +284,7 @@ function NotificationPanel({
     >
       <div
         className="flex items-center justify-between px-5 py-3.5"
-        style={{ borderBottom: "1px solid #30363D", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}
+        style={{ borderBottom: "1px solid #1F1F2E" }}
       >
         <div>
           <p
@@ -446,23 +446,14 @@ export default function Topbar({ onMenuToggle }) {
         <SearchModal onClose={() => setShowSearch(false)} isDark={isDark} />
       )}
       <header
-        className="h-14 flex items-center justify-between px-5 shrink-0 relative"
+        className="h-14 flex items-center justify-between px-5 shrink-0"
         style={{
-          backgroundColor: "rgba(17,17,24,0.92)",
-          borderBottom: "1px solid #30363D", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
-          boxShadow: isDark
-            ? "0 1px 12px rgba(0,0,0,0.3)"
-            : "0 1px 8px rgba(15,23,42,0.06)",
+          backgroundColor: "rgba(10,10,15,0.95)",
+          borderBottom: "1px solid #1F1F2E",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
         }}
       >
-        <div
-          className="absolute bottom-0 left-0 right-0 h-px"
-          style={{
-            background: isDark
-              ? "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 30%, rgba(129,140,248,0.2) 70%, transparent 100%)"
-              : "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)",
-          }}
-        />
         <div className="flex items-center gap-3">
           <button
             id="topbar-menu-toggle"
@@ -506,35 +497,47 @@ export default function Topbar({ onMenuToggle }) {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <button
             id="topbar-search-btn"
             onClick={() => setShowSearch(true)}
-            className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200"
+            className="hidden md:flex items-center gap-2.5"
             style={{
-              backgroundColor: "var(--color-surface-elevated)",
-              border: "1px solid var(--color-card-border)",
-              color: "var(--color-text-sub)",
+              padding: "7px 14px",
+              borderRadius: 8,
+              background: "#111118",
+              border: "1px solid #1F1F2E",
+              color: "#71717A",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "border-color 0.15s, color 0.15s",
+              minWidth: 200,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#FFFFFF";
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
               e.currentTarget.style.color = "#FFFFFF";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--color-card-border)";
-              e.currentTarget.style.color = "var(--color-text-sub)";
+              e.currentTarget.style.borderColor = "#1F1F2E";
+              e.currentTarget.style.color = "#71717A";
             }}
           >
-            <Search size={13} />
-            <span>Cari...</span>
+            <Search size={13} style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1, textAlign: "left" }}>Cari halaman...</span>
             <span
-              className="hidden sm:flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-md font-mono"
               style={{
-                backgroundColor: "var(--color-card-border)",
-                color: "var(--color-text-sub)",
+                display: "inline-flex", alignItems: "center", gap: 2,
+                fontSize: 10, padding: "2px 6px", borderRadius: 5,
+                background: "#0A0A0F", border: "1px solid #2D2D3F",
+                color: "#3D3D4F", fontFamily: "monospace", letterSpacing: "0.04em",
+                flexShrink: 0,
               }}
             >
-              <Command size={9} />K
+              <Command size={9} /> K
             </span>
           </button>
           <div ref={notifRef} className="relative">
@@ -559,10 +562,13 @@ export default function Topbar({ onMenuToggle }) {
               <Bell size={17} />
               {unread > 0 && (
                 <span
-                  className="absolute top-1 right-1 min-w-[15px] h-[15px] rounded-full flex items-center justify-center text-[9px] font-bold text-white px-0.5"
                   style={{
-                    backgroundColor: "#ef4444",
-                    boxShadow: "none",
+                    position: "absolute", top: 5, right: 5,
+                    minWidth: 16, height: 16, borderRadius: 99,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 9, fontWeight: 700, color: "#0A0A0F",
+                    background: "#FFFFFF", padding: "0 3px",
+                    lineHeight: 1,
                   }}
                 >
                   {unread}
