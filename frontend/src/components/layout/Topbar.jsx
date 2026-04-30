@@ -17,7 +17,7 @@ const pageTitles = {
   "/app/live": "liveView",
   "/app/cameras": "cameras",
   "/app/recordings": "recordings",
-  "/app/analytics": "analytics",
+  "/app/face": "faceAnalytics",
   "/app/users": "users",
   "/app/settings": "settings",
 };
