@@ -86,7 +86,7 @@ function StatCard({ label, value, sub, icon, color, trend, trendUp, sparkData, i
       <div style={{ fontSize: "28px", fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.03em", lineHeight: 1, marginBottom: "4px", fontFamily: "'Inter', system-ui, sans-serif" }}>
         {value}
       </div>
-      <div style={{ fontSize: "11px", fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "12px" }}>
+      <div style={{ fontSize: "11px", fontWeight: 600, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "12px" }}>
         {label}
       </div>
 
@@ -143,7 +143,7 @@ function CameraCard({ cam, index, onClick }) {
             {cam.name}
           </p>
           {cam.location && (
-            <p style={{ fontSize: "11px", color: "#94A3B8", margin: 0, marginTop: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <p style={{ fontSize: "11px", color: "#71717A", margin: 0, marginTop: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {cam.location}
             </p>
           )}
@@ -221,10 +221,10 @@ export default function DashboardPage() {
   };
 
   const statCards = stats ? [
-    { label: "Total Kamera", value: String(stats.total_cameras), sub: `${stats.offline_cameras ?? 0} offline`, icon: Camera, color: "#FFB000", trend: `${stats.live_cameras} live`, trendUp: stats.live_cameras > 0 },
+    { label: "Total Kamera", value: String(stats.total_cameras), sub: `${stats.offline_cameras ?? 0} offline`, icon: Camera, color: "#6366F1", trend: `${stats.live_cameras} live`, trendUp: stats.live_cameras > 0 },
     { label: "Siaran Langsung", value: String(stats.live_cameras), sub: "streaming aktif", icon: Zap, color: "#10b981", trend: stats.total_cameras > 0 ? `${Math.round((stats.live_cameras / stats.total_cameras) * 100)}%` : "0%", trendUp: stats.live_cameras > 0 },
     { label: "Total Rekaman", value: String(stats.total_recordings), sub: "tersimpan", icon: Film, color: "#f59e0b", trend: stats.total_recordings > 0 ? `+${stats.total_recordings}` : "0", trendUp: stats.total_recordings > 0 },
-    { label: "Penyimpanan", value: `${stats.storage_gb}`, sub: "GB digunakan", icon: HardDrive, color: "#FFB000", trend: `${stats.storage_gb} GB`, trendUp: false },
+    { label: "Penyimpanan", value: `${stats.storage_gb}`, sub: "GB digunakan", icon: HardDrive, color: "#6366F1", trend: `${stats.storage_gb} GB`, trendUp: false },
     { label: "Pengguna", value: String(stats.active_users), sub: "administrator", icon: Users, color: "#ec4899", trend: `${stats.active_users} akun`, trendUp: true },
   ] : [];
 
@@ -252,11 +252,11 @@ export default function DashboardPage() {
             <div style={{
               display: "inline-flex", alignItems: "center", gap: "6px",
               padding: "4px 10px", borderRadius: "6px",
-              border: "1px solid rgba(255,176,0,0.15)", background: "rgba(255,176,0,0.06)",
+              border: "1px solid rgba(99,102,241,0.15)", background: "rgba(99,102,241,0.06)",
               fontFamily: "'JetBrains Mono', monospace",
             }}>
-              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 8px rgba(34,197,94,0.8)", animation: "blinkDot 2s ease-in-out infinite", flexShrink: 0 }} />
-              <span style={{ fontSize: "9px", fontWeight: 700, color: "rgba(255,176,0,0.8)", letterSpacing: "0.12em" }}>SYS ONLINE</span>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#22c55e", boxShadow: "none", animation: "blinkDot 2s ease-in-out infinite", flexShrink: 0 }} />
+              <span style={{ fontSize: "9px", fontWeight: 700, color: "rgba(99,102,241,0.8)", letterSpacing: "0.12em" }}>SYS ONLINE</span>
             </div>
           </div>
           <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.03em", margin: 0 }}>
@@ -276,11 +276,11 @@ export default function DashboardPage() {
             display: "flex", alignItems: "center", gap: "7px",
             padding: "9px 16px", borderRadius: "12px", cursor: "pointer",
             background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-            color: "#94A3B8", fontSize: "12px", fontWeight: 600,
+            color: "#71717A", fontSize: "12px", fontWeight: 600,
             transition: "all 0.2s ease",
           }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFB000"; e.currentTarget.style.color = "#FFB000"; e.currentTarget.style.background = "rgba(255,176,0,0.06)"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#94A3B8"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#6366F1"; e.currentTarget.style.color = "#6366F1"; e.currentTarget.style.background = "rgba(99,102,241,0.06)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#71717A"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
         >
           <RefreshCw size={13} style={{ animation: spinning ? "spin 0.6s linear" : "none" }} />
           Refresh
@@ -311,16 +311,16 @@ export default function DashboardPage() {
             <div style={{
               width: "36px", height: "36px", borderRadius: "4px",
               display: "flex", alignItems: "center", justifyContent: "center",
-              background: "linear-gradient(135deg, rgba(255,176,0,0.12), rgba(255,176,0,0.05))",
-              border: "1px solid rgba(255,176,0,0.15)",
+              background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(99,102,241,0.05))",
+              border: "1px solid rgba(99,102,241,0.15)",
             }}>
-              <MonitorPlay size={16} style={{ color: "#FFB000" }} />
+              <MonitorPlay size={16} style={{ color: "#6366F1" }} />
             </div>
             <div>
               <h2 style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF", margin: 0 }}>
                 {t("dashboard.cameraStatus")}
               </h2>
-              <p style={{ fontSize: "11px", color: "#94A3B8", margin: "2px 0 0", fontFamily: "'JetBrains Mono', monospace" }}>
+              <p style={{ fontSize: "11px", color: "#71717A", margin: "2px 0 0", fontFamily: "'JetBrains Mono', monospace" }}>
                 {liveCount} live · {cameras.length} total
               </p>
             </div>
@@ -329,7 +329,7 @@ export default function DashboardPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 10px", borderRadius: "6px", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", fontSize: "10px", fontWeight: 700, color: "#10b981", fontFamily: "'JetBrains Mono', monospace" }}>
-                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px rgba(16,185,129,0.8)", animation: "blinkDot 2s ease-in-out infinite" }} />
+                <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#10b981", boxShadow: "none", animation: "blinkDot 2s ease-in-out infinite" }} />
                 {liveCount} LIVE
               </span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 10px", borderRadius: "6px", background: "rgba(107,114,128,0.08)", border: "1px solid rgba(107,114,128,0.2)", fontSize: "10px", fontWeight: 700, color: "#9ca3af", fontFamily: "'JetBrains Mono', monospace" }}>
@@ -342,11 +342,11 @@ export default function DashboardPage() {
               style={{
                 display: "flex", alignItems: "center", gap: "5px",
                 padding: "7px 14px", borderRadius: "9px", cursor: "pointer",
-                background: "rgba(255,176,0,0.06)", border: "1px solid rgba(255,176,0,0.12)",
-                color: "#FFB000", fontSize: "11px", fontWeight: 600, transition: "all 0.2s ease",
+                background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.12)",
+                color: "#6366F1", fontSize: "11px", fontWeight: 600, transition: "all 0.2s ease",
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,176,0,0.1)"; e.currentTarget.style.borderColor = "rgba(255,176,0,0.3)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,176,0,0.06)"; e.currentTarget.style.borderColor = "rgba(255,176,0,0.12)"; }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(99,102,241,0.1)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.3)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(99,102,241,0.06)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.12)"; }}
             >
               {t("dashboard.viewAll")} <ArrowUpRight size={12} />
             </button>
@@ -363,10 +363,10 @@ export default function DashboardPage() {
               <div style={{ width: "56px", height: "56px", borderRadius: "16px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                 <Camera size={24} style={{ color: "rgba(148,163,184,0.4)" }} />
               </div>
-              <p style={{ fontSize: "13px", fontWeight: 600, color: "#94A3B8", margin: "0 0 8px" }}>Belum ada kamera terdaftar</p>
+              <p style={{ fontSize: "13px", fontWeight: 600, color: "#71717A", margin: "0 0 8px" }}>Belum ada kamera terdaftar</p>
               <button
                 onClick={() => navigate("/app/cameras")}
-                style={{ fontSize: "12px", fontWeight: 600, color: "#FFB000", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                style={{ fontSize: "12px", fontWeight: 600, color: "#6366F1", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
               >
                 Tambah kamera sekarang
               </button>

@@ -44,7 +44,7 @@ export default function Sidebar({ collapsed, onToggle }) {
         overflow: "hidden",
         width: collapsed ? 64 : 232,
         transition: "width 0.28s cubic-bezier(0.4, 0, 0.2, 1)",
-        backgroundColor: "rgba(22,27,34,0.92)",
+        backgroundColor: "rgba(17,17,24,0.96)",
         backdropFilter: "blur(10px)",
         WebkitBackdropFilter: "blur(10px)",
         borderRight: "1px solid #30363D",
@@ -121,7 +121,7 @@ export default function Sidebar({ collapsed, onToggle }) {
                     >
                       {/* Active left bar - amber */}
                       {isActive && (
-                        <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 2, height: 16, borderRadius: "0 2px 2px 0", backgroundColor: "#FFB000" }} />
+                        <span style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 2, height: 16, borderRadius: "0 2px 2px 0", backgroundColor: "#6366F1" }} />
                       )}
                       <Icon size={15} style={{ flexShrink: 0, color: "inherit" }} />
                       {!collapsed && (

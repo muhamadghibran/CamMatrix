@@ -25,7 +25,7 @@ function InputField({
       <label
         className="block text-[11px] font-bold mb-2 uppercase tracking-widest"
         style={{
-          color: focused ? "#FFB000" : "#94A3B8",
+          color: focused ? "#6366F1" : "#71717A",
           transition: "color 0.2s",
         }}
       >
@@ -34,10 +34,10 @@ function InputField({
       <div
         className="relative flex items-center rounded-xl"
         style={{
-          border: `1px solid ${focused ? "rgba(255,176,0,0.5)" : "rgba(255,255,255,0.08)"}`,
+          border: `1px solid ${focused ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.08)"}`,
           background: "rgba(255,255,255,0.04)",
           boxShadow: focused
-            ? "0 0 0 3px rgba(255,176,0,0.08), 0 0 20px rgba(255,176,0,0.06)"
+            ? "0 0 0 3px rgba(99,102,241,0.08), 0 0 20px rgba(99,102,241,0.06)"
             : "none",
           transition: "border-color 0.2s, box-shadow 0.2s",
         }}
@@ -46,7 +46,7 @@ function InputField({
           size={14}
           className="absolute left-4 shrink-0"
           style={{
-            color: focused ? "#FFB000" : "rgba(148,163,184,0.6)",
+            color: focused ? "#6366F1" : "rgba(148,163,184,0.6)",
             transition: "color 0.2s",
           }}
         />
@@ -180,7 +180,7 @@ export default function LoginPage() {
         alignItems: "center",
         justifyContent: "center",
         padding: "16px",
-        background: "#0D1117",
+        background: "#0A0A0F",
         overflow: "hidden",
       }}
     >
@@ -235,13 +235,13 @@ export default function LoginPage() {
           width: "100%",
           maxWidth: "380px",
           background: "rgba(4,10,20,0.85)",
-          border: "1px solid rgba(255,176,0,0.1)",
+          border: "1px solid rgba(99,102,241,0.1)",
           borderRadius: "24px",
           backdropFilter: "blur(32px)",
           WebkitBackdropFilter: "blur(32px)",
           padding: "40px 36px 36px",
           boxShadow:
-            "0 32px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,176,0,0.06), 0 0 60px rgba(255,176,0,0.06)",
+            "0 32px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(99,102,241,0.06), 0 0 60px rgba(99,102,241,0.06)",
           /* Entrance animation */
           opacity: visible ? 1 : 0,
           transform: visible
@@ -261,7 +261,7 @@ export default function LoginPage() {
             right: "32px",
             height: "1px",
             background:
-              "linear-gradient(90deg, transparent, rgba(255,176,0,0.5), transparent)",
+              "linear-gradient(90deg, transparent, rgba(99,102,241,0.5), transparent)",
           }}
         />
 
@@ -301,7 +301,7 @@ export default function LoginPage() {
             style={{
               margin: 0,
               fontSize: "13px",
-              color: "#94A3B8",
+              color: "#71717A",
               opacity: visible ? 1 : 0,
               transition: "opacity 0.7s ease 0.45s",
             }}
@@ -444,10 +444,10 @@ export default function LoginPage() {
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background =
-              "linear-gradient(145deg, rgba(255,176,0,0.06), rgba(255,176,0,0.02))";
-            e.currentTarget.style.borderColor = "rgba(255,176,0,0.2)";
+              "linear-gradient(145deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02))";
+            e.currentTarget.style.borderColor = "rgba(99,102,241,0.2)";
             e.currentTarget.style.transform = "translateY(-2px)";
-            e.currentTarget.style.boxShadow = "0 8px 24px rgba(255,176,0,0.1)";
+            e.currentTarget.style.boxShadow = "0 8px 24px rgba(99,102,241,0.1)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background =
@@ -466,11 +466,11 @@ export default function LoginPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "rgba(255,176,0,0.07)",
-                border: "1px solid rgba(255,176,0,0.12)",
+                background: "rgba(99,102,241,0.07)",
+                border: "1px solid rgba(99,102,241,0.12)",
               }}
             >
-              <Tv2 size={16} style={{ color: "#FFB000" }} />
+              <Tv2 size={16} style={{ color: "#6366F1" }} />
             </div>
             <div
               style={{ display: "flex", flexDirection: "column", gap: "2px" }}
@@ -488,7 +488,7 @@ export default function LoginPage() {
               <span
                 style={{
                   fontSize: "11px",
-                  color: "#94A3B8",
+                  color: "#71717A",
                   lineHeight: 1,
                 }}
               >
@@ -521,7 +521,7 @@ export default function LoginPage() {
               maxWidth: "360px",
               borderRadius: "20px",
               background: "rgba(4,10,20,0.95)",
-              border: "1px solid rgba(255,176,0,0.12)",
+              border: "1px solid rgba(99,102,241,0.12)",
               padding: "36px",
               boxShadow: "0 32px 80px rgba(0,0,0,0.9)",
               animation: "cinematicReveal 0.6s cubic-bezier(0.16,1,0.3,1) both",
@@ -563,7 +563,7 @@ export default function LoginPage() {
                 <p
                   style={{
                     fontSize: "11px",
-                    color: "#94A3B8",
+                    color: "#71717A",
                     margin: 0,
                   }}
                 >
@@ -613,10 +613,10 @@ export default function LoginPage() {
                   borderRadius: "12px",
                   fontSize: "14px",
                   fontWeight: 700,
-                  color: "#0D1117",
+                  color: "#0A0A0F",
                   border: "none",
                   cursor: "pointer",
-                  background: "linear-gradient(135deg, #E69000, #FFB000)",
+                  background: "linear-gradient(135deg, #4F46E5, #6366F1)",
                   opacity: loading ? 0.7 : 1,
                   transition: "opacity 0.2s",
                 }}

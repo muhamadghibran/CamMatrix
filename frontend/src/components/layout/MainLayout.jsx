@@ -13,7 +13,7 @@ export default function MainLayout() {
   return (
     <div
       className="flex h-screen overflow-hidden relative"
-      style={{ backgroundColor: "#0D1117" }}
+      style={{ backgroundColor: "#0A0A0F" }}
     >
       <CosmicBackground particleOpacity={0.22} />
       <div

@@ -179,7 +179,7 @@ export default function CosmicBackground({ particleOpacity = 0.4 }) {
         zIndex: 0,
         pointerEvents: "none",
         overflow: "hidden",
-        background: "#0D1117",
+        background: "#0A0A0F",
       }}
     >
       <Nebula />

@@ -3,11 +3,11 @@
 
 /* @theme is a Tailwind CSS v4 directive — safe to ignore the IDE "unknown at-rule" warning */
 @theme {
-  --color-bg-base: #0D1117;
-  --color-bg-surface: #161B22;
-  --color-brand: #FFB000;
-  --color-brand-light: #FFC333;
-  --color-brand-dark: #E69000;
+  --color-bg-base: #0A0A0F;
+  --color-bg-surface: #111118;
+  --color-brand: #6366F1;
+  --color-brand-light: #818CF8;
+  --color-brand-dark: #4F46E5;
   --font-family-sans: 'Inter', system-ui, sans-serif;
   --font-family-mono: 'JetBrains Mono', monospace;
   --width-sidebar: 240px;
@@ -46,8 +46,8 @@ html *:not([class*="animate-"]):not([class*="btn"]):not(canvas):not(svg) {
 /* Smooth scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #30363D; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #484f58; }
+::-webkit-scrollbar-thumb { background: #1F1F2E; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #2D2D3F; }
 
 /* ── Accessibility: respect OS reduced-motion preference ── */
 @media (prefers-reduced-motion: reduce) {
@@ -60,32 +60,32 @@ html *:not([class*="animate-"]):not([class*="btn"]):not(canvas):not(svg) {
 }
 
 
-/* ─── DARK THEME — ENTERPRISE ─── */
+/* ─── DARK THEME — LINEAR ─── */
 html.dark {
-  --color-bg-page:          #0D1117;
-  --color-surface:          rgba(22,27,34,0.95);
-  --color-surface-elevated: rgba(30,37,48,0.98);
-  --color-card-border:      #30363D;
+  --color-bg-page:          #0A0A0F;
+  --color-surface:          rgba(17,17,24,0.96);
+  --color-surface-elevated: rgba(26,26,36,0.98);
+  --color-card-border:      #1F1F2E;
   --color-text-base:        #FFFFFF;
-  --color-text-sub:         #94A3B8;
+  --color-text-sub:         #71717A;
   --color-input-bg:         rgba(255,255,255,0.04);
-  --shadow-card:            0 2px 8px rgba(0,0,0,0.5);
-  --shadow-card-hover:      0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px #30363D;
-  --glow-brand:             0 0 20px rgba(255,176,0,0.3);
+  --shadow-card:            0 1px 4px rgba(0,0,0,0.4), 0 0 0 1px #1F1F2E;
+  --shadow-card-hover:      0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px #2D2D3F;
+  --glow-brand:             none;
 }
 
 /* ─── LIGHT THEME — CLEAN ─── */
 html.light {
-  --color-bg-page:          #f2f6fc;
-  --color-surface:          #ffffff;
-  --color-surface-elevated: #edf2f9;
-  --color-card-border:      rgba(15,23,42,0.09);
-  --color-text-base:        #0c1523;
-  --color-text-sub:         #5e7491;
-  --color-input-bg:         #f8fafc;
-  --shadow-card:            0 1px 4px rgba(15,23,42,0.07), 0 0 0 1px rgba(15,23,42,0.05);
-  --shadow-card-hover:      0 14px 40px rgba(15,23,42,0.13), 0 0 0 1px rgba(6,182,212,0.18);
-  --glow-brand:             0 4px 20px rgba(6,182,212,0.18);
+  --color-bg-page:          #F9FAFB;
+  --color-surface:          #FFFFFF;
+  --color-surface-elevated: #F3F4F6;
+  --color-card-border:      #E5E7EB;
+  --color-text-base:        #111827;
+  --color-text-sub:         #6B7280;
+  --color-input-bg:         #F9FAFB;
+  --shadow-card:            0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px #E5E7EB;
+  --shadow-card-hover:      0 8px 24px rgba(0,0,0,0.12), 0 0 0 1px #D1D5DB;
+  --glow-brand:             none;
 }
 
 /* ══════════════════════════════════════
@@ -377,15 +377,15 @@ html.dark .dot-grid {
 /* ══════════════════════════════════════
    TEXT GRADIENTS
 ══════════════════════════════════════ */
-.text-gradient-brand  { background:linear-gradient(135deg,#FFB000,#FFC333);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
-.text-gradient-glow   { background:linear-gradient(135deg,#ffffff 20%,#FFB000 60%,#E69000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
-.text-gradient-multi  { background:linear-gradient(90deg,#FFB000,#8b5cf6,#ec4899,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.text-gradient-brand  { background:linear-gradient(135deg,#6366F1,#4F46E5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.text-gradient-glow   { background:linear-gradient(135deg,#ffffff 20%,#6366F1 60%,#4338CA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.text-gradient-multi  { background:linear-gradient(90deg,#6366F1,#8b5cf6,#ec4899,#6366F1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
 .text-gradient-blue   { background:linear-gradient(135deg,#60a5fa,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
 .text-gradient-purple { background:linear-gradient(135deg,#c084fc,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
 .text-gradient-green  { background:linear-gradient(135deg,#34d399,#10b981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
 
 .shimmer-text {
-  background: linear-gradient(90deg, var(--color-text-base) 30%, #FFB000 50%, var(--color-text-base) 70%);
+  background: linear-gradient(90deg, var(--color-text-base) 30%, #6366F1 50%, var(--color-text-base) 70%);
   background-size: 200% auto;
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   animation: shimmer 3.5s linear infinite;
@@ -395,14 +395,14 @@ html.dark .dot-grid {
    SIDEBAR ACTIVE
 ══════════════════════════════════════ */
 .sidebar-item-active {
-  background-color: rgba(30,37,48,0.98);
-  border: 1px solid #30363D;
+  background-color: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.2);
   color: #FFFFFF;
 }
 html.light .sidebar-item-active {
-  background-color: rgba(22,27,34,0.08);
-  border: 1px solid #30363D;
-  color: #161B22;
+  background-color: rgba(99,102,241,0.08);
+  border: 1px solid rgba(99,102,241,0.15);
+  color: #111827;
 }
 
 /* ══════════════════════════════════════
@@ -447,53 +447,47 @@ html.light .sidebar-item-active {
 .btn-primary svg { transition: transform 0.2s ease; }
 .btn-primary:hover svg { transform: translateX(2px); }
 
-/* ── SECONDARY — Glass ghost with glow border ── */
+/* ── SECONDARY — Outline white 1px ── */
 .btn-secondary {
-  padding: 12px 26px; border-radius: 12px;
-  font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
-  color: rgba(226,240,255,0.75);
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(226,240,255,0.12) !important;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset;
-  transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease, border-color 0.25s ease, color 0.2s ease, background 0.2s ease;
+  padding: 10px 22px; border-radius: 6px;
+  font-size: 14px; font-weight: 600;
+  color: #FFFFFF;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 .btn-secondary:hover {
+  border-color: rgba(255,255,255,0.4) !important;
+  background: rgba(255,255,255,0.06);
   transform: translateY(-1px);
-  color: #FFFFFF;
-  border-color: rgba(255,255,255,0.25) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
-.btn-secondary:active { transform: translateY(0); transition-duration: 0.1s; }
-.btn-secondary svg { transition: transform 0.2s ease; }
+.btn-secondary:active { transform: translateY(0); transition-duration: 0.08s; }
+.btn-secondary svg { transition: transform 0.15s ease; }
 .btn-secondary:hover svg { transform: translateX(2px); }
 
 html.light .btn-secondary {
-  color: var(--color-text-sub);
-  background: var(--color-surface);
-  border: 1px solid var(--color-card-border) !important;
+  color: #111827;
+  border: 1px solid #D1D5DB !important;
 }
 html.light .btn-secondary:hover {
-  color: #161B22;
-  border-color: rgba(22,27,34,0.35) !important;
+  border-color: #6366F1 !important;
+  background: rgba(99,102,241,0.05);
 }
 
-/* ── GHOST — Minimal text link style ── */
+/* ── GHOST ── */
 .btn-ghost {
-  padding: 8px 14px; border-radius: 10px;
-  font-size: 13px; font-weight: 600;
+  padding: 8px 14px; border-radius: 6px;
+  font-size: 13px; font-weight: 500;
   color: var(--color-text-sub);
   background: transparent;
   border: 1px solid transparent !important;
-  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 .btn-ghost:hover {
   color: #FFFFFF;
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.12) !important;
-  transform: translateY(-1px);
+  background: rgba(255,255,255,0.06);
 }
-.btn-ghost svg { transition: transform 0.2s ease; }
+.btn-ghost svg { transition: transform 0.15s ease; }
 .btn-ghost:hover svg { transform: translateX(2px); }
 
 /* ── DANGER ── */
@@ -546,9 +540,7 @@ html.light .btn-secondary:hover {
    NEON BORDER
 ══════════════════════════════════════ */
 .neon-border {
-  border: 1px solid rgba(255,176,0,0.25);
-  box-shadow: 0 0 0 1px rgba(255,176,0,0.08);
-  animation: borderGlow 4s ease-in-out infinite;
+  border: 1px solid rgba(99,102,241,0.2);
 }
 
 /* ══════════════════════════════════════
@@ -573,8 +565,8 @@ body {
 /* ══════════════════════════════════════
    SELECTION & FOCUS
 ══════════════════════════════════════ */
-::selection { background: rgba(255,176,0,0.2); color: inherit; }
-:focus-visible { outline: 2px solid rgba(255,176,0,0.5); outline-offset: 2px; border-radius: 4px; }
+::selection { background: rgba(99,102,241,0.25); color: inherit; }
+:focus-visible { outline: 2px solid rgba(99,102,241,0.5); outline-offset: 2px; border-radius: 4px; }
 
 /* ══════════════════════════════════════
    AUTOFILL OVERRIDE

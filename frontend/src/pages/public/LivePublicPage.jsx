@@ -45,7 +45,7 @@ function CameraPlayer({ camera }) {
       onMouseLeave={() => setHov(false)}
       style={{
         background: "rgba(255,255,255,0.03)",
-        border: `1px solid ${hov ? "rgba(255,176,0,0.2)" : "rgba(255,255,255,0.07)"}`,
+        border: `1px solid ${hov ? "rgba(99,102,241,0.2)" : "rgba(255,255,255,0.07)"}`,
         borderRadius: "16px",
         overflow: "hidden",
         willChange: "transform",
@@ -53,7 +53,7 @@ function CameraPlayer({ camera }) {
           ? "translateY(-4px) translateZ(0)"
           : "translateY(0) translateZ(0)",
         boxShadow: hov
-          ? "0 20px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,176,0,0.12)"
+          ? "0 20px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.12)"
           : "0 4px 16px rgba(0,0,0,0.3)",
         transition:
           "transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s ease, border-color 0.3s ease",
@@ -155,7 +155,7 @@ function CameraPlayer({ camera }) {
             style={{
               margin: "4px 0 0",
               fontSize: "11px",
-              color: "#94A3B8",
+              color: "#71717A",
             }}
           >
             {camera.location}
@@ -197,7 +197,7 @@ export default function LivePublicPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#0D1117",
+        background: "#0A0A0F",
         color: "#FFFFFF",
         fontFamily: "'Inter', system-ui, sans-serif",
         position: "relative",
@@ -249,7 +249,7 @@ export default function LivePublicPage() {
             height: "100%",
             borderRadius: "50%",
             background:
-              "conic-gradient(from 0deg at 50% 50%, transparent 60%, rgba(255,176,0,0.05) 85%, rgba(255,176,0,0.2) 100%)",
+              "conic-gradient(from 0deg at 50% 50%, transparent 60%, rgba(99,102,241,0.05) 85%, rgba(99,102,241,0.2) 100%)",
             animation: "spinRadar 12s linear infinite",
             maskImage:
               "radial-gradient(circle at 50% 50%, black 10%, transparent 70%)",
@@ -268,7 +268,7 @@ export default function LivePublicPage() {
               width: `${i * 20}%`,
               height: `${i * 20}%`,
               borderRadius: "50%",
-              border: "1px dashed rgba(255,176,0,0.06)",
+              border: "1px dashed rgba(99,102,241,0.06)",
             }}
           />
         ))}
@@ -279,7 +279,7 @@ export default function LivePublicPage() {
             left: "0",
             right: "0",
             height: "1px",
-            background: "rgba(255,176,0,0.05)",
+            background: "rgba(99,102,241,0.05)",
           }}
         />
         <div
@@ -289,7 +289,7 @@ export default function LivePublicPage() {
             top: "0",
             bottom: "0",
             width: "1px",
-            background: "rgba(255,176,0,0.05)",
+            background: "rgba(99,102,241,0.05)",
           }}
         />
         <div
@@ -300,7 +300,7 @@ export default function LivePublicPage() {
             width: "30%",
             height: "30%",
             borderRadius: "50%",
-            border: "2px solid rgba(255,176,0,0.3)",
+            border: "2px solid rgba(99,102,241,0.3)",
             animation: "pulseRing 4s ease-out infinite",
           }}
         />
@@ -342,7 +342,7 @@ export default function LivePublicPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          borderBottom: "1px solid rgba(255,176,0,0.07)",
+          borderBottom: "1px solid rgba(99,102,241,0.07)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           position: "sticky",
@@ -382,7 +382,7 @@ export default function LivePublicPage() {
               style={{
                 margin: 0,
                 fontSize: "10px",
-                color: "rgba(255,176,0,0.5)",
+                color: "rgba(99,102,241,0.5)",
                 letterSpacing: "0.08em",
                 fontFamily: "'JetBrains Mono', monospace",
               }}
@@ -410,7 +410,7 @@ export default function LivePublicPage() {
                 height: "6px",
                 borderRadius: "50%",
                 background: "#10b981",
-                boxShadow: "0 0 8px rgba(16,185,129,0.8)",
+                boxShadow: "none",
                 animation: "blinkDot 2s ease-in-out infinite",
               }}
             />
@@ -433,17 +433,17 @@ export default function LivePublicPage() {
               borderRadius: "4px",
               background: "rgba(255,255,255,0.04)",
               border: "1px solid rgba(255,255,255,0.08)",
-              color: "#94A3B8",
+              color: "#71717A",
               cursor: "pointer",
               transition: "background 0.2s, color 0.2s",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,176,0,0.07)";
-              e.currentTarget.style.color = "#FFB000";
+              e.currentTarget.style.background = "rgba(99,102,241,0.07)";
+              e.currentTarget.style.color = "#6366F1";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-              e.currentTarget.style.color = "#94A3B8";
+              e.currentTarget.style.color = "#71717A";
             }}
           >
             <RefreshCw size={14} />
@@ -472,8 +472,8 @@ export default function LivePublicPage() {
               marginBottom: "12px",
               padding: "6px 14px",
               borderRadius: "8px",
-              border: "1px solid rgba(255,176,0,0.12)",
-              background: "rgba(255,176,0,0.04)",
+              border: "1px solid rgba(99,102,241,0.12)",
+              background: "rgba(99,102,241,0.04)",
               fontFamily: "'JetBrains Mono', monospace",
             }}
           >
@@ -483,7 +483,7 @@ export default function LivePublicPage() {
                 height: "6px",
                 borderRadius: "50%",
                 background: "#22c55e",
-                boxShadow: "0 0 8px rgba(34,197,94,0.8)",
+                boxShadow: "none",
                 animation: "blinkDot 2s ease-in-out infinite",
               }}
             />
@@ -491,7 +491,7 @@ export default function LivePublicPage() {
               style={{
                 fontSize: "9px",
                 fontWeight: 700,
-                color: "rgba(255,176,0,0.5)",
+                color: "rgba(99,102,241,0.5)",
                 letterSpacing: "0.12em",
               }}
             >
@@ -501,14 +501,14 @@ export default function LivePublicPage() {
               style={{
                 width: "1px",
                 height: "12px",
-                background: "rgba(255,176,0,0.12)",
+                background: "rgba(99,102,241,0.12)",
               }}
             />
             <span
               style={{
                 fontSize: "10px",
                 fontWeight: 600,
-                color: "#94A3B8",
+                color: "#71717A",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
               }}
