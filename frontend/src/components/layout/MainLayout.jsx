@@ -17,9 +17,8 @@ export default function MainLayout() {
       className="flex h-screen overflow-hidden"
       style={{
         background: "#0A0A0F",
-        backgroundImage: "radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px)",
-        backgroundSize: "24px 24px",
-        position: "relative",
+        backgroundImage: "radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)",
+        backgroundSize: "30px 30px",
       }}
     >
       {/* Sidebar */}
