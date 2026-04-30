@@ -125,7 +125,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div style={{ width: "100%", maxWidth: 680, display: "flex", flexDirection: "column", gap: 0 }}>
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 0 }}>
       <style>{`
         @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         @keyframes spin   { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
@@ -153,7 +153,7 @@ export default function SettingsPage() {
         </button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 12, alignItems: "start" }}>
 
         {/* ── Bahasa ── */}
         <SectionCard icon={Languages} title="Bahasa" desc="Preferensi tampilan antarmuka" index={0}>
@@ -239,7 +239,7 @@ export default function SettingsPage() {
         </SectionCard>
 
         {/* ── Save footer ── */}
-        <div style={{ padding: "20px", borderRadius: 12, background: "rgba(17,17,24,0.6)", border: "1px solid #1F1F2E", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <div style={{ padding: "20px", borderRadius: 12, background: "rgba(17,17,24,0.6)", border: "1px solid #1F1F2E", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, gridColumn: "1 / -1" }}>
           <p style={{ fontSize: 12, color: "#3D3D4F", margin: 0 }}>
             Perubahan disimpan secara lokal dan diterapkan segera setelah disimpan.
           </p>
