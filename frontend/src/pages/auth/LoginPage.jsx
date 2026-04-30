@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail, Tv2, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Tv2, ArrowRight, ArrowLeft } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
 import { useLanguageStore } from "../../store/languageStore";
 import { API_BASE_URL as API } from "../../constants/api";
@@ -150,7 +150,31 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0A0A0F", padding: 24 }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0A0A0F", padding: 24, position: "relative" }}>
+      <style>{`
+        /* Fix Chrome autofill white background */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 50px #0A0A0F inset !important;
+            -webkit-text-fill-color: #FFFFFF !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+      `}</style>
+      
+      <Link to="/" style={{
+        position: "absolute", top: 28, left: 28,
+        display: "flex", alignItems: "center", gap: 6,
+        color: "#8a8f98", textDecoration: "none", fontSize: 13, fontWeight: 500,
+        transition: "color 0.2s", zIndex: 10
+      }}
+      onMouseEnter={e => e.currentTarget.style.color = "#FFFFFF"}
+      onMouseLeave={e => e.currentTarget.style.color = "#8a8f98"}
+      >
+        <ArrowLeft size={14} /> Beranda Utama
+      </Link>
+
       <div style={{
         width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 32,
         opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)",
