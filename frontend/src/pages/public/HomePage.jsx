@@ -71,7 +71,7 @@ function Navbar() {
       
       <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
         <div style={{ display: "flex", gap: 28 }}>
-          {["Fitur","Teknologi","Keamanan","Harga","Kontak"].map(n => (
+          {["Fitur","Teknologi","Keamanan"].map(n => (
             <span key={n} style={{ fontSize: 14, fontWeight: 500, color: "#8a8f98", cursor: "pointer", transition: "color 0.15s" }}
               onMouseEnter={e=>e.currentTarget.style.color="#FFF"} onMouseLeave={e=>e.currentTarget.style.color="#8a8f98"}>{n}</span>
           ))}
