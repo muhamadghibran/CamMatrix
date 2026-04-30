@@ -141,230 +141,152 @@ function CameraCell({ cam, t, index }) {
   return (
     <div
       ref={cellRef}
-      className="relative rounded-2xl overflow-hidden aspect-video group cursor-pointer"
+      className="relative rounded-xl overflow-hidden aspect-video cursor-pointer"
       style={{
-        backgroundColor: "var(--color-surface)",
-        border: `1px solid ${hovered ? `${s.color}55` : "var(--color-card-border)"}`,
+        backgroundColor: "#0a0f1e",
+        border: `1px solid ${hovered ? `${s.color}40` : "rgba(255,255,255,0.06)"}`,
         boxShadow: hovered
-          ? `0 0 0 1px ${s.color}30, 0 10px 40px ${s.color}20`
-          : "0 2px 8px rgba(0,0,0,0.12)",
+          ? `0 0 0 1px ${s.color}20, 0 8px 32px rgba(0,0,0,0.5)`
+          : "0 4px 16px rgba(0,0,0,0.4)",
         opacity: entered ? 1 : 0,
         transform: entered
           ? hovered
-            ? "scale(1.015) translateY(-2px)"
+            ? "scale(1.012) translateY(-1px)"
             : "scale(1) translateY(0)"
-          : "scale(0.94) translateY(18px)",
+          : "scale(0.95) translateY(12px)",
         transition: entered
-          ? "opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.4s cubic-bezier(0.16,1,0.3,1), border-color 0.3s ease, box-shadow 0.35s ease"
-          : `opacity 0.55s cubic-bezier(0.16,1,0.3,1) ${index * 0.075}s, transform 0.55s cubic-bezier(0.16,1,0.3,1) ${index * 0.075}s`,
+          ? "opacity 0.4s ease, transform 0.35s ease, border-color 0.2s ease, box-shadow 0.3s ease"
+          : `opacity 0.5s ease ${index * 0.07}s, transform 0.5s ease ${index * 0.07}s`,
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Background / Video area */}
+      {isOffline ? (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+          style={{ backgroundColor: "#0d1117" }}
+        >
+          <WifiOff size={24} style={{ color: "#374151", opacity: 0.8 }} />
+          <p className="text-xs font-semibold" style={{ color: "#374151" }}>
+            {t("liveView.offline")}
+          </p>
+        </div>
+      ) : (
+        <>
+          {cam.stream_url && <HlsPlayer src={cam.stream_url} />}
+          {isRecording && (
+            <div
+              className="absolute top-3 right-10 flex items-center gap-1.5 px-2 py-1 rounded-md pointer-events-none z-10"
+              style={{
+                backgroundColor: "rgba(239,68,68,0.85)",
+                backdropFilter: "blur(4px)",
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-blink" />
+              <span className="text-[9px] font-bold text-white tracking-widest">REC</span>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* TOP LEFT — Status badge */}
       <div
-        className="absolute inset-0 flex items-center justify-center overflow-hidden"
+        className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-md z-10 pointer-events-none"
         style={{
-          backgroundColor: isOffline
-            ? "var(--color-surface-elevated)"
-            : "#02030d",
+          backgroundColor: "rgba(0,0,0,0.7)",
+          backdropFilter: "blur(8px)",
         }}
       >
-        {isOffline ? (
-          <div
-            className="text-center space-y-2 transition-all duration-500"
-            style={{ opacity: hovered ? 0.7 : 0.4 }}
-          >
-            <WifiOff
-              size={28}
-              className="mx-auto"
-              style={{ color: "var(--color-text-sub)" }}
-            />
-            <p
-              className="text-xs font-semibold"
-              style={{ color: "var(--color-text-sub)" }}
-            >
-              {t("liveView.offline")}
-            </p>
-            <p
-              className="text-[10px]"
-              style={{ color: "var(--color-text-sub)" }}
-            >
-              {cam.rtsp_url}
-            </p>
-          </div>
-        ) : (
-          <>
-            {cam.stream_url && <HlsPlayer src={cam.stream_url} />}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundImage:
-                  "repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px)",
-              }}
-            />
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)",
-              }}
-            />
-            <div
-              className="absolute left-0 right-0 h-px animate-scan pointer-events-none"
-              style={{
-                background: `linear-gradient(90deg, transparent 0%, ${s.color}50 30%, ${s.color} 50%, ${s.color}50 70%, transparent 100%)`,
-                opacity: 0.15,
-              }}
-            />
-            {["tl", "tr", "bl", "br"].map((pos) => (
-              <div
-                key={pos}
-                className="absolute pointer-events-none transition-all duration-400"
-                style={{
-                  width: 18,
-                  height: 18,
-                  top: pos.startsWith("t") ? 8 : "auto",
-                  bottom: pos.startsWith("b") ? 8 : "auto",
-                  left: pos.endsWith("l") ? 8 : "auto",
-                  right: pos.endsWith("r") ? 8 : "auto",
-                  borderTop: pos.startsWith("t")
-                    ? `2px solid ${s.color}`
-                    : "none",
-                  borderBottom: pos.startsWith("b")
-                    ? `2px solid ${s.color}`
-                    : "none",
-                  borderLeft: pos.endsWith("l")
-                    ? `2px solid ${s.color}`
-                    : "none",
-                  borderRight: pos.endsWith("r")
-                    ? `2px solid ${s.color}`
-                    : "none",
-                  opacity: hovered ? 0.85 : 0,
-                  transform: hovered
-                    ? "scale(1)"
-                    : pos === "tl"
-                      ? "translate(-4px,-4px)"
-                      : pos === "tr"
-                        ? "translate(4px,-4px)"
-                        : pos === "bl"
-                          ? "translate(-4px,4px)"
-                          : "translate(4px,4px)",
-                  transition:
-                    "opacity 0.35s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1)",
-                }}
-              />
-            ))}
-            {isRecording && (
-              <div
-                className="absolute top-2.5 right-12 flex items-center gap-1.5 px-2.5 py-1 rounded-lg pointer-events-none"
-                style={{
-                  backgroundColor: "rgba(239,68,68,0.18)",
-                  border: "1px solid rgba(239,68,68,0.4)",
-                  backdropFilter: "blur(8px)",
-                }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-blink" />
-                <span className="text-[9px] font-bold text-red-400 tracking-widest">
-                  REC
-                </span>
-              </div>
-            )}
-          </>
-        )}
-        <div
-          className="absolute top-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all duration-300 pointer-events-none z-10"
-          style={{
-            backgroundColor: "rgba(0,0,0,0.65)",
-            backdropFilter: "blur(10px)",
-            border: hovered
-              ? `1px solid ${s.color}40`
-              : "1px solid transparent",
-          }}
-        >
-          {isLive ? (
-            <span className="relative flex h-2 w-2">
-              <span
-                className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-70"
-                style={{ backgroundColor: s.color }}
-              />
-              <span
-                className="relative inline-flex rounded-full h-2 w-2"
-                style={{ backgroundColor: s.color }}
-              />
-            </span>
-          ) : (
+        {isLive ? (
+          <span className="relative flex h-1.5 w-1.5">
             <span
-              className="w-2 h-2 rounded-full"
+              className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
               style={{ backgroundColor: s.color }}
             />
-          )}
-          <span
-            className="text-[10px] font-bold uppercase tracking-widest"
-            style={{ color: s.color }}
-          >
-            {t(`dashboard.status.${s.label}`) || s.label}
+            <span
+              className="relative inline-flex rounded-full h-1.5 w-1.5"
+              style={{ backgroundColor: s.color }}
+            />
           </span>
-        </div>
-        <button
-          onClick={toggleFullscreen}
-          title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
-          className="absolute top-2 right-2 p-1.5 rounded-lg z-10"
-          style={{
-            backgroundColor: "rgba(0,0,0,0.65)",
-            backdropFilter: "blur(10px)",
-            color: hovered ? "#fff" : "#94a3b8",
-            opacity: hovered ? 1 : 0,
-            transform: hovered
-              ? "scale(1) translateY(0)"
-              : "scale(0.85) translateY(-4px)",
-            transition:
-              "opacity 0.3s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1)",
-          }}
+        ) : (
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: s.color }}
+          />
+        )}
+        <span
+          className="text-[10px] font-semibold uppercase tracking-wider"
+          style={{ color: s.color }}
         >
-          {isFullscreen ? <Minimize2 size={13} /> : <Expand size={13} />}
-        </button>
-        {!isOffline && (
-          <div
-            className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-md pointer-events-none z-10"
+          {t(`dashboard.status.${s.label}`) || s.label}
+        </span>
+      </div>
+
+      {/* TOP RIGHT — Fullscreen button */}
+      <button
+        onClick={toggleFullscreen}
+        title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
+        className="absolute top-3 right-3 p-1.5 rounded-md z-10"
+        style={{
+          backgroundColor: "rgba(0,0,0,0.7)",
+          backdropFilter: "blur(8px)",
+          color: "#9ca3af",
+          opacity: hovered ? 1 : 0,
+          transform: hovered ? "scale(1)" : "scale(0.8)",
+          transition: "opacity 0.2s ease, transform 0.2s ease",
+        }}
+      >
+        {isFullscreen ? <Minimize2 size={12} /> : <Expand size={12} />}
+      </button>
+
+      {/* BOTTOM GRADIENT OVERLAY — Camera info always inside card */}
+      <div
+        className="absolute inset-x-0 bottom-0 z-10 pointer-events-none"
+        style={{
+          background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)",
+          padding: "32px 12px 12px",
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* Camera name + location */}
+        <div style={{ minWidth: 0, flexShrink: 1, marginRight: 8 }}>
+          <p
+            className="font-semibold text-white truncate"
+            style={{ fontSize: 13, lineHeight: 1.3, marginBottom: 2 }}
+          >
+            {cam.name}
+          </p>
+          <p
+            className="truncate"
+            style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", lineHeight: 1.2 }}
+          >
+            {cam.location}
+          </p>
+        </div>
+
+        {/* Status pill + time */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {!isOffline && <LiveClock />}
+          <span
             style={{
-              backgroundColor: "rgba(0,0,0,0.6)",
-              backdropFilter: "blur(8px)",
-              opacity: hovered ? 1 : 0.5,
-              transition: "opacity 0.3s ease",
+              fontSize: 10,
+              fontWeight: 700,
+              color: isOffline ? "#6b7280" : "#f0fdf4",
+              backgroundColor: isOffline ? "rgba(55,65,81,0.8)" : "rgba(16,185,129,0.8)",
+              backdropFilter: "blur(4px)",
+              padding: "3px 8px",
+              borderRadius: 6,
+              letterSpacing: "0.05em",
+              lineHeight: 1.5,
             }}
           >
-            <Clock size={9} style={{ color: s.color }} />
-            <LiveClock />
-          </div>
-        )}
-      </div>
-        {/* Modern Overlay Bottom Bar */}
-        <div className="absolute inset-x-0 bottom-0 px-5 pb-5 pt-16 flex items-end justify-between z-10 pointer-events-none">
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-black/95 via-black/50 to-transparent -z-10" />
-          
-          <div className="relative z-10 flex flex-col justify-end">
-            <p className="text-[14px] font-bold text-white drop-shadow-lg leading-none tracking-wide mb-1">
-              {cam.name}
-            </p>
-            <p className="text-[11px] text-gray-300 font-medium drop-shadow-md leading-none">
-              {cam.location}
-            </p>
-          </div>
-          
-          <div className="relative z-10 flex items-center gap-2">
-            <span
-              className="text-[10px] font-bold font-mono px-2.5 py-1 rounded-lg leading-none"
-              style={{
-                color: "#fff",
-                backgroundColor: isOffline ? "rgba(107,114,128,0.7)" : "rgba(16,185,129,0.85)",
-                boxShadow: isOffline ? "0 2px 8px rgba(107,114,128,0.4)" : "0 2px 10px rgba(16,185,129,0.5)",
-                backdropFilter: "blur(6px)",
-              }}
-            >
-              {isOffline ? "OFFLINE" : "WebRTC"}
-            </span>
-          </div>
+            {isOffline ? "OFFLINE" : "LIVE"}
+          </span>
         </div>
+      </div>
     </div>
   );
 }

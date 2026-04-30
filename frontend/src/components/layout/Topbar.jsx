@@ -489,13 +489,18 @@ export default function Topbar({ onMenuToggle }) {
             </h1>
             {meta && (
               <span
-                className="hidden sm:inline-flex items-center justify-center text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shrink-0"
+                className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1 rounded-md shrink-0"
                 style={{
-                  color: "#fff",
-                  backgroundColor: meta.color,
-                  boxShadow: `0 2px 10px ${meta.color}50`,
+                  color: "var(--color-text-sub)",
+                  backgroundColor: "var(--color-surface-elevated)",
+                  border: "1px solid var(--color-card-border)",
+                  letterSpacing: "0.03em",
                 }}
               >
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
+                />
                 {meta.badge}
               </span>
             )}
