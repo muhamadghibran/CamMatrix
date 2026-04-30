@@ -14,25 +14,26 @@ import AnimatedText from "../../components/AnimatedText";
 function SectionCard({ icon: Icon, iconColor, title, children, delay = 0 }) {
   return (
     <div
-      className="rounded-2xl overflow-hidden   transition-all duration-300 group"
+      className="rounded-2xl overflow-hidden transition-all duration-300 group"
       style={{
-        backgroundColor: "var(--color-surface)",
-        border: "1px solid var(--color-card-border)",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        backgroundColor: "rgba(255, 255, 255, 0.02)",
+        border: "1px solid rgba(255, 255, 255, 0.07)",
+        backdropFilter: "blur(12px)",
+        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
         animationDelay: `${delay}ms`,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,0.12), 0 0 0 1px ${iconColor}20`;
+        e.currentTarget.style.boxShadow = `0 8px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px ${iconColor}30`;
         e.currentTarget.style.borderColor = `${iconColor}30`;
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
-        e.currentTarget.style.borderColor = "var(--color-card-border)";
+        e.currentTarget.style.boxShadow = "0 4px 20px rgba(0, 0, 0, 0.2)";
+        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.07)";
       }}
     >
       <div
         className="flex items-center gap-3 px-6 py-4"
-        style={{ borderBottom: "1px solid var(--color-card-border)" }}
+        style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.07)" }}
       >
         <div
           className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300"
@@ -59,7 +60,7 @@ function SettingRow({ label, desc, children, noBorder = false }) {
     <div
       className="flex items-center justify-between py-4"
       style={{
-        borderBottom: noBorder ? "none" : "1px solid var(--color-card-border)",
+        borderBottom: noBorder ? "none" : "1px solid rgba(255, 255, 255, 0.07)",
       }}
     >
       <div className="pr-6">
