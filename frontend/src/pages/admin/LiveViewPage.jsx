@@ -339,26 +339,26 @@ function CameraCell({ cam, t, index }) {
         )}
       </div>
         {/* Modern Overlay Bottom Bar */}
-        <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between z-10 pointer-events-none">
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/90 to-transparent -z-10" />
+        <div className="absolute inset-x-0 bottom-0 px-5 pb-5 pt-16 flex items-end justify-between z-10 pointer-events-none">
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-black/95 via-black/50 to-transparent -z-10" />
           
-          <div className="relative z-10">
-            <p className="text-[14px] font-bold text-white drop-shadow-md leading-tight tracking-wide">
+          <div className="relative z-10 flex flex-col justify-end">
+            <p className="text-[14px] font-bold text-white drop-shadow-lg leading-none tracking-wide mb-1">
               {cam.name}
             </p>
-            <p className="text-[11px] text-gray-300 font-medium mt-0.5 drop-shadow-md">
+            <p className="text-[11px] text-gray-300 font-medium drop-shadow-md leading-none">
               {cam.location}
             </p>
           </div>
           
           <div className="relative z-10 flex items-center gap-2">
             <span
-              className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md"
+              className="text-[10px] font-bold font-mono px-2.5 py-1 rounded-lg leading-none"
               style={{
-                color: isOffline ? "#9ca3af" : "#fff",
-                backgroundColor: isOffline ? "rgba(107,114,128,0.25)" : "rgba(6,182,212,0.25)",
-                border: isOffline ? "1px solid rgba(107,114,128,0.4)" : "1px solid rgba(6,182,212,0.4)",
-                backdropFilter: "blur(4px)",
+                color: "#fff",
+                backgroundColor: isOffline ? "rgba(107,114,128,0.7)" : "rgba(16,185,129,0.85)",
+                boxShadow: isOffline ? "0 2px 8px rgba(107,114,128,0.4)" : "0 2px 10px rgba(16,185,129,0.5)",
+                backdropFilter: "blur(6px)",
               }}
             >
               {isOffline ? "OFFLINE" : "WebRTC"}
@@ -408,14 +408,14 @@ export default function LiveViewPage() {
             />
           </div>
           <span
-            className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+            className="flex items-center justify-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-lg leading-none"
             style={{
-              color: "#10b981",
-              backgroundColor: "rgba(16,185,129,0.1)",
-              border: "1px solid rgba(16,185,129,0.25)",
+              color: "#fff",
+              backgroundColor: "#10b981",
+              boxShadow: "0 2px 10px rgba(16,185,129,0.4)",
             }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-blink" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-blink" />
             {liveCount} LIVE
           </span>
           <button
@@ -447,7 +447,7 @@ export default function LiveViewPage() {
               <button
                 key={item.key}
                 onClick={() => setLayout(item.key)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-semibold"
+                className="flex items-center justify-center gap-2 px-3.5 h-8 rounded-xl text-[12px] font-bold leading-none"
                 style={{
                   transition: "all 0.25s cubic-bezier(0.16,1,0.3,1)",
                   ...(isActive
@@ -459,7 +459,8 @@ export default function LiveViewPage() {
                     : { color: "var(--color-text-sub)" }),
                 }}
               >
-                <IconComponent size={13} /> {item.label}
+                <IconComponent size={14} className="mb-[1px]" />
+                <span>{item.label}</span>
               </button>
             );
           })}

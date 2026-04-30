@@ -1,40 +1,130 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Bell, Menu, Search, Command, X, AlertTriangle, Camera, WifiOff, ScanFace } from "lucide-react";
+import {
+  Bell,
+  Menu,
+  Search,
+  Command,
+  X,
+  AlertTriangle,
+  Camera,
+  WifiOff,
+  ScanFace,
+} from "lucide-react";
 import { useLanguageStore } from "../../store/languageStore";
 import { useState, useEffect, useRef } from "react";
 const pageTitles = {
-  "/app/dashboard":  "dashboard",
-  "/app/live":       "liveView",
-  "/app/cameras":    "cameras",
+  "/app/dashboard": "dashboard",
+  "/app/live": "liveView",
+  "/app/cameras": "cameras",
   "/app/recordings": "recordings",
-  "/app/analytics":  "analytics",
-  "/app/users":      "users",
-  "/app/settings":   "settings",
+  "/app/analytics": "analytics",
+  "/app/users": "users",
+  "/app/settings": "settings",
 };
 const pageMeta = {
-  "/app/dashboard":  { badge: "Overview",       color: "#06b6d4" },
-  "/app/live":       { badge: "Real-time",       color: "#10b981" },
-  "/app/cameras":    { badge: "Management",      color: "#8b5cf6" },
-  "/app/recordings": { badge: "Archive",         color: "#f59e0b" },
-  "/app/analytics":  { badge: "AI Powered",      color: "#a78bfa" },
-  "/app/users":      { badge: "Access Control",  color: "#06b6d4" },
-  "/app/settings":   { badge: "Configuration",   color: "#6b7280" },
+  "/app/dashboard": { badge: "Overview", color: "#06b6d4" },
+  "/app/live": { badge: "Real-time", color: "#10b981" },
+  "/app/cameras": { badge: "Management", color: "#8b5cf6" },
+  "/app/recordings": { badge: "Archive", color: "#f59e0b" },
+  "/app/analytics": { badge: "AI Powered", color: "#a78bfa" },
+  "/app/users": { badge: "Access Control", color: "#06b6d4" },
+  "/app/settings": { badge: "Configuration", color: "#6b7280" },
 };
 const searchItems = [
-  { label: "Dashboard",      path: "/app/dashboard",  icon: "📊", desc: "Ringkasan sistem" },
-  { label: "Live View",      path: "/app/live",        icon: "📹", desc: "Pantau kamera langsung" },
-  { label: "Kamera",         path: "/app/cameras",     icon: "🎥", desc: "Kelola kamera CCTV" },
-  { label: "Rekaman",        path: "/app/recordings",  icon: "🎬", desc: "Daftar rekaman video" },
-  { label: "Pengguna",       path: "/app/users",       icon: "👥", desc: "Manajemen pengguna" },
-  { label: "Pengaturan",     path: "/app/settings",    icon: "⚙️", desc: "Konfigurasi sistem" },
-  { label: "Analitik Wajah", path: "/app/recordings",  icon: "🤖", desc: "Deteksi wajah AI" },
+  {
+    label: "Dashboard",
+    path: "/app/dashboard",
+    icon: "📊",
+    desc: "Ringkasan sistem",
+  },
+  {
+    label: "Live View",
+    path: "/app/live",
+    icon: "📹",
+    desc: "Pantau kamera langsung",
+  },
+  {
+    label: "Kamera",
+    path: "/app/cameras",
+    icon: "🎥",
+    desc: "Kelola kamera CCTV",
+  },
+  {
+    label: "Rekaman",
+    path: "/app/recordings",
+    icon: "🎬",
+    desc: "Daftar rekaman video",
+  },
+  {
+    label: "Pengguna",
+    path: "/app/users",
+    icon: "👥",
+    desc: "Manajemen pengguna",
+  },
+  {
+    label: "Pengaturan",
+    path: "/app/settings",
+    icon: "⚙️",
+    desc: "Konfigurasi sistem",
+  },
+  {
+    label: "Analitik Wajah",
+    path: "/app/recordings",
+    icon: "🤖",
+    desc: "Deteksi wajah AI",
+  },
 ];
 const mockNotifications = [
-  { id: 1, type: "alert",   title: "Wajah Tidak Dikenal",   desc: "Main Entrance — 08:14",   time: "2 mnt lalu",  read: false, icon: "🚨", color: "#ef4444" },
-  { id: 2, type: "warning", title: "Kamera Offline",         desc: "Parking Lot",             time: "15 mnt lalu", read: false, icon: "⚠️", color: "#f59e0b" },
-  { id: 3, type: "alert",   title: "Pergerakan Malam",       desc: "Side Gate — 02:33",       time: "3 jam lalu",  read: false, icon: "🌙", color: "#8b5cf6" },
-  { id: 4, type: "info",    title: "AI Model Diperbarui",    desc: "Versi 3.2.1 aktif",       time: "1 hari lalu", read: true,  icon: "🤖", color: "#06b6d4" },
-  { id: 5, type: "info",    title: "Rekaman Otomatis Aktif", desc: "5 kamera sedang merekam", time: "1 hari lalu", read: true,  icon: "🎬", color: "#10b981" },
+  {
+    id: 1,
+    type: "alert",
+    title: "Wajah Tidak Dikenal",
+    desc: "Main Entrance — 08:14",
+    time: "2 mnt lalu",
+    read: false,
+    icon: "🚨",
+    color: "#ef4444",
+  },
+  {
+    id: 2,
+    type: "warning",
+    title: "Kamera Offline",
+    desc: "Parking Lot",
+    time: "15 mnt lalu",
+    read: false,
+    icon: "⚠️",
+    color: "#f59e0b",
+  },
+  {
+    id: 3,
+    type: "alert",
+    title: "Pergerakan Malam",
+    desc: "Side Gate — 02:33",
+    time: "3 jam lalu",
+    read: false,
+    icon: "🌙",
+    color: "#8b5cf6",
+  },
+  {
+    id: 4,
+    type: "info",
+    title: "AI Model Diperbarui",
+    desc: "Versi 3.2.1 aktif",
+    time: "1 hari lalu",
+    read: true,
+    icon: "🤖",
+    color: "#06b6d4",
+  },
+  {
+    id: 5,
+    type: "info",
+    title: "Rekaman Otomatis Aktif",
+    desc: "5 kamera sedang merekam",
+    time: "1 hari lalu",
+    read: true,
+    icon: "🎬",
+    color: "#10b981",
+  },
 ];
 function SearchModal({ onClose, isDark }) {
   const [query, setQuery] = useState("");
@@ -42,18 +132,30 @@ function SearchModal({ onClose, isDark }) {
   const inputRef = useRef(null);
   useEffect(() => {
     inputRef.current?.focus();
-    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    const handler = (e) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
   const results = query.trim()
-    ? searchItems.filter(i => i.label.toLowerCase().includes(query.toLowerCase()) || i.desc.toLowerCase().includes(query.toLowerCase()))
+    ? searchItems.filter(
+        (i) =>
+          i.label.toLowerCase().includes(query.toLowerCase()) ||
+          i.desc.toLowerCase().includes(query.toLowerCase()),
+      )
     : searchItems;
-  const go = (path) => { navigate(path); onClose(); };
+  const go = (path) => {
+    navigate(path);
+    onClose();
+  };
   return (
     <div
       className="fixed inset-0 z-100 flex items-start justify-center pt-20 px-4"
-      style={{ backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(12px)" }}
+      style={{
+        backgroundColor: "rgba(0,0,0,0.65)",
+        backdropFilter: "blur(12px)",
+      }}
       onClick={onClose}
     >
       <div
@@ -81,7 +183,10 @@ function SearchModal({ onClose, isDark }) {
             style={{ color: "var(--color-text-base)" }}
           />
           {query && (
-            <button onClick={() => setQuery("")} style={{ color: "var(--color-text-sub)" }}>
+            <button
+              onClick={() => setQuery("")}
+              style={{ color: "var(--color-text-sub)" }}
+            >
               <X size={15} />
             </button>
           )}
@@ -98,7 +203,10 @@ function SearchModal({ onClose, isDark }) {
         </div>
         <div className="py-1.5 max-h-80 overflow-y-auto">
           {results.length === 0 ? (
-            <p className="text-center py-8 text-sm" style={{ color: "var(--color-text-sub)" }}>
+            <p
+              className="text-center py-8 text-sm"
+              style={{ color: "var(--color-text-sub)" }}
+            >
               Tidak ditemukan
             </p>
           ) : (
@@ -107,16 +215,32 @@ function SearchModal({ onClose, isDark }) {
                 key={item.path + item.label}
                 onClick={() => go(item.path)}
                 className="w-full flex items-center gap-3.5 px-4 py-2.5 text-left rounded-lg mx-1.5 transition-colors"
-                style={{ width: "calc(100% - 12px)", transition: "background-color 0.12s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-elevated)")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                style={{
+                  width: "calc(100% - 12px)",
+                  transition: "background-color 0.12s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor =
+                    "var(--color-surface-elevated)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "transparent")
+                }
               >
-                <span className="text-xl w-8 text-center shrink-0">{item.icon}</span>
+                <span className="text-xl w-8 text-center shrink-0">
+                  {item.icon}
+                </span>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold truncate" style={{ color: "var(--color-text-base)" }}>
+                  <p
+                    className="text-[13px] font-semibold truncate"
+                    style={{ color: "var(--color-text-base)" }}
+                  >
                     {item.label}
                   </p>
-                  <p className="text-[11px] truncate" style={{ color: "var(--color-text-sub)" }}>
+                  <p
+                    className="text-[11px] truncate"
+                    style={{ color: "var(--color-text-sub)" }}
+                  >
                     {item.desc}
                   </p>
                 </div>
@@ -128,7 +252,10 @@ function SearchModal({ onClose, isDark }) {
           className="px-4 py-2.5 border-t flex items-center gap-3"
           style={{ borderColor: "var(--color-card-border)" }}
         >
-          <span className="text-[10px]" style={{ color: "var(--color-text-sub)" }}>
+          <span
+            className="text-[10px]"
+            style={{ color: "var(--color-text-sub)" }}
+          >
             ↑↓ navigate · Enter select · ESC close
           </span>
         </div>
@@ -136,8 +263,14 @@ function SearchModal({ onClose, isDark }) {
     </div>
   );
 }
-function NotificationPanel({ onClose, notifications, onMarkRead, onMarkAllRead, isDark }) {
-  const unreadCount = notifications.filter(n => !n.read).length;
+function NotificationPanel({
+  onClose,
+  notifications,
+  onMarkRead,
+  onMarkAllRead,
+  isDark,
+}) {
+  const unreadCount = notifications.filter((n) => !n.read).length;
   return (
     <div
       className="absolute top-14 right-0 z-50 w-80 rounded-2xl overflow-hidden animate-card-enter"
@@ -154,11 +287,17 @@ function NotificationPanel({ onClose, notifications, onMarkRead, onMarkAllRead, 
         style={{ borderBottom: "1px solid var(--color-card-border)" }}
       >
         <div>
-          <p className="text-[13px] font-bold" style={{ color: "var(--color-text-base)" }}>
+          <p
+            className="text-[13px] font-bold"
+            style={{ color: "var(--color-text-base)" }}
+          >
             Notifikasi
           </p>
           {unreadCount > 0 && (
-            <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-sub)" }}>
+            <p
+              className="text-[11px] mt-0.5"
+              style={{ color: "var(--color-text-sub)" }}
+            >
               {unreadCount} belum dibaca
             </p>
           )}
@@ -168,7 +307,10 @@ function NotificationPanel({ onClose, notifications, onMarkRead, onMarkAllRead, 
             <button
               onClick={onMarkAllRead}
               className="text-[11px] font-semibold px-2.5 py-1 rounded-lg"
-              style={{ color: "#06b6d4", backgroundColor: "rgba(6,182,212,0.08)" }}
+              style={{
+                color: "#06b6d4",
+                backgroundColor: "rgba(6,182,212,0.08)",
+              }}
             >
               Tandai semua
             </button>
@@ -193,10 +335,20 @@ function NotificationPanel({ onClose, notifications, onMarkRead, onMarkAllRead, 
             className="flex gap-3 items-start px-4 py-3 cursor-pointer transition-colors"
             style={{
               backgroundColor: n.read ? "transparent" : `${n.color}06`,
-              borderBottom: idx < notifications.length - 1 ? "1px solid var(--color-card-border)" : "none",
+              borderBottom:
+                idx < notifications.length - 1
+                  ? "1px solid var(--color-card-border)"
+                  : "none",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-elevated)")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = n.read ? "transparent" : `${n.color}06`)}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor =
+                "var(--color-surface-elevated)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor = n.read
+                ? "transparent"
+                : `${n.color}06`)
+            }
           >
             <div
               className="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center text-base"
@@ -209,7 +361,10 @@ function NotificationPanel({ onClose, notifications, onMarkRead, onMarkAllRead, 
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-1.5">
-                <p className="text-[12px] font-semibold leading-tight" style={{ color: "var(--color-text-base)" }}>
+                <p
+                  className="text-[12px] font-semibold leading-tight"
+                  style={{ color: "var(--color-text-base)" }}
+                >
                   {n.title}
                 </p>
                 {!n.read && (
@@ -219,16 +374,30 @@ function NotificationPanel({ onClose, notifications, onMarkRead, onMarkAllRead, 
                   />
                 )}
               </div>
-              <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-sub)" }}>{n.desc}</p>
-              <p className="text-[10px] mt-1 font-mono" style={{ color: "var(--color-text-sub)", opacity: 0.6 }}>
+              <p
+                className="text-[11px] mt-0.5"
+                style={{ color: "var(--color-text-sub)" }}
+              >
+                {n.desc}
+              </p>
+              <p
+                className="text-[10px] mt-1 font-mono"
+                style={{ color: "var(--color-text-sub)", opacity: 0.6 }}
+              >
                 {n.time}
               </p>
             </div>
           </div>
         ))}
       </div>
-      <div className="px-5 py-3" style={{ borderTop: "1px solid var(--color-card-border)" }}>
-        <p className="text-center text-[11px] font-medium" style={{ color: "var(--color-text-sub)" }}>
+      <div
+        className="px-5 py-3"
+        style={{ borderTop: "1px solid var(--color-card-border)" }}
+      >
+        <p
+          className="text-center text-[11px] font-medium"
+          style={{ color: "var(--color-text-sub)" }}
+        >
           Semua notifikasi telah ditampilkan
         </p>
       </div>
@@ -236,17 +405,17 @@ function NotificationPanel({ onClose, notifications, onMarkRead, onMarkAllRead, 
   );
 }
 export default function Topbar({ onMenuToggle }) {
-  const { pathname }  = useLocation();
-  const { t }         = useLanguageStore();
+  const { pathname } = useLocation();
+  const { t } = useLanguageStore();
   const [showSearch, setShowSearch] = useState(false);
-  const [showNotif,  setShowNotif]  = useState(false);
+  const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState(mockNotifications);
   const notifRef = useRef(null);
-  const isDark = true;  
+  const isDark = true;
   const titleKey = pageTitles[pathname];
-  const title    = titleKey ? t(`topbar.titles.${titleKey}`) : "CamMatrix";
-  const meta     = pageMeta[pathname];
-  const unread   = notifications.filter(n => !n.read).length;
+  const title = titleKey ? t(`topbar.titles.${titleKey}`) : "CamMatrix";
+  const meta = pageMeta[pathname];
+  const unread = notifications.filter((n) => !n.read).length;
   useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
@@ -259,16 +428,23 @@ export default function Topbar({ onMenuToggle }) {
   }, []);
   useEffect(() => {
     const handler = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotif(false);
+      if (notifRef.current && !notifRef.current.contains(e.target))
+        setShowNotif(false);
     };
     if (showNotif) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showNotif]);
-  const markRead    = (id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markRead = (id) =>
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+    );
+  const markAllRead = () =>
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   return (
     <>
-      {showSearch && <SearchModal onClose={() => setShowSearch(false)} isDark={isDark} />}
+      {showSearch && (
+        <SearchModal onClose={() => setShowSearch(false)} isDark={isDark} />
+      )}
       <header
         className="h-14 flex items-center justify-between px-5 shrink-0 relative"
         style={{
@@ -293,7 +469,10 @@ export default function Topbar({ onMenuToggle }) {
             onClick={onMenuToggle}
             className="p-2 rounded-xl transition-all duration-200 hover:scale-105"
             style={{ color: "var(--color-text-sub)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-elevated)")}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor =
+                "var(--color-surface-elevated)")
+            }
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "")}
           >
             <Menu size={17} />
@@ -301,17 +480,20 @@ export default function Topbar({ onMenuToggle }) {
           <div className="flex items-center gap-2.5">
             <h1
               className="text-[15px] font-bold"
-              style={{ color: "var(--color-text-base)", letterSpacing: "-0.02em" }}
+              style={{
+                color: "var(--color-text-base)",
+                letterSpacing: "-0.02em",
+              }}
             >
               {title}
             </h1>
             {meta && (
               <span
-                className="hidden sm:inline-flex text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg"
+                className="hidden sm:inline-flex items-center justify-center text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg leading-none"
                 style={{
-                  color: meta.color,
-                  backgroundColor: `${meta.color}14`,
-                  border: `1px solid ${meta.color}28`,
+                  color: "#fff",
+                  backgroundColor: meta.color,
+                  boxShadow: `0 2px 10px ${meta.color}50`,
                 }}
               >
                 {meta.badge}
@@ -342,7 +524,10 @@ export default function Topbar({ onMenuToggle }) {
             <span>Cari...</span>
             <span
               className="hidden sm:flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-md font-mono"
-              style={{ backgroundColor: "var(--color-card-border)", color: "var(--color-text-sub)" }}
+              style={{
+                backgroundColor: "var(--color-card-border)",
+                color: "var(--color-text-sub)",
+              }}
             >
               <Command size={9} />K
             </span>
@@ -350,14 +535,21 @@ export default function Topbar({ onMenuToggle }) {
           <div ref={notifRef} className="relative">
             <button
               id="topbar-notif-btn"
-              onClick={() => setShowNotif(v => !v)}
+              onClick={() => setShowNotif((v) => !v)}
               className="relative p-2 rounded-xl transition-all duration-200 hover:scale-105"
               style={{
                 color: "var(--color-text-sub)",
-                backgroundColor: showNotif ? "var(--color-surface-elevated)" : "",
+                backgroundColor: showNotif
+                  ? "var(--color-surface-elevated)"
+                  : "",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-elevated)")}
-              onMouseLeave={(e) => { if (!showNotif) e.currentTarget.style.backgroundColor = ""; }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  "var(--color-surface-elevated)")
+              }
+              onMouseLeave={(e) => {
+                if (!showNotif) e.currentTarget.style.backgroundColor = "";
+              }}
             >
               <Bell size={17} />
               {unread > 0 && (
