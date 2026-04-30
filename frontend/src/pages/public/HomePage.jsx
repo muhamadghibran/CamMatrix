@@ -61,23 +61,35 @@ function Navbar() {
     return () => window.removeEventListener("scroll", fn);
   }, []);
   return (
-    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 48px", height: 60, backgroundColor: scrolled ? "rgba(10,10,15,0.92)" : "transparent", borderBottom: scrolled ? "1px solid #1F1F2E" : "1px solid transparent", backdropFilter: scrolled ? "blur(14px)" : "none", transition: "all 0.3s ease" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", height: 64, backgroundColor: scrolled ? "rgba(10,10,15,0.92)" : "transparent", borderBottom: scrolled ? "1px solid #1F1F2E" : "1px solid transparent", backdropFilter: scrolled ? "blur(14px)" : "none", transition: "all 0.3s ease" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ flexShrink: 0 }}>
-          <CamLogo size={27} color="#FFFFFF" />
+          <CamLogo size={24} color="#FFFFFF" />
         </div>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.02em" }}>CamMatrix</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.02em" }}>CamMatrix</span>
       </div>
-      <div style={{ display: "flex", gap: 32 }}>
-        {["Fitur","Teknologi","Keamanan"].map(n => (
-          <span key={n} style={{ fontSize: 13, color: "#71717A", cursor: "pointer", transition: "color 0.15s" }}
-            onMouseEnter={e=>e.currentTarget.style.color="#FFF"} onMouseLeave={e=>e.currentTarget.style.color="#71717A"}>{n}</span>
-        ))}
+      
+      <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+        <div style={{ display: "flex", gap: 28 }}>
+          {["Fitur","Teknologi","Keamanan","Harga","Kontak"].map(n => (
+            <span key={n} style={{ fontSize: 14, fontWeight: 500, color: "#8a8f98", cursor: "pointer", transition: "color 0.15s" }}
+              onMouseEnter={e=>e.currentTarget.style.color="#FFF"} onMouseLeave={e=>e.currentTarget.style.color="#8a8f98"}>{n}</span>
+          ))}
+        </div>
+        
+        <div style={{ width: 1, height: 16, backgroundColor: "#2D2D3F" }} />
+        
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <Link to="/login" style={{ fontSize: 14, fontWeight: 500, color: "#8a8f98", textDecoration: "none", transition: "color 0.15s" }}
+            onMouseEnter={e=>e.currentTarget.style.color="#FFF"} onMouseLeave={e=>e.currentTarget.style.color="#8a8f98"}>
+            Masuk
+          </Link>
+          <Link to="/login" style={{ display:"inline-flex", alignItems:"center", padding:"7px 16px", borderRadius:99, fontSize:14, fontWeight:600, color:"#0A0A0F", background:"#EBEBEB", textDecoration:"none", transition:"background-color 0.15s" }}
+            onMouseEnter={e=>e.currentTarget.style.background="#FFFFFF"} onMouseLeave={e=>e.currentTarget.style.background="#EBEBEB"}>
+            Mulai Sekarang
+          </Link>
+        </div>
       </div>
-      <Link to="/login" style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"7px 18px", borderRadius:5, fontSize:13, fontWeight:600, color:"#0A0A0F", background:"#FFFFFF", textDecoration:"none", transition:"background-color 0.15s" }}
-        onMouseEnter={e=>e.currentTarget.style.background="#E5E5E5"} onMouseLeave={e=>e.currentTarget.style.background="#FFFFFF"}>
-        Masuk <ArrowRight size={12} />
-      </Link>
     </nav>
   );
 }
