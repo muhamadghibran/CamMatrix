@@ -576,3 +576,30 @@ input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:foc
   -webkit-box-shadow: 0 0 0 1000px var(--color-input-bg) inset;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* --------------------------------------
+   SCROLL REVEAL — PALO ALTO STYLE
+-------------------------------------- */
+.sr { opacity: 0; transform: translateY(32px) scale(0.97); transition: opacity 0.75s cubic-bezier(0.16,1,0.3,1), transform 0.75s cubic-bezier(0.16,1,0.3,1); }
+.sr.visible { opacity: 1; transform: translateY(0) scale(1); }
+.sr-left { opacity: 0; transform: translateX(-32px); transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1); }
+.sr-left.visible { opacity: 1; transform: translateX(0); }
+.sr-right { opacity: 0; transform: translateX(32px); transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1); }
+.sr-right.visible { opacity: 1; transform: translateX(0); }
+.sr-scale { opacity: 0; transform: scale(0.92); transition: opacity 0.85s cubic-bezier(0.16,1,0.3,1), transform 0.85s cubic-bezier(0.16,1,0.3,1); }
+.sr-scale.visible { opacity: 1; transform: scale(1); }
+/* Stagger delays */
+.sr-d1  { transition-delay: 60ms;  }
+.sr-d2  { transition-delay: 120ms; }
+.sr-d3  { transition-delay: 180ms; }
+.sr-d4  { transition-delay: 240ms; }
+.sr-d5  { transition-delay: 300ms; }
+.sr-d6  { transition-delay: 360ms; }
+/* Line expand */
+@keyframes lineGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.sr-line { transform: scaleX(0); transform-origin: left; }
+.sr-line.visible { animation: lineGrow 0.9s cubic-bezier(0.16,1,0.3,1) forwards; }
+/* Count up flash */
+@keyframes numIn { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+.sr-num { opacity: 0; }
+.sr-num.visible { animation: numIn 0.6s cubic-bezier(0.16,1,0.3,1) forwards; }
