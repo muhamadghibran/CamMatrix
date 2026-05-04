@@ -40,8 +40,9 @@ authInternalUsers:
       - action: publish
         path: ~^mobile_
 
-  - user: viewer
-    pass: ${MTX_VIEWER_PASS}
+  # User publik (anonymous) khusus untuk menonton streaming di browser
+  - user: any
+    pass:
     permissions:
       - action: read
       - action: playback
