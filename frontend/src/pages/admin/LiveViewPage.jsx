@@ -90,7 +90,8 @@ function CameraCell({ cam, index, totalCols }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        position: "relative", borderRadius: 10, overflow: "hidden", aspectRatio: "16/9",
+        position: "relative", borderRadius: 10, overflow: "hidden", 
+        width: "100%", paddingTop: "56.25%", /* 16:9 hack */
         background: "#050508",
         border: `1px solid ${hovered && !isOffline ? "rgba(255,255,255,0.18)" : "#1A1A26"}`,
         transition: "border-color 0.2s, box-shadow 0.2s",
@@ -98,96 +99,94 @@ function CameraCell({ cam, index, totalCols }) {
         animation: `fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) ${index * 50}ms both`,
       }}
     >
-      {/* VIDEO / OFFLINE STATE */}
-      {isOffline ? (
-        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: "#050508" }}>
-          {/* Scanline texture */}
-          <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, transparent 1px, transparent 4px)", pointerEvents: "none" }} />
-          <SignalZero size={22} style={{ color: "#2D2D3F", position: "relative" }} />
-          <div style={{ position: "relative", textAlign: "center" }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "#2D2D3F", margin: "0 0 3px", letterSpacing: "0.08em" }}>SINYAL TERPUTUS</p>
-            <p style={{ fontSize: 10, color: "#1F1F2E", margin: 0 }}>{cam.location || cam.name}</p>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
+        {/* VIDEO / OFFLINE STATE */}
+        {isOffline ? (
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: "#050508" }}>
+            <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, transparent 1px, transparent 4px)", pointerEvents: "none" }} />
+            <SignalZero size={22} style={{ color: "#2D2D3F", position: "relative" }} />
+            <div style={{ position: "relative", textAlign: "center" }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#2D2D3F", margin: "0 0 3px", letterSpacing: "0.08em" }}>SINYAL TERPUTUS</p>
+              <p style={{ fontSize: 10, color: "#1F1F2E", margin: 0 }}>{cam.location || cam.name}</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {cam.stream_url && <HlsPlayer src={cam.stream_url} />}
+            {!cam.stream_url && (
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "#050508" }}>
+                <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, transparent 1px, transparent 4px)", pointerEvents: "none" }} />
+                <Camera size={20} style={{ color: "#2D2D3F", position: "relative" }} />
+                <p style={{ fontSize: 11, color: "#2D2D3F", margin: 0, fontWeight: 600, position: "relative" }}>Menunggu stream...</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* TOP BAR overlay */}
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0, zIndex: 10,
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)",
+          padding: "10px 12px",
+          display: "flex", alignItems: "center", justifyContent: "space-between", pointerEvents: "none"
+        }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.08)",
+            padding: "4px 9px", borderRadius: 5, backdropFilter: "blur(8px)"
+          }}>
+            <PulseDot active={isLive || isRecording} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: isOffline ? "#3D3D4F" : "#FFFFFF", letterSpacing: "0.07em" }}>
+              {isOffline ? "OFFLINE" : isRecording ? "● REC" : "LIVE"}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 6, pointerEvents: "auto" }}>
+            {!isOffline && (
+              <span style={{
+                fontSize: 10, fontWeight: 600, fontFamily: "monospace",
+                color: "rgba(255,255,255,0.35)", letterSpacing: "0.04em",
+                background: "rgba(0,0,0,0.5)", padding: "3px 7px", borderRadius: 4,
+                border: "1px solid rgba(255,255,255,0.06)"
+              }}>
+                {mm}:{ss}
+              </span>
+            )}
+            <button onClick={toggleFullscreen} style={{
+              width: 26, height: 26, borderRadius: 5,
+              background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.08)",
+              color: "#FFFFFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+              opacity: hovered ? 1 : 0, transition: "opacity 0.2s", backdropFilter: "blur(8px)"
+            }}>
+              {isFullscreen ? <Minimize2 size={11} /> : <Expand size={11} />}
+            </button>
           </div>
         </div>
-      ) : (
-        <>
-          {cam.stream_url && <HlsPlayer src={cam.stream_url} />}
-          {/* Dark overlay when no stream */}
-          {!cam.stream_url && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "#050508" }}>
-              <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, transparent 1px, transparent 4px)", pointerEvents: "none" }} />
-              <Camera size={20} style={{ color: "#2D2D3F", position: "relative" }} />
-              <p style={{ fontSize: 11, color: "#2D2D3F", margin: 0, fontWeight: 600, position: "relative" }}>Menunggu stream...</p>
-            </div>
-          )}
-        </>
-      )}
 
-      {/* TOP BAR overlay — always visible */}
-      <div style={{
-        position: "absolute", top: 0, left: 0, right: 0, zIndex: 10,
-        background: "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)",
-        padding: "10px 12px",
-        display: "flex", alignItems: "center", justifyContent: "space-between"
-      }}>
-        {/* Status badge */}
+        {/* BOTTOM overlay */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 6,
-          background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.08)",
-          padding: "4px 9px", borderRadius: 5, backdropFilter: "blur(8px)"
+          position: "absolute", inset: "auto 0 0 0", zIndex: 10,
+          background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)",
+          padding: "28px 12px 12px", pointerEvents: "none",
+          opacity: hovered ? 1 : 0.75, transition: "opacity 0.2s"
         }}>
-          <PulseDot active={isLive || isRecording} />
-          <span style={{ fontSize: 10, fontWeight: 700, color: isOffline ? "#3D3D4F" : "#FFFFFF", letterSpacing: "0.07em" }}>
-            {isOffline ? "OFFLINE" : isRecording ? "● REC" : "LIVE"}
-          </span>
-        </div>
-
-        {/* Uptime + fullscreen */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {!isOffline && (
-            <span style={{
-              fontSize: 10, fontWeight: 600, fontFamily: "monospace",
-              color: "rgba(255,255,255,0.35)", letterSpacing: "0.04em",
-              background: "rgba(0,0,0,0.5)", padding: "3px 7px", borderRadius: 4,
-              border: "1px solid rgba(255,255,255,0.06)"
-            }}>
-              {mm}:{ss}
-            </span>
-          )}
-          <button onClick={toggleFullscreen} style={{
-            width: 26, height: 26, borderRadius: 5,
-            background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.08)",
-            color: "#FFFFFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-            opacity: hovered ? 1 : 0, transition: "opacity 0.2s", backdropFilter: "blur(8px)"
-          }}>
-            {isFullscreen ? <Minimize2 size={11} /> : <Expand size={11} />}
-          </button>
-        </div>
-      </div>
-
-      {/* BOTTOM overlay — camera info */}
-      <div style={{
-        position: "absolute", inset: "auto 0 0 0", zIndex: 10,
-        background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)",
-        padding: "28px 12px 12px",
-        opacity: hovered ? 1 : 0.75, transition: "opacity 0.2s"
-      }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#FFFFFF", margin: 0, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {cam.name}
-            </p>
-            {cam.location && (
-              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {cam.location}
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#FFFFFF", margin: 0, letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {cam.name}
               </p>
+              {cam.location && (
+                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {cam.location}
+                </p>
+              )}
+            </div>
+            {cam.fps && cam.fps > 0 && !isOffline && (
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "monospace", flexShrink: 0, marginLeft: 8 }}>
+                {cam.fps}fps
+              </span>
             )}
           </div>
-          {cam.fps && cam.fps > 0 && !isOffline && (
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "monospace", flexShrink: 0, marginLeft: 8 }}>
-              {cam.fps}fps
-            </span>
-          )}
         </div>
       </div>
     </div>
