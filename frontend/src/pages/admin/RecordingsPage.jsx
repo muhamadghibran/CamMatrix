@@ -7,17 +7,9 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useLanguageStore } from "../../store/languageStore";
 import FaceAnalyticsPage from "./FaceAnalyticsPage";
 
-const allRecordings = [
-  { id: 1, camera: "Main Entrance", date: "Apr 10, 2026", start: "08:00", end: "08:30", size: "245 MB", duration: "30 min", dateRaw: "2026-04-10" },
-  { id: 2, camera: "Lobby",         date: "Apr 10, 2026", start: "08:30", end: "09:00", size: "210 MB", duration: "30 min", dateRaw: "2026-04-10" },
-  { id: 3, camera: "Server Room",   date: "Apr 10, 2026", start: "09:00", end: "09:30", size: "198 MB", duration: "30 min", dateRaw: "2026-04-10" },
-  { id: 4, camera: "Side Gate",     date: "Apr 10, 2026", start: "09:30", end: "10:00", size: "220 MB", duration: "30 min", dateRaw: "2026-04-10" },
-  { id: 5, camera: "Rooftop",       date: "Apr 10, 2026", start: "10:00", end: "10:30", size: "235 MB", duration: "30 min", dateRaw: "2026-04-10" },
-  { id: 6, camera: "Main Entrance", date: "Apr 9, 2026",  start: "14:00", end: "14:30", size: "240 MB", duration: "30 min", dateRaw: "2026-04-09" },
-  { id: 7, camera: "Parking Lot",   date: "Apr 9, 2026",  start: "15:00", end: "15:30", size: "195 MB", duration: "30 min", dateRaw: "2026-04-09" },
-];
+const allRecordings = [];
 
-const cameraOptions = ["Semua", "Main Entrance", "Lobby", "Server Room", "Side Gate", "Rooftop", "Parking Lot"];
+const cameraOptions = ["Semua"];
 
 const inp = {
   boxSizing: "border-box", padding: "9px 12px", borderRadius: 7,

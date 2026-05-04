@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Maximize2, Grid2X2, Grid3X3, LayoutGrid, Camera, WifiOff,
-  Expand, Minimize2, RefreshCw, Radio, Signal, SignalZero, Clock
+  Expand, Minimize2, RefreshCw, Radio, Signal, SignalZero, Clock, Download
 } from "lucide-react";
 import Hls from "hls.js";
 import { useLanguageStore } from "../../store/languageStore";
@@ -181,11 +181,28 @@ function CameraCell({ cam, index, totalCols }) {
                 </p>
               )}
             </div>
-            {cam.fps && cam.fps > 0 && !isOffline && (
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "monospace", flexShrink: 0, marginLeft: 8 }}>
-                {cam.fps}fps
-              </span>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, pointerEvents: "auto" }}>
+              {cam.fps && cam.fps > 0 && !isOffline && (
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "monospace", flexShrink: 0 }}>
+                  {cam.fps}fps
+                </span>
+              )}
+              {!isOffline && (
+                <button
+                  onClick={() => alert("Mengunduh 30 menit terakhir...\n\n(Catatan: Membutuhkan konfigurasi 'record: yes' di server MediaMTX dan API Backend. Silakan izinkan saya mengonfigurasi backend terlebih dahulu)")}
+                  title="Unduh 30 menit terakhir"
+                  style={{
+                    width: 24, height: 24, borderRadius: 5, background: "rgba(0,0,0,0.6)",
+                    border: "1px solid rgba(255,255,255,0.1)", color: "#FFFFFF", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s"
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "rgba(0,0,0,0.6)"}
+                >
+                  <Download size={11} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
