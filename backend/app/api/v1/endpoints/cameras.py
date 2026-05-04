@@ -302,7 +302,7 @@ async def download_camera_recording(
     camera_id: int,
     background_tasks: BackgroundTasks,
     db: deps.DbSession,
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ):
     """
     Mengunduh 30 menit terakhir rekaman video dari kamera.
