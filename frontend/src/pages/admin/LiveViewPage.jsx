@@ -6,6 +6,7 @@ import {
 import Hls from "hls.js";
 import { useLanguageStore } from "../../store/languageStore";
 import { useCameraStore } from "../../store/cameraStore";
+import api from "../../utils/api";
 
 const LAYOUTS = [
   { key: "1x1", icon: Maximize2, cols: 1, label: "1×1", max: 1 },
@@ -62,6 +63,27 @@ function CameraCell({ cam, index, totalCols }) {
   const isOffline   = cam.status === "offline";
   const isRecording = cam.status === "recording";
   const isLive      = cam.status === "live";
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    try {
+      const res = await api.get(`/cameras/${cam.id}/download`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${cam.name.replace(/ /g, "_")}_terakhir_30_menit.mp4`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (err) {
+      console.error("Gagal mengunduh rekaman:", err);
+      alert("Gagal mengunduh. Pastikan kamera sudah pernah menyala dan memiliki rekaman.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   /* Clock tick */
   useEffect(() => {
@@ -189,17 +211,20 @@ function CameraCell({ cam, index, totalCols }) {
               )}
               {!isOffline && (
                 <button
-                  onClick={() => alert("Mengunduh 30 menit terakhir...\n\n(Catatan: Membutuhkan konfigurasi 'record: yes' di server MediaMTX dan API Backend. Silakan izinkan saya mengonfigurasi backend terlebih dahulu)")}
-                  title="Unduh 30 menit terakhir"
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  title={isDownloading ? "Sedang Mengunduh..." : "Unduh 30 menit terakhir"}
                   style={{
                     width: 24, height: 24, borderRadius: 5, background: "rgba(0,0,0,0.6)",
-                    border: "1px solid rgba(255,255,255,0.1)", color: "#FFFFFF", cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s"
+                    border: "1px solid rgba(255,255,255,0.1)", color: "#FFFFFF", 
+                    cursor: isDownloading ? "wait" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s",
+                    opacity: isDownloading ? 0.5 : 1
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "rgba(0,0,0,0.6)"}
+                  onMouseEnter={e => { if(!isDownloading) e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
+                  onMouseLeave={e => { if(!isDownloading) e.currentTarget.style.background = "rgba(0,0,0,0.6)"; }}
                 >
-                  <Download size={11} />
+                  <Download size={11} style={{ animation: isDownloading ? "fadeUp 1s infinite alternate" : "none" }} />
                 </button>
               )}
             </div>

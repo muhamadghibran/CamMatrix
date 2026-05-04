@@ -1,7 +1,12 @@
 from typing import Any, List
 import asyncio
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import glob
+import subprocess
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 
 from app.api import deps
@@ -283,6 +288,74 @@ async def delete_camera(
     await db.commit()
 
     return {"message": "Camera deleted successfully"}
+
+
+def _cleanup_temp_file(filepath: str):
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except Exception:
+        pass
+
+@router.get("/{camera_id}/download", response_class=FileResponse)
+async def download_camera_recording(
+    camera_id: int,
+    background_tasks: BackgroundTasks,
+    db: deps.DbSession,
+    current_user: User = Depends(deps.get_current_active_user)
+):
+    """
+    Mengunduh 30 menit terakhir rekaman video dari kamera.
+    Membutuhkan fitur recording aktif di MediaMTX.
+    """
+    camera = await _get_owned_camera(camera_id, current_user, db)
+    path = _path_name(camera.owner_id, camera.id)
+    
+    # Path tempat MediaMTX menyimpan rekaman
+    record_dir = f"/var/www/CamMatrix/recordings/{path}"
+    
+    if not os.path.exists(record_dir):
+        raise HTTPException(status_code=404, detail="Belum ada data rekaman untuk kamera ini. (Pastikan kamera pernah menyala)")
+        
+    # Cari file .mp4 terbaru (karena MediaMTX memecah per jam)
+    mp4_files = glob.glob(os.path.join(record_dir, "*.mp4"))
+    if not mp4_files:
+        raise HTTPException(status_code=404, detail="Belum ada file rekaman .mp4 yang disimpan MediaMTX.")
+        
+    # Urutkan berdasarkan waktu modifikasi terbaru (paling baru di index 0)
+    mp4_files.sort(key=os.path.getmtime, reverse=True)
+    latest_file = mp4_files[0]
+    
+    # Lokasi file sementara untuk dipotong
+    temp_filename = f"/tmp/cam_download_{uuid.uuid4().hex}.mp4"
+    
+    # Potong 30 menit terakhir menggunakan FFmpeg (-sseof -1800 berarti 1800 detik dari akhir)
+    # -c copy agar sangat cepat tanpa re-encoding
+    cmd = [
+        "ffmpeg", "-y", "-sseof", "-1800", "-i", latest_file,
+        "-c", "copy", temp_filename
+    ]
+    
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
+        # Jika gagal (misal video kurang dari 30 menit), copy saja file aslinya
+        import shutil
+        shutil.copy2(latest_file, temp_filename)
+        
+    if not os.path.exists(temp_filename):
+        raise HTTPException(status_code=500, detail="Gagal memproses file rekaman.")
+        
+    # Hapus file sementara setelah selesai dikirim ke user (di-trigger otomatis oleh FastAPI)
+    background_tasks.add_task(_cleanup_temp_file, temp_filename)
+    
+    download_name = f"{camera.name.replace(' ', '_')}_terakhir_30_menit.mp4"
+    
+    return FileResponse(
+        path=temp_filename, 
+        filename=download_name,
+        media_type="video/mp4"
+    )
 
 
 # ─────────────────────────────────────────────────────────────
