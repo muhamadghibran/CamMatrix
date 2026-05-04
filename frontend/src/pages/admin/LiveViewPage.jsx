@@ -63,13 +63,23 @@ function CameraCell({ cam, index, totalCols }) {
   const isOffline   = cam.status === "offline";
   const isRecording = cam.status === "recording";
   const isLive      = cam.status === "live";
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadState, setDownloadState] = useState({ state: "idle", progress: 0 });
 
   const handleDownload = async () => {
-    if (isDownloading) return;
-    setIsDownloading(true);
+    if (downloadState.state !== "idle") return;
+    setDownloadState({ state: "processing", progress: 0 }); // Fase potong video di server
     try {
-      const res = await api.get(`/cameras/${cam.id}/download`, { responseType: "blob" });
+      const res = await api.get(`/cameras/${cam.id}/download`, { 
+        responseType: "blob",
+        onDownloadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setDownloadState({ state: "downloading", progress: percentCompleted });
+          } else {
+            setDownloadState({ state: "downloading", progress: 0 }); // Fallback jika total size tidak diketahui
+          }
+        }
+      });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -77,11 +87,28 @@ function CameraCell({ cam, index, totalCols }) {
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
+      
+      // Tampilkan sukses sejenak
+      setDownloadState({ state: "success", progress: 100 });
+      setTimeout(() => setDownloadState({ state: "idle", progress: 0 }), 2500);
     } catch (err) {
       console.error("Gagal mengunduh rekaman:", err);
-      alert("Gagal mengunduh. Pastikan kamera sudah pernah menyala dan memiliki rekaman.");
-    } finally {
-      setIsDownloading(false);
+      // Baca pesan error dari backend jika ada
+      let errorMsg = "Gagal mengunduh. Pastikan kamera sudah pernah menyala dan memiliki rekaman (tunggu sekitar 1-2 menit setelah restart).";
+      if (err.response && err.response.data && err.response.data.detail) {
+          // Jika backend mengirimkan Blob error, kita harus membaca teksnya
+          if (err.response.data instanceof Blob) {
+              const text = await err.response.data.text();
+              try {
+                  const json = JSON.parse(text);
+                  if (json.detail) errorMsg = json.detail;
+              } catch (e) {}
+          } else {
+              errorMsg = err.response.data.detail;
+          }
+      }
+      alert(`[ERROR] ${errorMsg}`);
+      setDownloadState({ state: "idle", progress: 0 });
     }
   };
 
@@ -212,19 +239,24 @@ function CameraCell({ cam, index, totalCols }) {
               {!isOffline && (
                 <button
                   onClick={handleDownload}
-                  disabled={isDownloading}
-                  title={isDownloading ? "Sedang Mengunduh..." : "Unduh 30 menit terakhir"}
+                  disabled={downloadState.state !== "idle" && downloadState.state !== "success"}
+                  title={downloadState.state === "processing" ? "Sedang memproses di server..." : downloadState.state === "downloading" ? "Sedang Mengunduh..." : "Unduh 30 menit terakhir"}
                   style={{
-                    width: 24, height: 24, borderRadius: 5, background: "rgba(0,0,0,0.6)",
+                    padding: downloadState.state === "idle" ? 0 : "0 8px",
+                    width: downloadState.state === "idle" ? 24 : "auto", 
+                    height: 24, borderRadius: 5, background: "rgba(0,0,0,0.6)",
                     border: "1px solid rgba(255,255,255,0.1)", color: "#FFFFFF", 
-                    cursor: isDownloading ? "wait" : "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s",
-                    opacity: isDownloading ? 0.5 : 1
+                    cursor: downloadState.state !== "idle" && downloadState.state !== "success" ? "wait" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 0.2s",
+                    opacity: downloadState.state !== "idle" && downloadState.state !== "success" ? 0.7 : 1
                   }}
-                  onMouseEnter={e => { if(!isDownloading) e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
-                  onMouseLeave={e => { if(!isDownloading) e.currentTarget.style.background = "rgba(0,0,0,0.6)"; }}
+                  onMouseEnter={e => { if(downloadState.state === "idle") e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
+                  onMouseLeave={e => { if(downloadState.state === "idle") e.currentTarget.style.background = "rgba(0,0,0,0.6)"; }}
                 >
-                  <Download size={11} style={{ animation: isDownloading ? "fadeUp 1s infinite alternate" : "none" }} />
+                  {downloadState.state === "idle" && <Download size={11} />}
+                  {downloadState.state === "processing" && <><RefreshCw size={11} className="animate-spin" style={{ animation: "spin 1s linear infinite" }} /><span style={{ fontSize: 9, fontWeight: 600 }}>MEMPROSES...</span></>}
+                  {downloadState.state === "downloading" && <><Download size={11} style={{ animation: "fadeUp 1s infinite alternate" }} /><span style={{ fontSize: 9, fontWeight: 700 }}>{downloadState.progress}%</span></>}
+                  {downloadState.state === "success" && <span style={{ fontSize: 9, fontWeight: 700, color: "#4ade80" }}>SELESAI</span>}
                 </button>
               )}
             </div>
