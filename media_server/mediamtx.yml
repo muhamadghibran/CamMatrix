@@ -39,6 +39,8 @@ authInternalUsers:
     permissions:
       - action: publish
         path: ~^mobile_
+      - action: publish
+        path: ~^cam_
 
   # User publik (anonymous) khusus untuk menonton streaming di browser
   - user: any
