@@ -128,7 +128,13 @@ function CameraCard({ cam, index }) {
       }}
     >
       {/* Video Area */}
-      <div style={{ position: "relative", aspectRatio: isFullscreen ? "auto" : "16/9", flex: isFullscreen ? 1 : "none", background: "#0A0A0F" }}>
+      <div style={{
+        position: isFullscreen ? "absolute" : "relative",
+        inset: isFullscreen ? 0 : "auto",
+        aspectRatio: isFullscreen ? "unset" : "16/9",
+        background: "#000",
+        zIndex: isFullscreen ? 10 : "auto",
+      }}>
         {isOffline ? (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
             <WifiOff size={22} style={{ color: "#2D2D3F" }} />
@@ -216,13 +222,15 @@ function CameraCard({ cam, index }) {
         )}
       </div>
 
-      {/* Info bawah — sama seperti halaman publik */}
-      <div style={{ padding: "14px 16px", borderTop: "1px solid #1A1A26" }}>
-        <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: "#FFFFFF" }}>{cam.name}</p>
-        {cam.location && (
-          <p style={{ margin: "3px 0 0", fontSize: 12, color: "#71717A" }}>{cam.location}</p>
-        )}
-      </div>
+      {/* Info bawah — disembunyikan saat fullscreen */}
+      {!isFullscreen && (
+        <div style={{ padding: "14px 16px", borderTop: "1px solid #1A1A26" }}>
+          <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: "#FFFFFF" }}>{cam.name}</p>
+          {cam.location && (
+            <p style={{ margin: "3px 0 0", fontSize: 12, color: "#71717A" }}>{cam.location}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
