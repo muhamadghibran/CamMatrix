@@ -62,7 +62,7 @@ function CameraPlayer({ camera, index }) {
             <span style={{ color: "#3D3D4F", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Offline</span>
           </div>
         ) : (
-          <video ref={videoRef} muted autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <video ref={videoRef} muted autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000" }} />
         )}
         {/* Status Badge */}
         <div style={{

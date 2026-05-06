@@ -42,7 +42,7 @@ function HlsPlayer({ src }) {
     <video
       ref={videoRef}
       muted playsInline autoPlay
-      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000" }}
     />
   );
 }
