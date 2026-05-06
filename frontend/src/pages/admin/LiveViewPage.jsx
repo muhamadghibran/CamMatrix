@@ -15,7 +15,7 @@ const LAYOUTS = [
 ];
 
 /* ── HLS Player ── */
-function HlsPlayer({ src }) {
+function HlsPlayer({ src, objectFit = "cover" }) {
   const videoRef = useRef(null);
   const hlsRef   = useRef(null);
 
@@ -42,17 +42,35 @@ function HlsPlayer({ src }) {
     <video
       ref={videoRef}
       muted playsInline autoPlay
-      style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000" }}
+      style={{ width: "100%", height: "100%", objectFit, background: "#000" }}
     />
   );
 }
 
 /* ── Camera Card (mirip halaman publik, dengan fitur admin) ── */
-function CameraCard({ cam, index, onFullscreen }) {
+function CameraCard({ cam, index }) {
   const [hov, setHov] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [downloadState, setDownloadState] = useState({ state: "idle", progress: 0 });
+  const cardRef = useRef(null);
   const isOffline = cam.status === "offline";
   const isLive    = cam.status === "live" || cam.status === "recording";
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      cardRef.current?.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    const handler = () => {
+      if (!document.fullscreenElement) setIsFullscreen(false);
+    };
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
 
   const handleDownload = async () => {
     if (downloadState.state !== "idle") return;
@@ -94,29 +112,30 @@ function CameraCard({ cam, index, onFullscreen }) {
 
   return (
     <div
+      ref={cardRef}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
         background: "#111118",
         border: `1px solid ${hov ? "rgba(255,255,255,0.18)" : "#1F1F2E"}`,
-        borderRadius: 12,
+        borderRadius: isFullscreen ? 0 : 12,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         transition: "border-color 0.2s, transform 0.2s cubic-bezier(0.16,1,0.3,1)",
-        transform: hov && !isOffline ? "translateY(-2px)" : "translateY(0)",
+        transform: hov && !isOffline && !isFullscreen ? "translateY(-2px)" : "translateY(0)",
         animation: `fadeUpIn 0.5s cubic-bezier(0.16,1,0.3,1) ${index * 60}ms both`,
       }}
     >
       {/* Video Area */}
-      <div style={{ position: "relative", aspectRatio: "16/9", background: "#0A0A0F" }}>
+      <div style={{ position: "relative", aspectRatio: isFullscreen ? "auto" : "16/9", flex: isFullscreen ? 1 : "none", background: "#0A0A0F" }}>
         {isOffline ? (
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
             <WifiOff size={22} style={{ color: "#2D2D3F" }} />
             <span style={{ color: "#3D3D4F", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Sinyal Terputus</span>
           </div>
         ) : (
-          cam.stream_url && <HlsPlayer src={cam.stream_url} />
+          cam.stream_url && <HlsPlayer src={cam.stream_url} objectFit={isFullscreen ? "contain" : "cover"} />
         )}
 
         {/* LIVE / OFFLINE badge — top left */}
@@ -179,8 +198,8 @@ function CameraCard({ cam, index, onFullscreen }) {
 
             {/* Fullscreen button */}
             <button
-              onClick={onFullscreen}
-              title="Fullscreen"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Keluar Fullscreen" : "Fullscreen"}
               style={{
                 width: 28, height: 28, borderRadius: 6,
                 background: "rgba(0,0,0,0.72)", border: "1px solid rgba(255,255,255,0.12)",
@@ -191,7 +210,7 @@ function CameraCard({ cam, index, onFullscreen }) {
               onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.18)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.72)"; }}
             >
-              <Expand size={11} />
+              {isFullscreen ? <Minimize2 size={11} /> : <Expand size={11} />}
             </button>
           </div>
         )}
@@ -359,7 +378,7 @@ export default function LiveViewPage() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: cols_css, gap: 16 }}>
           {visibleCams.map((cam, i) => (
-            <CameraCard key={cam.id} cam={cam} index={i} onFullscreen={() => handleFullscreen(cam)} />
+            <CameraCard key={cam.id} cam={cam} index={i} />
           ))}
         </div>
       )}
