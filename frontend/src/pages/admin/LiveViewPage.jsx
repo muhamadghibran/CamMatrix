@@ -127,22 +127,25 @@ function CameraCard({ cam, index }) {
         animation: `fadeUpIn 0.5s cubic-bezier(0.16,1,0.3,1) ${index * 60}ms both`,
       }}
     >
-      {/* Video Area */}
+      {/* Video Area — paddingTop hack untuk rasio 16:9 yang stabil */}
       <div style={{
         position: isFullscreen ? "absolute" : "relative",
         inset: isFullscreen ? 0 : "auto",
-        aspectRatio: isFullscreen ? "unset" : "16/9",
+        paddingTop: isFullscreen ? 0 : "56.25%",
         background: "#000",
         zIndex: isFullscreen ? 10 : "auto",
       }}>
-        {isOffline ? (
-          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            <WifiOff size={22} style={{ color: "#2D2D3F" }} />
-            <span style={{ color: "#3D3D4F", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Sinyal Terputus</span>
-          </div>
-        ) : (
-          cam.stream_url && <HlsPlayer src={cam.stream_url} objectFit={isFullscreen ? "contain" : "cover"} />
-        )}
+        {/* Inner wrapper yang mengisi seluruh area */}
+        <div style={{ position: "absolute", inset: 0 }}>
+          {isOffline ? (
+            <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              <WifiOff size={22} style={{ color: "#2D2D3F" }} />
+              <span style={{ color: "#3D3D4F", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Sinyal Terputus</span>
+            </div>
+          ) : (
+            cam.stream_url && <HlsPlayer src={cam.stream_url} objectFit={isFullscreen ? "contain" : "cover"} />
+          )}
+        </div>{/* /inner wrapper */}
 
         {/* LIVE / OFFLINE badge — top left */}
         <div style={{
