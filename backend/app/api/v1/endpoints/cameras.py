@@ -306,56 +306,120 @@ async def download_camera_recording(
 ):
     """
     Mengunduh 30 menit terakhir rekaman video dari kamera.
-    Membutuhkan fitur recording aktif di MediaMTX.
+    Membutuhkan fitur recording aktif di MediaMTX (record: yes di mediamtx.yml).
     """
     camera = await _get_owned_camera(camera_id, current_user, db)
     path = _path_name(camera.owner_id, camera.id)
-    
-    # Path tempat MediaMTX menyimpan rekaman
-    record_dir = f"/var/www/CamMatrix/recordings/{path}"
-    
-    if not os.path.exists(record_dir):
-        raise HTTPException(status_code=404, detail="Belum ada data rekaman untuk kamera ini. (Pastikan kamera pernah menyala)")
-        
-    # Cari file .mp4 terbaru (karena MediaMTX memecah per jam)
-    mp4_files = glob.glob(os.path.join(record_dir, "*.mp4"))
-    if not mp4_files:
-        raise HTTPException(status_code=404, detail="Belum ada file rekaman .mp4 yang disimpan MediaMTX.")
-        
-    # Urutkan berdasarkan waktu modifikasi terbaru (paling baru di index 0)
-    mp4_files.sort(key=os.path.getmtime, reverse=True)
-    latest_file = mp4_files[0]
-    
-    # Lokasi file sementara untuk dipotong
+
+    # ── Cari file rekaman di berbagai lokasi yang mungkin ──────────────────
+    RECORDINGS_BASE = "/var/www/CamMatrix/recordings"
+
+    # Pastikan folder induk ada dulu
+    if not os.path.exists(RECORDINGS_BASE):
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Folder rekaman '{RECORDINGS_BASE}' belum ada di server. "
+                "Jalankan: sudo mkdir -p /var/www/CamMatrix/recordings && sudo chmod -R 777 /var/www/CamMatrix/recordings"
+            )
+        )
+
+    # Cari file MP4 secara rekursif — MediaMTX mungkin menyimpan di sub-folder berbeda
+    # Pola 1: /recordings/{cam_1_6}/*.mp4  (konfigurasi kita)
+    # Pola 2: /recordings/*.mp4             (flat)
+    # Pola 3: /recordings/**/*.mp4          (nested tak terduga)
+    all_mp4: list[str] = []
+
+    # Pola 1 — folder sesuai path kamera (prioritas utama)
+    specific_dir = os.path.join(RECORDINGS_BASE, path)
+    if os.path.isdir(specific_dir):
+        all_mp4 = glob.glob(os.path.join(specific_dir, "*.mp4"))
+
+    # Pola 2 & 3 — jika tidak ditemukan, cari rekursif di seluruh base dir
+    if not all_mp4:
+        all_mp4 = glob.glob(os.path.join(RECORDINGS_BASE, "**", "*.mp4"), recursive=True)
+        # Filter hanya yang nama filenya mengandung path kamera ini
+        all_mp4 = [f for f in all_mp4 if path in f]
+
+    # Pola 4 — masih tidak ditemukan? ambil file MP4 apapun yang ada (fallback diagnostik)
+    if not all_mp4:
+        any_mp4 = glob.glob(os.path.join(RECORDINGS_BASE, "**", "*.mp4"), recursive=True)
+        if not any_mp4:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Belum ada file rekaman (.mp4) di server untuk kamera '{camera.name}'. "
+                    "Pastikan: (1) mediamtx.yml memiliki 'record: yes', (2) kamera sudah menyala minimal 1 menit, "
+                    "(3) folder /var/www/CamMatrix/recordings/ bisa ditulis oleh MediaMTX. "
+                    f"Cek dengan: ls -la {RECORDINGS_BASE}/"
+                )
+            )
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Rekaman ditemukan tapi tidak untuk kamera '{camera.name}' (path: {path}). "
+                    f"File yang ada: {', '.join(os.path.basename(f) for f in any_mp4[:3])}. "
+                    "Pastikan kamera ini pernah menyala setelah fitur recording diaktifkan."
+                )
+            )
+
+    # ── Ambil file terbaru ──────────────────────────────────────────────────
+    all_mp4.sort(key=os.path.getmtime, reverse=True)
+    latest_file = all_mp4[0]
+
+    # Periksa apakah file tidak sedang ditulis / terlalu kecil (< 10KB = kemungkinan corrupt)
+    file_size = os.path.getsize(latest_file)
+    if file_size < 10_240:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"File rekaman terbaru terlalu kecil ({file_size} bytes). "
+                "Biarkan kamera menyala lebih lama (minimal 30 detik) sebelum mencoba download."
+            )
+        )
+
+    # ── Potong 30 menit terakhir menggunakan FFmpeg ────────────────────────
     temp_filename = f"/tmp/cam_download_{uuid.uuid4().hex}.mp4"
-    
-    # Potong 30 menit terakhir menggunakan FFmpeg (-sseof -1800 berarti 1800 detik dari akhir)
-    # -c copy agar sangat cepat tanpa re-encoding
+
     cmd = [
-        "ffmpeg", "-y", "-sseof", "-1800", "-i", latest_file,
-        "-c", "copy", temp_filename
+        "ffmpeg", "-y",
+        "-sseof", "-1800",           # 30 menit dari akhir
+        "-i", latest_file,
+        "-c", "copy",                # Tanpa re-encoding (cepat)
+        "-avoid_negative_ts", "make_zero",
+        temp_filename
     ]
-    
+
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        # Jika gagal (misal video kurang dari 30 menit), copy saja file aslinya
-        import shutil
-        shutil.copy2(latest_file, temp_filename)
-        
-    if not os.path.exists(temp_filename):
-        raise HTTPException(status_code=500, detail="Gagal memproses file rekaman.")
-        
-    # Hapus file sementara setelah selesai dikirim ke user (di-trigger otomatis oleh FastAPI)
+        result = subprocess.run(
+            cmd, check=True,
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            timeout=120   # Maksimal 2 menit untuk proses ini
+        )
+    except subprocess.CalledProcessError as e:
+        # FFmpeg gagal (mis. video terlalu pendek) → salin file asli
+        try:
+            import shutil
+            shutil.copy2(latest_file, temp_filename)
+        except Exception:
+            raise HTTPException(status_code=500, detail="Gagal memproses file rekaman dengan FFmpeg.")
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="Proses potong video timeout (> 2 menit). Coba lagi nanti.")
+
+    if not os.path.exists(temp_filename) or os.path.getsize(temp_filename) < 1024:
+        raise HTTPException(status_code=500, detail="Gagal menghasilkan file output. Pastikan FFmpeg terinstal di server.")
+
     background_tasks.add_task(_cleanup_temp_file, temp_filename)
-    
-    download_name = f"{camera.name.replace(' ', '_')}_terakhir_30_menit.mp4"
-    
+
+    download_name = f"{camera.name.replace(' ', '_')}_rekaman_30_menit.mp4"
+
     return FileResponse(
-        path=temp_filename, 
+        path=temp_filename,
         filename=download_name,
         media_type="video/mp4"
     )
+
 
 
 # ─────────────────────────────────────────────────────────────
