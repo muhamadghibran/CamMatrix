@@ -17,6 +17,6 @@ export const useThemeStore = create(
         document.documentElement.classList.add(theme);
       },
     }),
-    { name: "vms-theme" }
-  )
+    { name: "vms-theme" },
+  ),
 );

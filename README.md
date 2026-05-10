@@ -52,12 +52,14 @@
 - **Rate Limiting** — Login dibatasi 5x/menit untuk mencegah brute-force
 - **Session** — Token disimpan aman, logout membersihkan semua state
 
-### 🛡️ Keamanan
-- **Enkripsi Kredensial Kamera** — Password RTSP dienkripsi menggunakan Fernet sebelum disimpan ke database
-- **Password Tidak Bocor** — API tidak pernah mengembalikan password kamera ke browser
-- **Validasi RTSP URL** — Hanya `rtsp://` dan `rtsps://` yang diizinkan, IP loopback diblokir
-- **Secret Key Validation** — Startup akan gagal jika SECRET_KEY tidak dikonfigurasi dengan benar
-- **Auth pada Endpoint Admin** — Semua endpoint sensitif dilindungi autentikasi
+### 🛡️ Keamanan & Hardening (Audit Sesi 2)
+- **Wajib Ganti Password** — Admin baru yang dibuat via script wajib mengganti password saat login pertama kali (Scope terisolasi).
+- **Isolasi API Streaming** — API MediaMTX (port 9997) dikunci hanya untuk akses `127.0.0.1` (backend), mencegah manipulasi dari internet.
+- **Otentikasi Streaming Spesifik** — Akses *wildcard* dihapus, diganti dengan 2 role spesifik (*Publisher* dan *Viewer*).
+- **Enkripsi Kredensial Kamera** — Password CCTV dienkripsi menggunakan *Fernet* di dalam database PostgreSQL.
+- **Obfuscasi Konfigurasi YAML** — Kredensial RTSP disimpan di file terpisah (`cameras.env` mode 600) untuk mencegah *plaintext* di `mediamtx.yml`.
+- **Validasi RTSP & Anti-SSRF** — Hanya `rtsp://` dan `rtsps://` yang diizinkan, menolak injeksi IP lokal palsu.
+- **Startup Safety Check** — Server menolak hidup jika mendeteksi password admin masih default (`admin123`) di mode Production.
 
 ### 📊 Dashboard
 - **Statistik Real-time** — Kamera aktif, rekaman, penyimpanan
@@ -220,17 +222,34 @@ Akun admin hanya dapat dibuat melalui terminal VPS (tidak ada form registrasi pu
 cd /var/www/CamMatrix/backend
 source venv/bin/activate
 python3 << 'EOF'
-import subprocess
+import asyncio, os
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 from passlib.context import CryptContext
+from sqlalchemy import text
 
 EMAIL    = "admin_baru@domain.com"
 PASSWORD = "PasswordKuat123!"
 NAME     = "Nama Admin"
 
-pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
-hashed = pwd.hash(PASSWORD)
-sql = f"INSERT INTO users (full_name, email, hashed_password, role, is_active) VALUES ('{NAME}', '{EMAIL}', '{hashed}', 'ADMIN', true) ON CONFLICT DO NOTHING;"
-subprocess.run(["sudo", "-u", "postgres", "psql", "-d", "cctv_vms", "-c", sql])
+# Gunakan parameter binding, JANGAN PAKAI f-string untuk SQL!
+# Detail: https://docs.sqlalchemy.org/en/20/core/tutorial.html#using-textual-sql
+async def seed():
+    engine  = create_async_engine(os.getenv("DATABASE_URL"))
+    session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)()
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    hashed = pwd_context.hash(PASSWORD)
+    
+    async with session.begin():
+        sql = text("""
+            INSERT INTO users (full_name, email, hashed_password, role, is_active, must_change_password) 
+            VALUES (:name, :email, :password, 'ADMIN', true, true) 
+            ON CONFLICT (email) DO NOTHING;
+        """)
+        await session.execute(sql, {"name": NAME, "email": EMAIL, "password": hashed})
+    await session.close()
+
+asyncio.run(seed())
 print(f"✅ Admin dibuat: {EMAIL}")
 EOF
 ```
@@ -240,6 +259,7 @@ EOF
 ```env
 DATABASE_URL=postgresql+asyncpg://postgres:PASSWORD@localhost:5432/cctv_vms
 SECRET_KEY=your-random-key-minimum-32-chars        # Generate: python -c "import secrets; print(secrets.token_hex(32))"
+ENCRYPTION_KEY=your-random-key-minimum-32-chars    # Generate: python -c "import secrets; print(secrets.token_hex(32))"
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 MINIO_ENDPOINT=localhost:9000
@@ -279,8 +299,9 @@ users (
   full_name       VARCHAR(255),
   email           VARCHAR(255) UNIQUE NOT NULL,
   hashed_password VARCHAR(255),
-  role            ENUM('ADMIN') DEFAULT 'ADMIN',
+  role            ENUM('ADMIN', 'OPERATOR', 'VIEWER') DEFAULT 'VIEWER',
   is_active       BOOLEAN DEFAULT TRUE,
+  must_change_password BOOLEAN DEFAULT FALSE,
   created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 )
 

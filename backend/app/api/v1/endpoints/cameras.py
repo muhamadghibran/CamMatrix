@@ -1,12 +1,18 @@
 from typing import Any, List
 import asyncio
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import glob
+import subprocess
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 
 from app.api import deps
 from app.core.config import settings
 from app.core.security import encrypt_symmetric, decrypt_symmetric
+from app.services import mediamtx_client
 from app.models.camera import Camera
 from app.schemas.camera import CameraCreate, CameraUpdate, CameraResponse
 from app.models.user import User, UserRole
@@ -80,7 +86,10 @@ async def get_mediamtx_status(user_id: int, camera_id: int) -> str:
     try:
         path = _path_name(user_id, camera_id)
         async with httpx.AsyncClient(timeout=3.0) as client:
-            res = await client.get(f"{MEDIAMTX_API}/v3/paths/get/{path}")
+            res = await client.get(
+                f"{MEDIAMTX_API}/v3/paths/get/{path}",
+                auth=("publisher", settings.MTX_PUBLISHER_PASS),
+            )
             if res.status_code == 200 and (res.json().get("sourceReady") or res.json().get("ready")):
                 return "live"
     except Exception:
@@ -92,22 +101,16 @@ async def register_camera_to_mediamtx(user_id: int, camera_id: int, rtsp_url: st
     """Daftarkan RTSP source ke MediaMTX dengan path unik per pengguna."""
     try:
         path = _path_name(user_id, camera_id)
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            payload = {"source": rtsp_url}
-            if rtsp_url == "publisher":
-                payload = {} # Kosongkan source agar MediaMTX menerima PUSH
-            await client.post(
-                f"{MEDIAMTX_API}/v3/config/paths/add/{path}",
-                json=payload
-            )
-    except Exception:
-        pass
+        await mediamtx_client.add_path(path, rtsp_url)
+    except Exception as e:
+        print(f"Failed to register camera {camera_id}: {e}")
 
 
 async def remove_camera_from_mediamtx(user_id: int, camera_id: int):
     """Hapus path dari MediaMTX saat kamera dihapus."""
     try:
         path = _path_name(user_id, camera_id)
+<<<<<<< HEAD
         async with httpx.AsyncClient(timeout=2.0) as client:
             await client.delete(f"{MEDIAMTX_API}/v3/config/paths/delete/{path}")
     except Exception:
@@ -165,8 +168,17 @@ paths:
         with open(config_path, "w", encoding="utf-8") as f:
             f.write(content)
         print(f"✅ mediamtx.yml diperbarui dengan {len(cameras)} kamera")
+=======
+        await mediamtx_client.remove_path(path)
+>>>>>>> ba86f2ad1181291e14a9800e43809d2f1e4d2ea4
     except Exception as e:
-        print(f"⚠️  Gagal menulis mediamtx.yml: {e}")
+        print(f"Failed to remove camera {camera_id}: {e}")
+
+
+
+
+
+
 
 
 def camera_to_dict(cam: Camera, cam_status: str = "offline") -> dict:
@@ -196,7 +208,7 @@ async def read_cameras(
     db: deps.DbSession,
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     if current_user.role == UserRole.ADMIN:
         stmt = select(Camera).offset(skip).limit(limit)
@@ -215,7 +227,7 @@ async def read_cameras(
 @router.get("/statuses")
 async def get_all_camera_statuses(
     db: deps.DbSession,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     if current_user.role == UserRole.ADMIN:
         stmt = select(Camera.id, Camera.owner_id)
@@ -240,7 +252,7 @@ async def get_all_camera_statuses(
 async def get_camera_status(
     camera_id: int,
     db: deps.DbSession,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     camera = await _get_owned_camera(camera_id, current_user, db)
     cam_status = await get_mediamtx_status(camera.owner_id, camera_id)
@@ -255,7 +267,7 @@ async def create_camera(
     *,
     db: deps.DbSession,
     camera_in: CameraCreate,
-    current_user: User = Depends(deps.get_current_user)  # Semua user bisa tambah kamera
+    current_user: User = Depends(deps.get_current_user_full_scope)  # Semua user bisa tambah kamera
 ) -> Any:
     # C9: Validasi RTSP URL sebelum disimpan (cegah SSRF)
     validated_url = _validate_rtsp_url(camera_in.rtsp_url)
@@ -272,16 +284,10 @@ async def create_camera(
     await db.commit()
     await db.refresh(camera)
 
-    # Bangun URL RTSP yang sudah memiliki kredensial tersemat untuk MediaMTX
     authenticated_url = _build_rtsp_with_auth(
         camera.rtsp_url, camera.username, camera.password
     )
     await register_camera_to_mediamtx(current_user.id, camera.id, authenticated_url)
-
-    # Update mediamtx.yml
-    all_cams_result = await db.execute(select(Camera))
-    all_cams = all_cams_result.scalars().all()
-    write_cameras_to_config(all_cams)
 
     return camera_to_dict(camera, "offline")
 
@@ -295,7 +301,7 @@ async def update_camera(
     db: deps.DbSession,
     camera_id: int,
     camera_in: CameraUpdate,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     camera = await _get_owned_camera(camera_id, current_user, db)
 
@@ -317,6 +323,11 @@ async def update_camera(
     await db.refresh(camera)
 
     st = await get_mediamtx_status(camera.owner_id, camera.id)
+    
+    # Update MediaMTX config if RTSP URL changed
+    authenticated_url = _build_rtsp_with_auth(camera.rtsp_url, camera.username, camera.password)
+    await mediamtx_client.add_path(_path_name(camera.owner_id, camera.id), authenticated_url)
+
     return camera_to_dict(camera, st)
 
 
@@ -328,7 +339,7 @@ async def delete_camera(
     *,
     db: deps.DbSession,
     camera_id: int,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     camera = await _get_owned_camera(camera_id, current_user, db)
 
@@ -336,10 +347,139 @@ async def delete_camera(
     await db.delete(camera)
     await db.commit()
 
-    remaining_result = await db.execute(select(Camera))
-    remaining_cams = remaining_result.scalars().all()
-    write_cameras_to_config(remaining_cams)
     return {"message": "Camera deleted successfully"}
+
+
+def _cleanup_temp_file(filepath: str):
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    except Exception:
+        pass
+
+@router.get("/{camera_id}/download", response_class=FileResponse)
+async def download_camera_recording(
+    camera_id: int,
+    background_tasks: BackgroundTasks,
+    db: deps.DbSession,
+    current_user: User = Depends(deps.get_current_user_full_scope)
+):
+    """
+    Mengunduh 30 menit terakhir rekaman video dari kamera.
+    Membutuhkan fitur recording aktif di MediaMTX (record: yes di mediamtx.yml).
+    """
+    camera = await _get_owned_camera(camera_id, current_user, db)
+    path = _path_name(camera.owner_id, camera.id)
+
+    # ── Cari file rekaman di berbagai lokasi yang mungkin ──────────────────
+    RECORDINGS_BASE = "/var/www/CamMatrix/recordings"
+
+    # Pastikan folder induk ada dulu
+    if not os.path.exists(RECORDINGS_BASE):
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Folder rekaman '{RECORDINGS_BASE}' belum ada di server. "
+                "Jalankan: sudo mkdir -p /var/www/CamMatrix/recordings && sudo chmod -R 777 /var/www/CamMatrix/recordings"
+            )
+        )
+
+    # Cari file MP4 secara rekursif — MediaMTX mungkin menyimpan di sub-folder berbeda
+    # Pola 1: /recordings/{cam_1_6}/*.mp4  (konfigurasi kita)
+    # Pola 2: /recordings/*.mp4             (flat)
+    # Pola 3: /recordings/**/*.mp4          (nested tak terduga)
+    all_mp4: list[str] = []
+
+    # Pola 1 — folder sesuai path kamera (prioritas utama)
+    specific_dir = os.path.join(RECORDINGS_BASE, path)
+    if os.path.isdir(specific_dir):
+        all_mp4 = glob.glob(os.path.join(specific_dir, "*.mp4"))
+
+    # Pola 2 & 3 — jika tidak ditemukan, cari rekursif di seluruh base dir
+    if not all_mp4:
+        all_mp4 = glob.glob(os.path.join(RECORDINGS_BASE, "**", "*.mp4"), recursive=True)
+        # Filter hanya yang nama filenya mengandung path kamera ini
+        all_mp4 = [f for f in all_mp4 if path in f]
+
+    # Pola 4 — masih tidak ditemukan? ambil file MP4 apapun yang ada (fallback diagnostik)
+    if not all_mp4:
+        any_mp4 = glob.glob(os.path.join(RECORDINGS_BASE, "**", "*.mp4"), recursive=True)
+        if not any_mp4:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Belum ada file rekaman (.mp4) di server untuk kamera '{camera.name}'. "
+                    "Pastikan: (1) mediamtx.yml memiliki 'record: yes', (2) kamera sudah menyala minimal 1 menit, "
+                    "(3) folder /var/www/CamMatrix/recordings/ bisa ditulis oleh MediaMTX. "
+                    f"Cek dengan: ls -la {RECORDINGS_BASE}/"
+                )
+            )
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Rekaman ditemukan tapi tidak untuk kamera '{camera.name}' (path: {path}). "
+                    f"File yang ada: {', '.join(os.path.basename(f) for f in any_mp4[:3])}. "
+                    "Pastikan kamera ini pernah menyala setelah fitur recording diaktifkan."
+                )
+            )
+
+    # ── Ambil file terbaru ──────────────────────────────────────────────────
+    all_mp4.sort(key=os.path.getmtime, reverse=True)
+    latest_file = all_mp4[0]
+
+    # Periksa apakah file tidak sedang ditulis / terlalu kecil (< 10KB = kemungkinan corrupt)
+    file_size = os.path.getsize(latest_file)
+    if file_size < 10_240:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"File rekaman terbaru terlalu kecil ({file_size} bytes). "
+                "Biarkan kamera menyala lebih lama (minimal 30 detik) sebelum mencoba download."
+            )
+        )
+
+    # ── Potong 30 menit terakhir menggunakan FFmpeg ────────────────────────
+    temp_filename = f"/tmp/cam_download_{uuid.uuid4().hex}.mp4"
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-sseof", "-1800",           # 30 menit dari akhir
+        "-i", latest_file,
+        "-c", "copy",                # Tanpa re-encoding (cepat)
+        "-avoid_negative_ts", "make_zero",
+        temp_filename
+    ]
+
+    try:
+        result = subprocess.run(
+            cmd, check=True,
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            timeout=120   # Maksimal 2 menit untuk proses ini
+        )
+    except subprocess.CalledProcessError as e:
+        # FFmpeg gagal (mis. video terlalu pendek) → salin file asli
+        try:
+            import shutil
+            shutil.copy2(latest_file, temp_filename)
+        except Exception:
+            raise HTTPException(status_code=500, detail="Gagal memproses file rekaman dengan FFmpeg.")
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="Proses potong video timeout (> 2 menit). Coba lagi nanti.")
+
+    if not os.path.exists(temp_filename) or os.path.getsize(temp_filename) < 1024:
+        raise HTTPException(status_code=500, detail="Gagal menghasilkan file output. Pastikan FFmpeg terinstal di server.")
+
+    background_tasks.add_task(_cleanup_temp_file, temp_filename)
+
+    download_name = f"{camera.name.replace(' ', '_')}_rekaman_30_menit.mp4"
+
+    return FileResponse(
+        path=temp_filename,
+        filename=download_name,
+        media_type="video/mp4"
+    )
+
 
 
 # ─────────────────────────────────────────────────────────────

@@ -26,7 +26,7 @@ async def read_recordings(
     skip: int = 0,
     limit: int = 100,
     camera_id: int = None,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     # C5: Join ke Camera, filter berdasarkan owner_id kecuali ADMIN
     stmt = select(Recording).join(Camera)

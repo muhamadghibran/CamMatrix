@@ -1,149 +1,163 @@
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
-  MonitorPlay,
-  Camera,
-  Film,
-  ScanFace,
-  Users,
-  Settings,
-  Shield,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
+  LayoutDashboard, MonitorPlay, Camera, Film, ScanFace,
+  Users, Settings, LogOut, ChevronLeft, ChevronRight,
 } from "lucide-react";
+import { useState } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useLanguageStore } from "../../store/languageStore";
+import CamLogo from "../CamLogo";
 
 const navItems = [
-  { to: "/app/dashboard",  icon: LayoutDashboard, labelKey: "dashboard",    group: "monitor" },
-  { to: "/app/live",       icon: MonitorPlay,      labelKey: "liveView",     group: "monitor" },
-  { to: "/app/cameras",    icon: Camera,           labelKey: "cameras",      group: "monitor" },
-  { to: "/app/recordings", icon: Film,             labelKey: "recordings",   group: "manage"  },
-  { to: "/app/face",       icon: ScanFace,         labelKey: "faceAnalytics",group: "manage"  },
-  { to: "/app/users",      icon: Users,            labelKey: "users",        group: "system", adminOnly: true },
-  { to: "/app/settings",   icon: Settings,         labelKey: "settings",     group: "system" },
+  { to: "/app/dashboard",  icon: LayoutDashboard, labelKey: "dashboard",     group: "monitor" },
+  { to: "/app/live",       icon: MonitorPlay,     labelKey: "liveView",      group: "monitor" },
+  { to: "/app/cameras",    icon: Camera,          labelKey: "cameras",       group: "monitor" },
+  { to: "/app/recordings", icon: Film,            labelKey: "recordings",    group: "manage"  },
+  { to: "/app/face",       icon: ScanFace,        labelKey: "faceAnalytics", group: "manage"  },
+  { to: "/app/users",      icon: Users,           labelKey: "users",         group: "system",  adminOnly: true },
+  { to: "/app/settings",   icon: Settings,        labelKey: "settings",      group: "system"  },
 ];
 
 const groups = [
   { key: "monitor", label: "Pemantauan" },
-  { key: "manage",  label: "Manajemen" },
-  { key: "system",  label: "Sistem" },
+  { key: "manage",  label: "Manajemen"  },
+  { key: "system",  label: "Sistem"     },
 ];
+
+function NavItem({ to, icon: Icon, label, collapsed, isActive }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <NavLink
+      to={to}
+      title={collapsed ? label : undefined}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: collapsed ? 0 : 10,
+        justifyContent: collapsed ? "center" : "flex-start",
+        padding: collapsed ? "8px 0" : "8px 12px",
+        borderRadius: 8,
+        fontSize: 13,
+        fontWeight: isActive ? 600 : 400,
+        textDecoration: "none",
+        cursor: "pointer",
+        transition: "background 0.15s, color 0.15s",
+        background: isActive
+          ? "rgba(255,255,255,0.07)"
+          : hov ? "rgba(255,255,255,0.04)" : "transparent",
+        color: isActive ? "#FFFFFF" : hov ? "#CCCCCC" : "#71717A",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Active pill indicator */}
+      {isActive && (
+        <span style={{
+          position: "absolute", left: 0, top: "50%",
+          transform: "translateY(-50%)",
+          width: 3, height: 18, borderRadius: "0 3px 3px 0",
+          background: "#FFFFFF",
+          boxShadow: "0 0 8px rgba(255,255,255,0.4)",
+        }} />
+      )}
+      <Icon size={15} style={{ flexShrink: 0, color: "inherit", transition: "color 0.15s" }} />
+      {!collapsed && (
+        <span style={{
+          flex: 1, overflow: "hidden", textOverflow: "ellipsis",
+          whiteSpace: "nowrap", transition: "opacity 0.2s",
+        }}>
+          {label}
+        </span>
+      )}
+    </NavLink>
+  );
+}
 
 export default function Sidebar({ collapsed, onToggle }) {
   const { logout, user } = useAuthStore();
-  const { t } = useLanguageStore();
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { t }            = useLanguageStore();
+  const navigate         = useNavigate();
+  const { pathname }     = useLocation();
+  const [logHov, setLogHov] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const handleLogout = () => { logout(); navigate("/login"); };
+  const isAdmin  = user?.role === "ADMIN" || user?.role === "admin";
+  const initial  = (user?.full_name || user?.name || "A").charAt(0).toUpperCase();
+  const fullName = user?.full_name || user?.name || "Administrator";
+  const role     = user?.role || "Admin";
 
   return (
-    <aside
-      className="relative flex flex-col h-full shrink-0 overflow-hidden transition-all duration-300"
-      style={{
-        width: collapsed ? "68px" : "240px",
-        backgroundColor: "var(--color-surface)",
-        borderRight: "1px solid var(--color-card-border)",
-      }}
-    >
-      {/* Ambient gradient top accent */}
-      <div
-        className="absolute top-0 left-0 right-0 h-px"
-        style={{ background: "linear-gradient(90deg, transparent, rgba(6,182,212,0.6), transparent)" }}
-      />
+    <aside style={{
+      position: "relative",
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+      flexShrink: 0,
+      overflow: "hidden",
+      width: collapsed ? 60 : 228,
+      transition: "width 0.28s cubic-bezier(0.4,0,0.2,1)",
+      background: "rgba(10,10,15,0.97)",
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+      borderRight: "1px solid #1A1A26",
+    }}>
 
-      {/* Logo */}
-      <div
-        className="flex items-center h-16 px-4 shrink-0"
-        style={{ borderBottom: "1px solid var(--color-card-border)" }}
-      >
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 relative"
-            style={{
-              background: "linear-gradient(135deg, #06b6d4, #00ffff)",
-              boxShadow: "0 0 20px rgba(6,182,212,0.4)",
-            }}
-          >
-            <Shield size={15} className="text-white" />
-          </div>
-          {!collapsed && (
-            <div className="overflow-hidden">
-              <span className="font-bold text-sm tracking-wide block" style={{ color: "var(--color-text-base)" }}>
-                CamMatrix
-              </span>
-              <span className="text-[10px] font-medium" style={{ color: "var(--color-text-sub)" }}>
-                v2.1.0 — Enterprise
-              </span>
-            </div>
-          )}
+      {/* ── Logo ── */}
+      <div style={{
+        display: "flex", alignItems: "center", height: 58,
+        padding: collapsed ? "0 12px" : "0 16px",
+        borderBottom: "1px solid #1A1A26",
+        flexShrink: 0, gap: 10, overflow: "hidden",
+        justifyContent: collapsed ? "center" : "flex-start",
+      }}>
+        <div style={{ flexShrink: 0 }}>
+          <CamLogo size={28} radius="7px" />
         </div>
+        {!collapsed && (
+          <div style={{ overflow: "hidden", minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>
+              CamMatrix
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontSize: 10, color: "#3D3D4F", whiteSpace: "nowrap" }}>v2.1.0</span>
+              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#2D2D3F" }} />
+              <span style={{ fontSize: 10, color: "#3D3D4F", whiteSpace: "nowrap" }}>Enterprise</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 py-3 px-2 overflow-y-auto overflow-x-hidden space-y-4">
-        {groups.map((group) => {
-          const isAdmin = user?.role === "ADMIN" || user?.role === "admin";
-          const items = navItems.filter(
-            (n) => n.group === group.key && (!n.adminOnly || isAdmin)
-          );
+      {/* ── Nav ── */}
+      <nav style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "10px 8px" }}>
+        {groups.map((group, gi) => {
+          const items = navItems.filter(n => n.group === group.key && (!n.adminOnly || isAdmin));
           if (items.length === 0) return null;
           return (
-            <div key={group.key}>
+            <div key={group.key} style={{ marginTop: gi > 0 ? 18 : 0 }}>
+              {/* Group label */}
               {!collapsed && (
-                <p
-                  className="text-[9px] font-bold uppercase tracking-[0.12em] px-3 mb-1"
-                  style={{ color: "var(--color-text-sub)", opacity: 0.5 }}
-                >
+                <div style={{
+                  fontSize: 9, fontWeight: 700, textTransform: "uppercase",
+                  letterSpacing: "0.12em", color: "#2D2D3F",
+                  padding: "0 12px", marginBottom: 4,
+                }}>
                   {group.label}
-                </p>
+                </div>
               )}
-              <div className="space-y-0.5">
-                {items.map(({ to, icon: NavIcon, labelKey }) => {
+              {collapsed && gi > 0 && (
+                <div style={{ width: 20, height: 1, background: "#1A1A26", margin: "8px auto 8px" }} />
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {items.map(({ to, icon, labelKey }) => {
                   const isActive = pathname === to || pathname.startsWith(to + "/");
                   return (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative group overflow-hidden ${
-                        isActive ? "sidebar-item-active" : ""
-                      }`}
-                      style={isActive ? {} : { color: "var(--color-text-sub)" }}
-                      onMouseEnter={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.backgroundColor = "var(--color-surface-elevated)";
-                          e.currentTarget.style.color = "var(--color-text-base)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.backgroundColor = "";
-                          e.currentTarget.style.color = "var(--color-text-sub)";
-                        }
-                      }}
-                    >
-                      {isActive && (
-                        <span
-                          className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
-                          style={{ background: "linear-gradient(180deg, #06b6d4, #00ffff)" }}
-                        />
-                      )}
-                      <NavIcon size={17} className="shrink-0" />
-                      {!collapsed && (
-                        <span className="truncate flex-1">{t(`nav.${labelKey}`)}</span>
-                      )}
-                      {isActive && !collapsed && (
-                        <span
-                          className="w-1.5 h-1.5 rounded-full animate-blink shrink-0"
-                          style={{ backgroundColor: "#06b6d4" }}
-                        />
-                      )}
-                    </NavLink>
+                    <NavItem
+                      key={to} to={to} icon={icon}
+                      label={t(`nav.${labelKey}`)}
+                      collapsed={collapsed} isActive={isActive}
+                    />
                   );
                 })}
               </div>
@@ -152,60 +166,85 @@ export default function Sidebar({ collapsed, onToggle }) {
         })}
       </nav>
 
-      {/* Footer */}
-      <div
-        className="shrink-0 p-3"
-        style={{ borderTop: "1px solid var(--color-card-border)" }}
-      >
-        {!collapsed && (
-          <div
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-2 transition-colors"
-            style={{
-              background: "color-mix(in srgb, var(--color-surface-elevated) 60%, transparent)",
-              border: "1px solid var(--color-card-border)",
-            }}
-          >
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm text-white"
-              style={{ background: "linear-gradient(135deg, #06b6d4, #00ffff)" }}
-            >
-              {user?.name?.charAt(0)?.toUpperCase() || "A"}
-            </div>
-            <div className="overflow-hidden flex-1 min-w-0">
-              <p className="text-xs font-semibold truncate" style={{ color: "var(--color-text-base)" }}>
-                {user?.name || "Administrator"}
-              </p>
-              <p className="text-[10px] truncate" style={{ color: "var(--color-text-sub)" }}>
-                {user?.role || "Administrator"}
-              </p>
-            </div>
+      {/* ── Footer ── */}
+      <div style={{ flexShrink: 0, padding: "8px 8px 10px", borderTop: "1px solid #1A1A26" }}>
+        {/* User card */}
+        <div style={{
+          display: "flex", alignItems: "center",
+          gap: collapsed ? 0 : 10,
+          justifyContent: collapsed ? "center" : "flex-start",
+          padding: collapsed ? "10px 0" : "10px 12px",
+          borderRadius: 9, marginBottom: 4,
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid #1A1A26",
+          overflow: "hidden",
+          transition: "background 0.15s",
+        }}>
+          {/* Avatar */}
+          <div style={{
+            width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+            background: "#1F1F2E", border: "1px solid #2D2D3F",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 12, fontWeight: 700, color: "#FFFFFF",
+          }}>
+            {initial}
           </div>
-        )}
+          {!collapsed && (
+            <div style={{ overflow: "hidden", flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#FFFFFF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {fullName}
+              </div>
+              <div style={{ fontSize: 10, color: "#3D3D4F", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                {role}
+              </div>
+            </div>
+          )}
+        </div>
 
+        {/* Logout */}
         <button
+          id="sidebar-logout-btn"
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 group"
-          style={{ color: "#f87171" }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.08)")}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "")}
+          onMouseEnter={() => setLogHov(true)}
+          onMouseLeave={() => setLogHov(false)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: collapsed ? "center" : "flex-start",
+            gap: 9, width: "100%",
+            padding: collapsed ? "8px 0" : "8px 12px",
+            borderRadius: 8, fontSize: 13, fontWeight: 400,
+            cursor: "pointer", border: "none",
+            background: logHov ? "rgba(239,68,68,0.06)" : "transparent",
+            color: logHov ? "#f87171" : "#3D3D4F",
+            transition: "background 0.15s, color 0.15s",
+          }}
         >
-          <LogOut size={16} className="shrink-0 transition-transform group-hover:-translate-x-0.5 duration-200" />
+          <LogOut size={14} style={{ flexShrink: 0 }} />
           {!collapsed && <span>{t("nav.logout")}</span>}
         </button>
       </div>
 
-      {/* Collapse toggle */}
+      {/* ── Collapse toggle ── */}
       <button
+        id="sidebar-collapse-btn"
         onClick={onToggle}
-        className="absolute top-1/2 -translate-y-1/2 -right-3 w-6 h-6 rounded-full border z-20 flex items-center justify-center text-xs transition-all duration-200 hover:scale-110"
         style={{
-          backgroundColor: "var(--color-surface)",
-          borderColor: "var(--color-card-border)",
-          color: "var(--color-text-sub)",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          position: "absolute", top: "50%", right: -11,
+          transform: "translateY(-50%)",
+          width: 22, height: 22, borderRadius: "50%",
+          border: "1px solid #1F1F2E",
+          background: "#0D0D14",
+          color: "#71717A",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", zIndex: 20,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+          transition: "border-color 0.15s, color 0.15s",
         }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.color = "#FFF"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "#1F1F2E"; e.currentTarget.style.color = "#71717A"; }}
       >
-        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+        {collapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
       </button>
     </aside>
   );

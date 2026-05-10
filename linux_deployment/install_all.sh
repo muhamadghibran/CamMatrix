@@ -26,16 +26,47 @@ cp -r . $APP_DIR || true # Asumsi script dijalankan dari dalam project folder
 apt-get update -y
 apt-get install -y curl wget git python3 python3-venv python3-pip openssl build-essential libpq-dev
 
-# Generate Kredensial Acak Super Aman
+# === Network setup ===
+SERVER_IP=$(curl -s --max-time 5 ifconfig.me || echo "127.0.0.1")
+if [ -z "$SERVER_IP" ] || [ "$SERVER_IP" = "127.0.0.1" ]; then
+    echo "WARNING: cannot detect public IP. Using local IP."
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+fi
+echo "Detected SERVER_IP=${SERVER_IP}"
+
+# === Generate Kredensial Acak Super Aman ===
 DB_PASS=$(openssl rand -hex 12)
 MINIO_PASS=$(openssl rand -hex 16)
 JWT_SECRET=$(openssl rand -hex 32)
-ADMIN_PASS=$(openssl rand -base64 24)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+
+# C3: Admin password — pakai env jika sudah di-set, atau auto-generate
+if [ -z "${ADMIN_INITIAL_PASSWORD}" ]; then
+    ADMIN_PASS=$(openssl rand -base64 18 | tr -d '=+/' | head -c 24)
+    echo "" >&2
+    echo "╔══════════════════════════════════════════════════════╗" >&2
+    echo "║  [!] PASSWORD ADMIN DI-GENERATE OTOMATIS             ║" >&2
+    echo "║  SIMPAN SEKARANG — tidak akan ditampilkan lagi!      ║" >&2
+    echo "║                                                      ║" >&2
+    echo "║  Admin Password: ${ADMIN_PASS}" >&2
+    echo "║                                                      ║" >&2
+    echo "║  Kamu WAJIB ganti password ini saat login pertama.   ║" >&2
+    echo "╚══════════════════════════════════════════════════════╝" >&2
+    echo "" >&2
+else
+    ADMIN_PASS="${ADMIN_INITIAL_PASSWORD}"
+fi
+
+# N2: Generate password untuk MediaMTX publisher dan viewer
+MTX_PUBLISHER_PASS=$(openssl rand -hex 16)
+MTX_VIEWER_PASS=$(openssl rand -hex 16)
+MTX_MOBILE_PUBLISHER_PASS=$(openssl rand -hex 16)
 
 echo "[2/8] Membuat file konfigurasi Lingkungan (.env)..."
 cat <<EOF > $APP_DIR/backend/.env
 DATABASE_URL=postgresql+asyncpg://postgres:${DB_PASS}@localhost:5432/cctv_vms
 SECRET_KEY=${JWT_SECRET}
+ENCRYPTION_KEY=${ENCRYPTION_KEY}
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 DEBUG=false
@@ -45,9 +76,9 @@ MINIO_SECRET_KEY=${MINIO_PASS}
 MINIO_BUCKET_NAME=records
 CORS_ORIGINS=["http://${SERVER_IP}:5173","http://localhost:5173"]
 HLS_BASE_URL=http://${SERVER_IP}:8888
+MTX_PUBLISHER_PASS=${MTX_PUBLISHER_PASS}
 EOF
 
-SERVER_IP=$(curl -s ifconfig.me)
 cat <<EOF > $APP_DIR/frontend/.env
 VITE_API_BASE_URL=http://${SERVER_IP}:8000/api/v1
 VITE_WS_BASE_URL=ws://${SERVER_IP}:8000/ws
@@ -95,6 +126,25 @@ rm mediamtx.tar.gz
 mkdir -p /etc/mediamtx
 cp $APP_DIR/media_server/mediamtx.yml /etc/mediamtx/mediamtx.yml
 
+# MediaMTX v1.9.0 tidak mengekspansi ${VAR} dari systemd EnvironmentFile.
+# Ganti placeholder langsung di file YAML dengan nilai yang sudah di-generate.
+sed -i "s|\${MTX_PUBLISHER_PASS}|${MTX_PUBLISHER_PASS}|g" /etc/mediamtx/mediamtx.yml
+sed -i "s|\${MTX_VIEWER_PASS}|${MTX_VIEWER_PASS}|g" /etc/mediamtx/mediamtx.yml
+sed -i "s|\${MTX_MOBILE_PUBLISHER_PASS}|${MTX_MOBILE_PUBLISHER_PASS}|g" /etc/mediamtx/mediamtx.yml
+
+# Simpan juga ke .env untuk referensi (backup password) — mode 600 agar hanya root yang bisa baca
+cat <<EOF > /etc/mediamtx/mediamtx.env
+MTX_PUBLISHER_PASS=${MTX_PUBLISHER_PASS}
+MTX_VIEWER_PASS=${MTX_VIEWER_PASS}
+MTX_MOBILE_PUBLISHER_PASS=${MTX_MOBILE_PUBLISHER_PASS}
+EOF
+chmod 600 /etc/mediamtx/mediamtx.env
+echo "✅ /etc/mediamtx/mediamtx.yml & mediamtx.env dibuat (mode 600)"
+
+# Buat cameras.env kosong dengan permission yang benar
+touch /etc/mediamtx/cameras.env
+chmod 600 /etc/mediamtx/cameras.env
+
 cp $APP_DIR/linux_deployment/mediamtx.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl start mediamtx
@@ -107,6 +157,12 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
 
 cd $APP_DIR/frontend
+cat <<EOF > .env
+VITE_API_BASE_URL=http://${SERVER_IP}:8000/api/v1
+VITE_WS_BASE_URL=ws://${SERVER_IP}:8000/ws
+VITE_MEDIAMTX_URL=http://${SERVER_IP}:9997
+EOF
+
 npm install
 npm run build
 
@@ -128,23 +184,40 @@ pip install passlib[bcrypt]
 # Proses Pembuatan Struktur Database Pertama Kali di Linux
 alembic upgrade head
 
-# Otomatis Membuat Akun Admin Pertama menggunakan Python Script Injection
+# C3: Seed admin dengan must_change_password=TRUE (paksa ganti saat login pertama)
 cat << 'EOF' > seed_admin.py
-import asyncio, os
+import asyncio, os, sys
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from passlib.context import CryptContext
 from sqlalchemy import text
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-DB_URL = os.getenv("DATABASE_URL")
+DB_URL  = os.getenv("DATABASE_URL")
+password = os.getenv("ADMIN_PASS")
+
+if not password:
+    print("[ERROR] ADMIN_PASS tidak di-set", file=sys.stderr)
+    sys.exit(1)
 
 async def seed():
-    engine = create_async_engine(DB_URL)
+    engine  = create_async_engine(DB_URL)
     session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)()
-    hashed = pwd_context.hash(os.getenv("ADMIN_PASS"))
+    hashed  = pwd_context.hash(password)
     async with session.begin():
-        await session.execute(text(f"INSERT INTO users (full_name, email, hashed_password, role, is_active) VALUES ('System Admin', 'admin@vms.com', '{hashed}', 'ADMIN', true) ON CONFLICT DO NOTHING;"))
+        sql = text("""
+            INSERT INTO users (full_name, email, hashed_password, role, is_active, must_change_password) 
+            VALUES (:name, :email, :password, :role, true, true) 
+            ON CONFLICT (email) DO UPDATE SET 
+                hashed_password = EXCLUDED.hashed_password,
+                must_change_password = true;
+        """)
+        await session.execute(sql, {
+            "name": "System Admin",
+            "email": "admin@vms.com",
+            "password": hashed,
+            "role": "ADMIN",
+        })
     await session.close()
     await engine.dispose()
 
@@ -161,27 +234,32 @@ systemctl start cammatrix-backend
 systemctl enable cammatrix-backend
 
 
-echo "[8/8] Validasi Akhir..."
-systemctl --no-pager status minio mediamtx postgresql cammatrix-backend cammatrix-frontend | grep "Active:" || true
+echo "=========================================================="
+echo "🎉 INSTALASI SELESAI! Semua layanan berjalan via systemd."
+echo "=========================================================="
+echo "Akses Aplikasi:"
+echo "  Frontend  : http://${SERVER_IP}:5173"
+echo "  Backend   : http://${SERVER_IP}:8000"
+echo "  MinIO     : http://${SERVER_IP}:9001"
+echo ""
+echo "🔐 KREDENSIAL (SIMPAN SEKARANG — tidak bisa dilihat lagi)"
+echo "=========================================================="
+echo "Admin Login:"
+echo "  Email    : admin@vms.com"
+echo "  Password : ${ADMIN_PASS}  ← WAJIB GANTI SAAT LOGIN PERTAMA"
+echo ""
+echo "Database PostgreSQL:"
+echo "  Password : ${DB_PASS}"
+echo ""
+echo "MinIO S3:"
+echo "  Password : ${MINIO_PASS}"
+echo "=========================================================="
+echo "=========================================================="
+echo "⚠️  Catat password di atas. Script ini tidak akan menampilkannya lagi."
+echo "=========================================================="
+echo "Larix mobile streaming:"
+echo "  Server: rtsp://${SERVER_IP}:8554/mobile_<NAMA_KAMERA>"
+echo "  User:   mobile_publisher"
+echo "  Pass:   ${MTX_MOBILE_PUBLISHER_PASS}"
+echo "=========================================================="
 
-echo "=========================================================="
-echo "🎉 INSTALASI MURNI SYSTEMD SELESAI!"
-echo "Semua aplikasi hidup, berjalan independen, dan akan AUTO-START."
-echo "=========================================================="
-echo "Cek API Backend: http://IP_SERVER:8000"
-echo "Cek Frontend   : http://IP_SERVER:5173"
-echo "=========================================================="
-echo "🔐 KREDENSIAL APLIKASI (SIMPAN BAIK-BAIK!)"
-echo "=========================================================="
-echo "Web Login (Admin)"
-echo "- Email    : admin@vms.com"
-echo "- Password : ${ADMIN_PASS}"
-echo ""
-echo "Database (PostgreSQL)"
-echo "- User     : postgres"
-echo "- Password : ${DB_PASS}"
-echo ""
-echo "S3 Storage (MinIO) -> http://IP_SERVER:9001"
-echo "- User     : admin"
-echo "- Password : ${MINIO_PASS}"
-echo "=========================================================="

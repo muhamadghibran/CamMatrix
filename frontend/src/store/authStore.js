@@ -14,6 +14,6 @@ export const useAuthStore = create(
         set({ user: null, token: null, isAuthenticated: false });
       },
     }),
-    { name: "vms-auth" }
-  )
+    { name: "vms-auth" },
+  ),
 );

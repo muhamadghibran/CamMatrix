@@ -13,7 +13,7 @@ router = APIRouter()
 @router.get("/", response_model=SettingResponse)
 async def read_my_settings(
     db: deps.DbSession,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     stmt = select(Setting).where(Setting.user_id == current_user.id)
     result = await db.execute(stmt)
@@ -32,7 +32,7 @@ async def update_my_settings(
     *,
     db: deps.DbSession,
     setting_in: SettingUpdate,
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     stmt = select(Setting).where(Setting.user_id == current_user.id)
     result = await db.execute(stmt)

@@ -14,7 +14,7 @@ export const useLanguageStore = create(
         const { language } = get();
         const keysArray = keys.split(".");
         let result = translations[language];
-        
+
         for (const key of keysArray) {
           if (result && result[key]) {
             result = result[key];
@@ -26,6 +26,6 @@ export const useLanguageStore = create(
       },
       setLanguage: (lang) => set({ language: lang }),
     }),
-    { name: "vms-language" }
-  )
+    { name: "vms-language" },
+  ),
 );

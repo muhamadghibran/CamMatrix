@@ -24,7 +24,7 @@ async def public_cameras(db: deps.DbSession) -> Any:
     TIDAK memerlukan login. TIDAK mengembalikan credentials.
     Hanya mengembalikan nama, lokasi, dan stream_url HLS.
     """
-    result = await db.execute(select(Camera))
+    result = await db.execute(select(Camera).where(Camera.is_public == True))
     cameras = result.scalars().all()
 
     # Cek status semua kamera secara async
