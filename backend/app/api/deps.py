@@ -1,6 +1,6 @@
-from typing import AsyncGenerator, Annotated
+from typing import AsyncGenerator, Annotated, Optional
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
@@ -57,9 +57,30 @@ async def get_current_user_full_scope(
 async def get_current_admin(
     current_user: Annotated[User, Depends(get_current_user_full_scope)]
 ) -> User:
-    if current_user.role != UserRole.ADMIN:  # M1: pakai enum, bukan string
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user doesn't have enough privileges"
         )
     return current_user
+
+
+# Dependency opsional — kembalikan None jika tidak ada token (untuk endpoint download)
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+
+async def get_optional_user(
+    token: Annotated[Optional[str], Depends(oauth2_scheme_optional)],
+    db: DbSession
+) -> Optional[User]:
+    """Seperti get_current_user tapi mengembalikan None jika token tidak ada/invalid."""
+    if not token:
+        return None
+    payload = decode_access_token(token)
+    if payload is None:
+        return None
+    user_id: str = payload.get("sub")
+    if not user_id:
+        return None
+    stmt = select(User).where(User.id == int(user_id))
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()

@@ -1,11 +1,11 @@
-from typing import Any, List
+from typing import Any, List, Optional
 import asyncio
 import httpx
 import os
 import glob
 import subprocess
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 
@@ -302,12 +302,29 @@ async def download_camera_recording(
     camera_id: int,
     background_tasks: BackgroundTasks,
     db: deps.DbSession,
-    current_user: User = Depends(deps.get_current_user_full_scope)
+    token: Optional[str] = Query(None),          # Support token via query param
+    current_user: Optional[User] = Depends(deps.get_optional_user),  # Opsional via header
 ):
     """
-    Mengunduh 30 menit terakhir rekaman video dari kamera.
-    Membutuhkan fitur recording aktif di MediaMTX (record: yes di mediamtx.yml).
+    Mengunduh rekaman video kamera.
+    Auth via: Bearer header ATAU ?token= query param (untuk native browser download).
     """
+    # Autentikasi: pakai header Bearer jika ada, fallback ke ?token= query param
+    if current_user is None:
+        if not token:
+            raise HTTPException(status_code=401, detail="Token diperlukan")
+        from app.core.security import decode_access_token
+        from app.models.user import User as UserModel
+        payload = decode_access_token(token)
+        if not payload:
+            raise HTTPException(status_code=401, detail="Token tidak valid atau sudah kadaluarsa")
+        user_id = payload.get("sub")
+        stmt = select(UserModel).where(UserModel.id == int(user_id))
+        result = await db.execute(stmt)
+        current_user = result.scalar_one_or_none()
+        if not current_user:
+            raise HTTPException(status_code=401, detail="User tidak ditemukan")
+
     camera = await _get_owned_camera(camera_id, current_user, db)
     path = _path_name(camera.owner_id, camera.id)
 

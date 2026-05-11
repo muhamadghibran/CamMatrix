@@ -72,41 +72,33 @@ function CameraCard({ cam, index }) {
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (downloadState.state !== "idle") return;
-    setDownloadState({ state: "processing", progress: 0 });
-    try {
-      const res = await api.get(`/cameras/${cam.id}/download`, {
-        responseType: "blob",
-        onDownloadProgress: (e) => {
-          if (e.total) {
-            setDownloadState({ state: "downloading", progress: Math.round((e.loaded * 100) / e.total) });
-          } else {
-            setDownloadState({ state: "downloading", progress: 0 });
-          }
-        },
-      });
-      const url  = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement("a");
-      link.href  = url;
-      link.setAttribute("download", `${cam.name.replace(/ /g, "_")}_terakhir_30_menit.mp4`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      setDownloadState({ state: "success", progress: 100 });
-      setTimeout(() => setDownloadState({ state: "idle", progress: 0 }), 2500);
-    } catch (err) {
-      let msg = "Belum ada rekaman. Biarkan kamera menyala beberapa menit terlebih dahulu.";
-      if (err.response?.data instanceof Blob) {
-        const text = await err.response.data.text();
-        try { const j = JSON.parse(text); if (j.detail) msg = j.detail; } catch {}
-      } else if (err.response?.data?.detail) {
-        msg = err.response.data.detail;
-      }
-      alert(`[Download] ${msg}`);
-      setDownloadState({ state: "idle", progress: 0 });
-    }
+
+    // Ambil token dari Zustand authStore
+    const { useAuthStore } = require("../../store/authStore");
+    const token = useAuthStore.getState().token;
+    if (!token) { alert("Session habis, silakan login ulang."); return; }
+
+    // Bangun URL download dengan token di query param
+    const { API_BASE_URL } = require("../../constants/api");
+    const url = `${API_BASE_URL}/cameras/${cam.id}/download?token=${encodeURIComponent(token)}`;
+
+    // Trigger native browser download — browser stream file ke disk tanpa load ke memori
+    setDownloadState({ state: "downloading", progress: 0 });
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${cam.name.replace(/ /g, "_")}_rekaman.mp4`);
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Reset status setelah jeda singkat (download berjalan di background browser)
+    setTimeout(() => setDownloadState({ state: "success", progress: 100 }), 1500);
+    setTimeout(() => setDownloadState({ state: "idle", progress: 0 }), 4000);
   };
+
 
   const dlBusy = downloadState.state !== "idle" && downloadState.state !== "success";
 
