@@ -1,15 +1,19 @@
 import {
-  Film, Download, Play, Pause, Search, Filter, Clock,
-  HardDrive, X, ScanFace, ChevronDown, Calendar, RefreshCw
+  Film, Download, Search, Filter, Clock,
+  HardDrive, X, ChevronDown, Calendar, RefreshCw, Trash2
 } from "lucide-react";
-import VideoPlayerModal from "../../components/VideoPlayerModal";
-import { useState, useMemo, useRef, useEffect } from "react";
-import { useLanguageStore } from "../../store/languageStore";
+import { useState, useMemo, useEffect } from "react";
 import FaceAnalyticsPage from "./FaceAnalyticsPage";
+import api from "../../utils/api";
 
-const allRecordings = [];
-
-const cameraOptions = ["Semua"];
+// ── Helpers ──
+const fmtSize  = (b) => b > 1e9 ? `${(b/1e9).toFixed(1)} GB` : `${(b/1e6).toFixed(1)} MB`;
+const fmtDur   = (s) => {
+  if (!s) return "—";
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h > 0) return `${h}j ${m}m`;
+  return m > 0 ? `${m}m ${sec}d` : `${sec}d`;
+};
 
 const inp = {
   boxSizing: "border-box", padding: "9px 12px", borderRadius: 7,
@@ -36,7 +40,7 @@ function StatCard({ label, value, sub, icon: Icon, index }) {
       }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</span>
-        <div style={{ width: 30, height: 30, borderRadius: 7, background: "#0A0A0F", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.2s" }}>
+        <div style={{ width: 30, height: 30, borderRadius: 7, background: "#0A0A0F", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Icon size={14} style={{ color: hov ? "#FFFFFF" : "#71717A", transition: "color 0.2s" }} />
         </div>
       </div>
@@ -49,17 +53,9 @@ function StatCard({ label, value, sub, icon: Icon, index }) {
 /* ── Filter Dropdown ── */
 function FilterDropdown({ value, onChange, options }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
   const active = value !== "Semua";
-
-  useEffect(() => {
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div style={{ position: "relative" }}>
       <button onClick={() => setOpen(v => !v)} style={{
         display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: 7,
         fontSize: 13, fontWeight: 500, cursor: "pointer",
@@ -89,8 +85,7 @@ function FilterDropdown({ value, onChange, options }) {
                 transition: "background 0.12s"
               }}
               onMouseEnter={e => { if (value !== opt) e.currentTarget.style.background = "#111118"; }}
-              onMouseLeave={e => { if (value !== opt) e.currentTarget.style.background = "transparent"; }}
-              >
+              onMouseLeave={e => { if (value !== opt) e.currentTarget.style.background = "transparent"; }}>
                 {opt}
                 {value === opt && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#FFFFFF" }} />}
               </button>
@@ -102,71 +97,104 @@ function FilterDropdown({ value, onChange, options }) {
   );
 }
 
-/* ── Toast ── */
-function Toast({ filename, onClose }) {
-  return (
-    <div style={{
-      position: "fixed", bottom: 28, right: 28, zIndex: 50,
-      display: "flex", alignItems: "center", gap: 12, padding: "14px 18px",
-      borderRadius: 12, background: "#111118", border: "1px solid #1F1F2E",
-      boxShadow: "0 16px 48px rgba(0,0,0,0.5)", animation: "slideUp 0.3s ease",
-      maxWidth: 340, backdropFilter: "blur(12px)"
-    }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: "#0A0A0F", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <Download size={14} style={{ color: "#71717A" }} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: "#FFFFFF", margin: "0 0 2px" }}>Mengunduh rekaman</p>
-        <p style={{ fontSize: 11, color: "#71717A", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{filename}</p>
-      </div>
-      <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#71717A", flexShrink: 0, display: "flex" }}>
-        <X size={13} />
-      </button>
-    </div>
-  );
-}
-
 /* ── Main Page ── */
 export default function RecordingsPage() {
-  const { t } = useLanguageStore();
+  const [recordings, setRecordings] = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [hoveredRow, setHoveredRow] = useState(null);
-  const [selectedRec, setSelectedRec] = useState(null);
   const [activeTab, setActiveTab]   = useState("recordings");
   const [search, setSearch]         = useState("");
   const [filterCamera, setFilterCamera] = useState("Semua");
-  const [toast, setToast]           = useState(null);
-  const [sortField, setSortField]   = useState(null);
-  const [sortDir, setSortDir]       = useState("asc");
+  const [sortField, setSortField]   = useState("created_at");
+  const [sortDir, setSortDir]       = useState("desc");
+  const [deletingId, setDeletingId] = useState(null);
 
+  // Fetch rekaman dari API
+  const fetchRecordings = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/recordings/");
+      setRecordings(res.data);
+    } catch (e) {
+      console.error("Gagal fetch rekaman:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchRecordings(); }, []);
+
+  // Daftar nama kamera unik untuk filter
+  const cameraOptions = useMemo(() => {
+    const names = [...new Set(recordings.map(r => r.camera_name).filter(Boolean))];
+    return ["Semua", ...names];
+  }, [recordings]);
+
+  // Stats
+  const totalSize  = recordings.reduce((s, r) => s + (r.size_bytes || 0), 0);
+  const totalDurS  = recordings.reduce((s, r) => s + (r.duration  || 0), 0);
+
+  // Filter & sort
   const filtered = useMemo(() => {
-    let list = allRecordings.filter(r => {
-      const ms = r.camera.toLowerCase().includes(search.toLowerCase()) || r.date.toLowerCase().includes(search.toLowerCase());
-      const mc = filterCamera === "Semua" || r.camera === filterCamera;
+    let list = recordings.filter(r => {
+      const camName = r.camera_name || "";
+      const dateStr = r.created_at || "";
+      const ms = camName.toLowerCase().includes(search.toLowerCase()) ||
+                 dateStr.toLowerCase().includes(search.toLowerCase());
+      const mc = filterCamera === "Semua" || camName === filterCamera;
       return ms && mc;
     });
     if (sortField) {
       list = [...list].sort((a, b) => {
-        const av = a[sortField], bv = b[sortField];
-        return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+        let av = a[sortField], bv = b[sortField];
+        if (typeof av === "string") av = av.toLowerCase();
+        if (typeof bv === "string") bv = bv.toLowerCase();
+        if (av < bv) return sortDir === "asc" ? -1 : 1;
+        if (av > bv) return sortDir === "asc" ? 1 : -1;
+        return 0;
       });
     }
     return list;
-  }, [search, filterCamera, sortField, sortDir]);
+  }, [recordings, search, filterCamera, sortField, sortDir]);
 
   const handleSort = (field) => {
     if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortField(field); setSortDir("asc"); }
   };
 
+  // Download rekaman dari halaman ini
   const handleDownload = (rec) => {
-    const f = `${rec.camera.replace(/ /g, "_")}_${rec.dateRaw}_${rec.start.replace(":", "")}.mp4`;
-    setToast(f);
-    setTimeout(() => setToast(null), 3500);
+    const { useAuthStore } = require("../../store/authStore");
+    const token = useAuthStore.getState().token;
+    if (!token) { alert("Session habis, silakan login ulang."); return; }
+    const { API_BASE_URL } = require("../../constants/api");
+    const url = `${API_BASE_URL}/recordings/${rec.id}/download?token=${encodeURIComponent(token)}`;
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${(rec.camera_name || "cam").replace(/ /g, "_")}_rekaman.mp4`);
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Hapus rekaman
+  const handleDelete = async (rec) => {
+    if (!confirm(`Hapus rekaman kamera "${rec.camera_name}" dari daftar?`)) return;
+    setDeletingId(rec.id);
+    try {
+      await api.delete(`/recordings/${rec.id}`);
+      setRecordings(prev => prev.filter(r => r.id !== rec.id));
+    } catch (e) {
+      alert("Gagal menghapus rekaman: " + (e.response?.data?.detail || e.message));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const tabs = [
-    { key: "recordings", icon: Film,     label: "Daftar Rekaman" },
-    { key: "analytics",  icon: ScanFace, label: "Analitik Wajah" },
+    { key: "recordings", icon: Film,    label: "Daftar Rekaman" },
+    { key: "analytics",  icon: Film,    label: "Analitik Wajah" },
   ];
 
   const SortBtn = ({ field, label }) => {
@@ -178,7 +206,7 @@ export default function RecordingsPage() {
         textTransform: "uppercase", letterSpacing: "0.07em", padding: 0
       }}>
         {label}
-        <span style={{ opacity: active ? 1 : 0.3 }}>{active && sortDir === "desc" ? "↓" : "↑"}</span>
+        <span style={{ opacity: active ? 1 : 0.3 }}>{sortDir === "desc" ? "↓" : "↑"}</span>
       </button>
     );
   };
@@ -187,16 +215,13 @@ export default function RecordingsPage() {
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 0 }}>
       <style>{`
         @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin   { from { transform:rotate(0deg); }  to { transform:rotate(360deg); } }
       `}</style>
-
-      {toast && <Toast filename={toast} onClose={() => setToast(null)} />}
-  {selectedRec && <VideoPlayerModal rec={selectedRec} onClose={() => setSelectedRec(null)} onDownload={handleDownload} />}
 
       {/* ── Header ── */}
       <div style={{ marginBottom: 28, animation: "fadeUp 0.4s ease both" }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "#FFFFFF", margin: "0 0 6px", letterSpacing: "-0.03em" }}>Rekaman</h1>
-        <p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Kelola dan putar ulang rekaman kamera</p>
+        <p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Kelola dan unduh rekaman kamera dari server</p>
       </div>
 
       {/* ── Tabs ── */}
@@ -218,25 +243,23 @@ export default function RecordingsPage() {
 
       {activeTab === "analytics" ? <FaceAnalyticsPage /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
           {/* ── Stats ── */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-            <StatCard label="Total Rekaman" value={allRecordings.length} sub="file tersimpan"    icon={Film}      index={0} />
-            <StatCard label="Penyimpanan"   value="3.2 GB"               sub="kapasitas dipakai" icon={HardDrive} index={1} />
-            <StatCard label="Total Durasi"  value="24 jam"               sub="waktu rekaman"     icon={Clock}     index={2} />
+            <StatCard label="Total Rekaman" value={recordings.length} sub="file tersimpan"     icon={Film}      index={0} />
+            <StatCard label="Penyimpanan"   value={fmtSize(totalSize)} sub="kapasitas dipakai" icon={HardDrive} index={1} />
+            <StatCard label="Total Durasi"  value={fmtDur(totalDurS)}  sub="estimasi waktu"    icon={Clock}     index={2} />
           </div>
 
           {/* ── Toolbar ── */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {/* Search */}
               <div style={{ position: "relative" }}>
                 <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#71717A", pointerEvents: "none" }} />
                 <input placeholder="Cari rekaman atau kamera..." value={search} onChange={e => setSearch(e.target.value)}
                   style={{ ...inp, paddingLeft: 32, width: 260 }} onFocus={focus} onBlur={blur} />
               </div>
-              {/* Filter dropdown */}
               <FilterDropdown value={filterCamera} onChange={setFilterCamera} options={cameraOptions} />
-              {/* Clear filter */}
               {(search || filterCamera !== "Semua") && (
                 <button onClick={() => { setSearch(""); setFilterCamera("Semua"); }} style={{
                   display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", borderRadius: 7,
@@ -249,7 +272,18 @@ export default function RecordingsPage() {
                 </button>
               )}
             </div>
-            <span style={{ fontSize: 12, color: "#3D3D4F" }}>{filtered.length} dari {allRecordings.length} rekaman</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, color: "#3D3D4F" }}>{filtered.length} dari {recordings.length} rekaman</span>
+              <button onClick={fetchRecordings} title="Refresh" style={{
+                width: 32, height: 32, borderRadius: 7, background: "transparent",
+                border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center"
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = "#FFF"; e.currentTarget.style.borderColor = "#2D2D3F"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "#71717A"; e.currentTarget.style.borderColor = "#1F1F2E"; }}>
+                <RefreshCw size={13} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
+              </button>
+            </div>
           </div>
 
           {/* ── Table ── */}
@@ -258,7 +292,6 @@ export default function RecordingsPage() {
             background: "rgba(17,17,24,0.7)", border: "1px solid #1F1F2E",
             backdropFilter: "blur(12px)", animation: "fadeUp 0.45s ease 100ms both"
           }}>
-            {/* Table header row */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 20px", borderBottom: "1px solid #1F1F2E", background: "#0A0A0F" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 7, background: "#111118", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -273,72 +306,88 @@ export default function RecordingsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #1A1A26" }}>
-                  <th style={{ textAlign: "left", padding: "11px 20px" }}><SortBtn field="camera" label="Kamera" /></th>
-                  <th style={{ textAlign: "left", padding: "11px 20px" }}><SortBtn field="dateRaw" label="Tanggal" /></th>
-                  <th style={{ textAlign: "left", padding: "11px 20px", fontSize: 10, fontWeight: 700, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.07em" }}>Mulai</th>
-                  <th style={{ textAlign: "left", padding: "11px 20px", fontSize: 10, fontWeight: 700, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.07em" }}>Selesai</th>
-                  <th style={{ textAlign: "left", padding: "11px 20px", fontSize: 10, fontWeight: 700, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.07em" }}>Durasi</th>
-                  <th style={{ textAlign: "left", padding: "11px 20px" }}><SortBtn field="size" label="Ukuran" /></th>
+                  <th style={{ textAlign: "left", padding: "11px 20px" }}><SortBtn field="camera_name" label="Kamera" /></th>
+                  <th style={{ textAlign: "left", padding: "11px 20px" }}><SortBtn field="created_at"  label="Tanggal & Waktu" /></th>
+                  <th style={{ textAlign: "left", padding: "11px 20px" }}><SortBtn field="duration"    label="Durasi (Est)" /></th>
+                  <th style={{ textAlign: "left", padding: "11px 20px" }}><SortBtn field="size_bytes"  label="Ukuran" /></th>
                   <th style={{ textAlign: "right", padding: "11px 20px", fontSize: 10, fontWeight: 700, color: "#71717A", textTransform: "uppercase", letterSpacing: "0.07em" }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {loading ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: "56px 20px", textAlign: "center" }}>
+                    <td colSpan={5} style={{ padding: "56px 20px", textAlign: "center" }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                        <RefreshCw size={20} style={{ color: "#2D2D3F", animation: "spin 1s linear infinite" }} />
+                        <p style={{ fontSize: 13, color: "#71717A", margin: 0 }}>Memuat rekaman...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: "56px 20px", textAlign: "center" }}>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 44, height: 44, borderRadius: 11, background: "#0A0A0F", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <Film size={20} style={{ color: "#2D2D3F" }} />
                         </div>
-                        <p style={{ fontSize: 13, color: "#71717A", margin: 0, fontWeight: 600 }}>Tidak ada rekaman ditemukan</p>
-                        <p style={{ fontSize: 12, color: "#3D3D4F", margin: 0 }}>Coba ubah filter atau kata kunci pencarian</p>
+                        <p style={{ fontSize: 13, color: "#71717A", margin: 0, fontWeight: 600 }}>Belum ada rekaman</p>
+                        <p style={{ fontSize: 12, color: "#3D3D4F", margin: 0 }}>
+                          Klik tombol <strong style={{ color: "#71717A" }}>REC</strong> di halaman Siaran Langsung untuk menyimpan rekaman.
+                        </p>
                       </div>
                     </td>
                   </tr>
                 ) : filtered.map((rec, i) => {
-                  const isHov  = hoveredRow === rec.id;
+                  const isHov = hoveredRow === rec.id;
+                  const dt    = rec.created_at ? new Date(rec.created_at) : null;
+                  const dateStr = dt ? dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+                  const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—";
+                  const isDeleting = deletingId === rec.id;
+
                   return (
                     <tr key={rec.id}
                       onMouseEnter={() => setHoveredRow(rec.id)} onMouseLeave={() => setHoveredRow(null)}
                       style={{ borderBottom: i < filtered.length - 1 ? "1px solid #131320" : "none", background: isHov ? "rgba(255,255,255,0.025)" : "transparent", transition: "background 0.15s" }}>
 
-                      {/* Camera */}
+                      {/* Kamera */}
                       <td style={{ padding: "13px 20px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
                           <div style={{ width: 32, height: 32, borderRadius: 7, background: "#0A0A0F", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <Film size={12} style={{ color: "#71717A" }} />
                           </div>
-                          <div>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: "#FFFFFF", display: "block" }}>{rec.camera}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#FFFFFF" }}>
+                            {rec.camera_name || `Kamera #${rec.camera_id}`}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Tanggal & Waktu */}
+                      <td style={{ padding: "13px 20px" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#FFFFFF", fontWeight: 500 }}>
+                            <Calendar size={11} style={{ color: "#71717A", flexShrink: 0 }} />{dateStr}
                           </div>
+                          <span style={{ fontSize: 11, color: "#71717A", fontFamily: "monospace" }}>{timeStr}</span>
                         </div>
                       </td>
 
-                      {/* Date */}
+                      {/* Durasi */}
                       <td style={{ padding: "13px 20px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#71717A" }}>
-                          <Calendar size={11} style={{ flexShrink: 0 }} />{rec.date}
-                        </div>
+                        <span style={{ fontSize: 11, color: "#71717A", padding: "3px 9px", borderRadius: 5, background: "#0A0A0F", border: "1px solid #1A1A26" }}>
+                          {fmtDur(rec.duration)}
+                        </span>
                       </td>
 
-                      {/* Start */}
-                      <td style={{ padding: "13px 20px", fontFamily: "monospace", fontSize: 13, color: "#FFFFFF", fontWeight: 500 }}>{rec.start}</td>
-
-                      {/* End */}
-                      <td style={{ padding: "13px 20px", fontFamily: "monospace", fontSize: 13, color: "#FFFFFF", fontWeight: 500 }}>{rec.end}</td>
-
-                      {/* Duration */}
-                      <td style={{ padding: "13px 20px" }}>
-                        <span style={{ fontSize: 11, color: "#71717A", padding: "3px 9px", borderRadius: 5, background: "#0A0A0F", border: "1px solid #1A1A26" }}>{rec.duration}</span>
+                      {/* Ukuran */}
+                      <td style={{ padding: "13px 20px", fontSize: 12, color: "#71717A", fontFamily: "monospace" }}>
+                        {fmtSize(rec.size_bytes || 0)}
                       </td>
 
-                      {/* Size */}
-                      <td style={{ padding: "13px 20px", fontSize: 12, color: "#71717A", fontFamily: "monospace" }}>{rec.size}</td>
-
-                      {/* Actions */}
+                      {/* Aksi */}
                       <td style={{ padding: "13px 20px", textAlign: "right" }}>
                         <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                          <button onClick={() => setSelectedRec(rec)} title="Putar" style={{
+                          {/* Download */}
+                          <button onClick={() => handleDownload(rec)} title="Unduh rekaman" style={{
                             width: 30, height: 30, borderRadius: 7, background: "transparent",
                             border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer",
                             display: "flex", alignItems: "center", justifyContent: "center",
@@ -346,17 +395,18 @@ export default function RecordingsPage() {
                           }}
                           onMouseEnter={e => { e.currentTarget.style.color = "#FFF"; e.currentTarget.style.borderColor = "#2D2D3F"; }}
                           onMouseLeave={e => { e.currentTarget.style.color = "#71717A"; e.currentTarget.style.borderColor = "#1F1F2E"; }}>
-                            <Play size={12} />
-                          </button>
-                          <button onClick={() => handleDownload(rec)} title="Unduh" style={{
-                            width: 30, height: 30, borderRadius: 7, background: "transparent",
-                            border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            opacity: isHov ? 1 : 0.4, transition: "opacity 0.15s, color 0.15s, border-color 0.15s"
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.color = "#FFF"; e.currentTarget.style.borderColor = "#2D2D3F"; }}
-                          onMouseLeave={e => { e.currentTarget.style.color = "#71717A"; e.currentTarget.style.borderColor = "#1F1F2E"; }}>
                             <Download size={12} />
+                          </button>
+                          {/* Hapus */}
+                          <button onClick={() => handleDelete(rec)} title="Hapus dari daftar" disabled={isDeleting} style={{
+                            width: 30, height: 30, borderRadius: 7, background: "transparent",
+                            border: "1px solid #1F1F2E", color: "#71717A", cursor: isDeleting ? "wait" : "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            opacity: isHov ? 1 : 0.4, transition: "opacity 0.15s, color 0.15s"
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.borderColor = "#7f1d1d"; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = "#71717A"; e.currentTarget.style.borderColor = "#1F1F2E"; }}>
+                            {isDeleting ? <RefreshCw size={12} style={{ animation: "spin 1s linear infinite" }} /> : <Trash2 size={12} />}
                           </button>
                         </div>
                       </td>
@@ -366,12 +416,11 @@ export default function RecordingsPage() {
               </tbody>
             </table>
 
-            {/* Table footer */}
             {filtered.length > 0 && (
               <div style={{ padding: "10px 20px", borderTop: "1px solid #131320", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0A0A0F" }}>
                 <span style={{ fontSize: 12, color: "#3D3D4F" }}>{filtered.length} rekaman ditampilkan</span>
                 <span style={{ fontSize: 12, color: "#3D3D4F", fontFamily: "monospace" }}>
-                  {filtered.reduce((acc) => acc, 0)} · Data lokal
+                  Total: {fmtSize(filtered.reduce((s, r) => s + (r.size_bytes || 0), 0))}
                 </span>
               </div>
             )}
