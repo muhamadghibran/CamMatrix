@@ -7,7 +7,7 @@ async def add_path(slug: str, rtsp_url: str):
             "sourceOnDemandCloseAfter": "60s",
             # Aktifkan recording — tanpa ini, path via API mengabaikan setting all_others
             "record": True,
-            "recordPath": "/var/www/CamMatrix/recordings/%path/%Y-%m-%d_%H-%M-%S.mp4",
+            "recordPath": "/var/www/CamMatrix/recordings/%path/%Y-%m-%d_%H-%M-%S",
             "recordPartDuration": "1s",
             "recordSegmentDuration": "3600s",
         }
