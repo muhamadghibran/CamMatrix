@@ -5,6 +5,11 @@ async def add_path(slug: str, rtsp_url: str):
     async with httpx.AsyncClient() as client:
         payload = {
             "sourceOnDemandCloseAfter": "60s",
+            # Aktifkan recording — tanpa ini, path via API mengabaikan setting all_others
+            "record": True,
+            "recordPath": "/var/www/CamMatrix/recordings/%path/%Y-%m-%d_%H-%M-%S.mp4",
+            "recordPartDuration": "1s",
+            "recordSegmentDuration": "3600s",
         }
         # Mode pull: kamera CCTV yang punya RTSP URL
         # Mode push: Larix/app yang push ke MediaMTX (source = publisher)
@@ -12,6 +17,7 @@ async def add_path(slug: str, rtsp_url: str):
             payload["source"] = "publisher"
         else:
             payload["source"] = rtsp_url
+
 
         r = await client.post(
             f"{settings.MEDIAMTX_API_URL}/v3/config/paths/add/{slug}",
