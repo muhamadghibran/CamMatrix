@@ -380,6 +380,7 @@ async def download_camera_recording(
         )
 
     # ── Potong 30 menit terakhir menggunakan FFmpeg ────────────────────────
+    import shutil
     temp_filename = f"/tmp/cam_download_{uuid.uuid4().hex}.mp4"
 
     cmd = [
@@ -392,33 +393,35 @@ async def download_camera_recording(
     ]
 
     try:
-        result = subprocess.run(
+        subprocess.run(
             cmd, check=True,
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-            timeout=120   # Maksimal 2 menit untuk proses ini
+            timeout=120
         )
-    except subprocess.CalledProcessError as e:
+    except FileNotFoundError:
+        # FFmpeg tidak terinstall → kirim file asli langsung
+        shutil.copy2(latest_file, temp_filename)
+    except subprocess.CalledProcessError:
         # FFmpeg gagal (mis. video terlalu pendek) → salin file asli
-        try:
-            import shutil
-            shutil.copy2(latest_file, temp_filename)
-        except Exception:
-            raise HTTPException(status_code=500, detail="Gagal memproses file rekaman dengan FFmpeg.")
+        shutil.copy2(latest_file, temp_filename)
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=500, detail="Proses potong video timeout (> 2 menit). Coba lagi nanti.")
+    except Exception:
+        shutil.copy2(latest_file, temp_filename)
 
     if not os.path.exists(temp_filename) or os.path.getsize(temp_filename) < 1024:
-        raise HTTPException(status_code=500, detail="Gagal menghasilkan file output. Pastikan FFmpeg terinstal di server.")
+        raise HTTPException(status_code=500, detail="Gagal menghasilkan file output.")
 
     background_tasks.add_task(_cleanup_temp_file, temp_filename)
 
-    download_name = f"{camera.name.replace(' ', '_')}_rekaman_30_menit.mp4"
+    download_name = f"{camera.name.replace(' ', '_')}_rekaman.mp4"
 
     return FileResponse(
         path=temp_filename,
         filename=download_name,
         media_type="video/mp4"
     )
+
 
 
 
