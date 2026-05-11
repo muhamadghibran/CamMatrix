@@ -17,25 +17,28 @@ async def add_path(slug: str, rtsp_url: str):
             payload["source"] = "publisher"
         else:
             payload["source"] = rtsp_url
+        auth = ("publisher", settings.MTX_PUBLISHER_PASS)
 
-
-        r = await client.post(
-            f"{settings.MEDIAMTX_API_URL}/v3/config/paths/add/{slug}",
+        # Coba PATCH dulu — untuk update path yang sudah ada di config MediaMTX
+        r = await client.patch(
+            f"{settings.MEDIAMTX_API_URL}/v3/config/paths/patch/{slug}",
             json=payload,
-            auth=("publisher", settings.MTX_PUBLISHER_PASS),
+            auth=auth,
             timeout=5,
         )
-        # Jika path sudah ada (409), lakukan patch (update) bukan error
-        if r.status_code == 409:
-            r2 = await client.patch(
-                f"{settings.MEDIAMTX_API_URL}/v3/config/paths/patch/{slug}",
+
+        # Jika path belum ada (404), baru gunakan ADD
+        if r.status_code == 404:
+            r = await client.post(
+                f"{settings.MEDIAMTX_API_URL}/v3/config/paths/add/{slug}",
                 json=payload,
-                auth=("publisher", settings.MTX_PUBLISHER_PASS),
+                auth=auth,
                 timeout=5,
             )
-            r2.raise_for_status()
-        elif r.status_code not in (200, 201):
+
+        if r.status_code not in (200, 201, 204):
             r.raise_for_status()
+
 
 
 async def remove_path(slug: str):
