@@ -90,8 +90,8 @@ async def capture_recording(
     current_user: User = Depends(deps.get_current_user_full_scope)
 ) -> Any:
     """
-    Simpan metadata rekaman terbaru dari kamera ke database.
-    Tidak mengunduh file, hanya mencatat informasinya.
+    Snapshot rekaman terbaru → salin ke folder captured → simpan ke DB.
+    File yang disimpan adalah salinan statis, bukan file aktif MediaMTX.
     """
     cam_result = await db.execute(select(Camera).where(Camera.id == camera_id))
     camera = cam_result.scalar_one_or_none()
@@ -115,30 +115,40 @@ async def capture_recording(
             detail="File rekaman terlalu kecil. Biarkan kamera menyala lebih lama."
         )
 
-    # Estimasi durasi berdasarkan ukuran file (kasar)
-    est_duration = max(int(file_size / (350_000)), 60)  # ~350KB/s average
+    # ── Salin file ke folder captured (snapshot statis) ───────────────────
+    import shutil
+    captured_dir = os.path.join(RECORDINGS_BASE, "captured")
+    os.makedirs(captured_dir, exist_ok=True)
 
-    # Buat unique key — format: local:{uuid}:{abs_path}
-    unique_key = f"local:{uuid.uuid4().hex}:{latest_file}"
+    snap_name   = f"{camera.name.replace(' ', '_')}_{uuid.uuid4().hex[:8]}.mp4"
+    snap_path   = os.path.join(captured_dir, snap_name)
+    shutil.copy2(latest_file, snap_path)
+    snap_size   = os.path.getsize(snap_path)
+
+    # Estimasi durasi: ~350 KB/s rata-rata CCTV
+    est_duration = max(int(snap_size / 350_000), 10)
+
+    # Simpan path snapshot ke DB (bukan path file aktif)
+    unique_key  = f"local:{uuid.uuid4().hex}:{snap_path}"
 
     rec = Recording(
         camera_id=camera_id,
         minio_key=unique_key,
         duration=est_duration,
-        size_bytes=file_size,
+        size_bytes=snap_size,
     )
     db.add(rec)
     await db.commit()
     await db.refresh(rec)
 
     return {
-        "id": rec.id,
-        "camera_id": camera_id,
+        "id":          rec.id,
+        "camera_id":   camera_id,
         "camera_name": camera.name,
-        "file_size": file_size,
-        "duration": est_duration,
-        "created_at": rec.created_at.isoformat(),
-        "message": f"Rekaman '{camera.name}' berhasil disimpan ke daftar rekaman."
+        "file_size":   snap_size,
+        "duration":    est_duration,
+        "created_at":  rec.created_at.isoformat(),
+        "message":     f"Rekaman '{camera.name}' berhasil disimpan ke daftar rekaman."
     }
 
 
