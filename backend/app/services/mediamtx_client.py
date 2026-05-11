@@ -9,7 +9,7 @@ async def add_path(slug: str, rtsp_url: str):
             "record": True,
             "recordPath": "/var/www/CamMatrix/recordings/%path/%Y-%m-%d_%H-%M-%S",
             "recordPartDuration": "1s",
-            "recordSegmentDuration": "3600s",
+            "recordSegmentDuration": "600s",
         }
         # Mode pull: kamera CCTV yang punya RTSP URL
         # Mode push: Larix/app yang push ke MediaMTX (source = publisher)
