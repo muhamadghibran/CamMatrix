@@ -144,7 +144,7 @@ def _get_segment_duration(file_path: str) -> Optional[int]:
                             "%Y-%m-%d %H:%M:%S")
         end   = dt.fromtimestamp(os.path.getmtime(file_path))
         dur   = int((end - start).total_seconds())
-        return dur if 10 <= dur <= 300 else None
+        return dur if 10 <= dur <= 360 else None
     except Exception:
         return None
 
@@ -321,7 +321,7 @@ async def capture_recording(
     source_file_size = os.path.getsize(latest_file)
 
     # Cek 1: source_basename ada di minio_key (format baru)
-    dedupe_window = datetime.now(timezone.utc) - timedelta(minutes=10)
+    dedupe_window = datetime.now(timezone.utc) - timedelta(minutes=15)
     dup_result = await db.execute(
         select(Recording)
         .where(Recording.camera_id == camera_id)
@@ -339,8 +339,8 @@ async def capture_recording(
             )
         )
 
-    # Cek 2: fallback — ukuran file + kamera sama dalam 5 menit (format lama)
-    size_window = datetime.now(timezone.utc) - timedelta(minutes=5)
+    # Cek 2: fallback — ukuran file + kamera sama dalam 8 menit (format lama)
+    size_window = datetime.now(timezone.utc) - timedelta(minutes=8)
     size_dup = await db.execute(
         select(Recording)
         .where(Recording.camera_id == camera_id)

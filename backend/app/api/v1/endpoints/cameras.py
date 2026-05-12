@@ -129,7 +129,7 @@ def write_cameras_to_config(cameras: list):
         paths_section += f"    sourceOnDemandCloseAfter: 60s\n"
         paths_section += f"    record: yes\n"
         paths_section += f"    recordPath: /var/www/CamMatrix/recordings/{path_name}/%Y-%m-%d_%H-%M-%S\n"
-        paths_section += f"    recordSegmentDuration: 60s\n"
+        paths_section += f"    recordSegmentDuration: 300s\n"
         paths_section += f"    recordDeleteAfter: 2h\n"
         paths_section += f"\n"
 
