@@ -1,11 +1,11 @@
-from typing import Any, List
+from typing import Any, List, Optional
 import asyncio
 import httpx
 import os
 import glob
 import subprocess
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 
@@ -362,12 +362,29 @@ async def download_camera_recording(
     camera_id: int,
     background_tasks: BackgroundTasks,
     db: deps.DbSession,
-    current_user: User = Depends(deps.get_current_user_full_scope)
+    token: Optional[str] = Query(None),          # Support token via query param
+    current_user: Optional[User] = Depends(deps.get_optional_user),  # Opsional via header
 ):
     """
-    Mengunduh 30 menit terakhir rekaman video dari kamera.
-    Membutuhkan fitur recording aktif di MediaMTX (record: yes di mediamtx.yml).
+    Mengunduh rekaman video kamera.
+    Auth via: Bearer header ATAU ?token= query param (untuk native browser download).
     """
+    # Autentikasi: pakai header Bearer jika ada, fallback ke ?token= query param
+    if current_user is None:
+        if not token:
+            raise HTTPException(status_code=401, detail="Token diperlukan")
+        from app.core.security import decode_access_token
+        from app.models.user import User as UserModel
+        payload = decode_access_token(token)
+        if not payload:
+            raise HTTPException(status_code=401, detail="Token tidak valid atau sudah kadaluarsa")
+        user_id = payload.get("sub")
+        stmt = select(UserModel).where(UserModel.id == int(user_id))
+        result = await db.execute(stmt)
+        current_user = result.scalar_one_or_none()
+        if not current_user:
+            raise HTTPException(status_code=401, detail="User tidak ditemukan")
+
     camera = await _get_owned_camera(camera_id, current_user, db)
     path = _path_name(camera.owner_id, camera.id)
 
@@ -440,6 +457,7 @@ async def download_camera_recording(
         )
 
     # ── Potong 30 menit terakhir menggunakan FFmpeg ────────────────────────
+    import shutil
     temp_filename = f"/tmp/cam_download_{uuid.uuid4().hex}.mp4"
 
     cmd = [
@@ -452,33 +470,35 @@ async def download_camera_recording(
     ]
 
     try:
-        result = subprocess.run(
+        subprocess.run(
             cmd, check=True,
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-            timeout=120   # Maksimal 2 menit untuk proses ini
+            timeout=120
         )
-    except subprocess.CalledProcessError as e:
+    except FileNotFoundError:
+        # FFmpeg tidak terinstall → kirim file asli langsung
+        shutil.copy2(latest_file, temp_filename)
+    except subprocess.CalledProcessError:
         # FFmpeg gagal (mis. video terlalu pendek) → salin file asli
-        try:
-            import shutil
-            shutil.copy2(latest_file, temp_filename)
-        except Exception:
-            raise HTTPException(status_code=500, detail="Gagal memproses file rekaman dengan FFmpeg.")
+        shutil.copy2(latest_file, temp_filename)
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=500, detail="Proses potong video timeout (> 2 menit). Coba lagi nanti.")
+    except Exception:
+        shutil.copy2(latest_file, temp_filename)
 
     if not os.path.exists(temp_filename) or os.path.getsize(temp_filename) < 1024:
-        raise HTTPException(status_code=500, detail="Gagal menghasilkan file output. Pastikan FFmpeg terinstal di server.")
+        raise HTTPException(status_code=500, detail="Gagal menghasilkan file output.")
 
     background_tasks.add_task(_cleanup_temp_file, temp_filename)
 
-    download_name = f"{camera.name.replace(' ', '_')}_rekaman_30_menit.mp4"
+    download_name = f"{camera.name.replace(' ', '_')}_rekaman.mp4"
 
     return FileResponse(
         path=temp_filename,
         filename=download_name,
         media_type="video/mp4"
     )
+
 
 
 

@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime
 
 class RecordingBase(BaseModel):
@@ -13,7 +14,8 @@ class RecordingCreate(RecordingBase):
 class RecordingResponse(RecordingBase):
     id: int
     created_at: datetime
-    url: str = "" # Compute presigned url
+    url: str = ""
+    camera_name: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -72,38 +72,21 @@ function CameraCard({ cam, index }) {
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  const handleDownload = async () => {
+  const handleSaveRecording = async () => {
     if (downloadState.state !== "idle") return;
     setDownloadState({ state: "processing", progress: 0 });
     try {
-      const res = await api.get(`/cameras/${cam.id}/download`, {
-        responseType: "blob",
-        onDownloadProgress: (e) => {
-          if (e.total) {
-            setDownloadState({ state: "downloading", progress: Math.round((e.loaded * 100) / e.total) });
-          } else {
-            setDownloadState({ state: "downloading", progress: 0 });
-          }
-        },
-      });
-      const url  = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement("a");
-      link.href  = url;
-      link.setAttribute("download", `${cam.name.replace(/ /g, "_")}_terakhir_30_menit.mp4`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
+      await api.post(`/recordings/capture/${cam.id}`);
       setDownloadState({ state: "success", progress: 100 });
-      setTimeout(() => setDownloadState({ state: "idle", progress: 0 }), 2500);
+      setTimeout(() => {
+        setDownloadState({ state: "idle", progress: 0 });
+        // Arahkan ke halaman Rekaman
+        window.location.href = "/app/recordings";
+      }, 1200);
     } catch (err) {
-      let msg = "Belum ada rekaman. Biarkan kamera menyala beberapa menit terlebih dahulu.";
-      if (err.response?.data instanceof Blob) {
-        const text = await err.response.data.text();
-        try { const j = JSON.parse(text); if (j.detail) msg = j.detail; } catch {}
-      } else if (err.response?.data?.detail) {
-        msg = err.response.data.detail;
-      }
-      alert(`[Download] ${msg}`);
+      const msg = err.response?.data?.detail
+        || "Gagal menyimpan rekaman. Pastikan kamera sudah menyala beberapa menit.";
+      alert(`[Rekaman] ${msg}`);
       setDownloadState({ state: "idle", progress: 0 });
     }
   };
@@ -181,12 +164,12 @@ function CameraCard({ cam, index }) {
             position: "absolute", top: 10, right: 10,
             display: "flex", gap: 6,
           }}>
-            {/* Download button */}
+            {/* Simpan Rekaman button */}
             {!isOffline && (
               <button
-                onClick={handleDownload}
+                onClick={handleSaveRecording}
                 disabled={dlBusy}
-                title={downloadState.state === "processing" ? "Memproses..." : downloadState.state === "downloading" ? "Mengunduh..." : "Unduh 30 menit terakhir"}
+                title={downloadState.state === "processing" ? "Menyimpan..." : "Simpan ke daftar rekaman"}
                 style={{
                   height: 28, padding: "0 10px", borderRadius: 6,
                   background: "rgba(0,0,0,0.72)", border: "1px solid rgba(255,255,255,0.12)",
@@ -198,10 +181,9 @@ function CameraCard({ cam, index }) {
                 onMouseEnter={e => { if (!dlBusy) e.currentTarget.style.background = "rgba(255,255,255,0.18)"; }}
                 onMouseLeave={e => { if (!dlBusy) e.currentTarget.style.background = "rgba(0,0,0,0.72)"; }}
               >
-                {downloadState.state === "idle"        && <><Download size={11} /> REC</>}
-                {downloadState.state === "processing"  && <><RefreshCw size={11} style={{ animation: "spin 1s linear infinite" }} /> PROSES</>}
-                {downloadState.state === "downloading" && <><Download size={11} /> {downloadState.progress}%</>}
-                {downloadState.state === "success"     && <span style={{ color: "#4ade80" }}>✓ SELESAI</span>}
+                {downloadState.state === "idle"       && <><Download size={11} /> REC</>}
+                {downloadState.state === "processing" && <><RefreshCw size={11} style={{ animation: "spin 1s linear infinite" }} /> SIMPAN...</>}
+                {downloadState.state === "success"    && <span style={{ color: "#4ade80" }}>✓ TERSIMPAN</span>}
               </button>
             )}
 
