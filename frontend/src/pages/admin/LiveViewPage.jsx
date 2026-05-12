@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import {
   Maximize2, Grid2X2, Grid3X3, LayoutGrid, WifiOff,
   Expand, Minimize2, RefreshCw, Download, MonitorPlay
@@ -15,7 +15,9 @@ const LAYOUTS = [
 ];
 
 /* ── HLS Player ── */
-function HlsPlayer({ src, objectFit = "cover" }) {
+// Dibungkus memo() agar TIDAK di-render ulang saat status kamera berubah.
+// Tanpa ini, setiap update status (tiap 10 detik) akan restart stream HLS.
+const MemoHlsPlayer = memo(function HlsPlayer({ src, objectFit = "cover" }) {
   const videoRef = useRef(null);
   const hlsRef   = useRef(null);
 
@@ -23,7 +25,13 @@ function HlsPlayer({ src, objectFit = "cover" }) {
     const video = videoRef.current;
     if (!video || !src) return;
     if (Hls.isSupported()) {
-      const hls = new Hls({ lowLatencyMode: true, enableWorker: true, startPosition: -1, liveSyncDuration: 2, liveMaxLatencyDuration: 8 });
+      const hls = new Hls({
+        lowLatencyMode: true,
+        enableWorker: true,
+        startPosition: -1,
+        liveSyncDuration: 2,
+        liveMaxLatencyDuration: 8,
+      });
       hlsRef.current = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
@@ -45,7 +53,7 @@ function HlsPlayer({ src, objectFit = "cover" }) {
       style={{ width: "100%", height: "100%", objectFit, background: "#000" }}
     />
   );
-}
+});
 
 /* ── Camera Card (mirip halaman publik, dengan fitur admin) ── */
 function CameraCard({ cam, index }) {
@@ -126,7 +134,7 @@ function CameraCard({ cam, index }) {
               <span style={{ color: "#3D3D4F", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Sinyal Terputus</span>
             </div>
           ) : (
-            cam.stream_url && <HlsPlayer src={cam.stream_url} objectFit={isFullscreen ? "contain" : "cover"} />
+            cam.stream_url && <MemoHlsPlayer src={cam.stream_url} objectFit={isFullscreen ? "contain" : "cover"} />
           )}
         </div>{/* /inner wrapper */}
 
@@ -247,10 +255,18 @@ export default function LiveViewPage() {
   }, [fetchCameras, fetchStatuses]);
 
   useEffect(() => {
-    refresh();
+    // Jika kamera sudah ada di store (navigasi kembali), JANGAN fetch ulang
+    // agar HlsPlayer tidak di-unmount dan stream tidak restart dari awal.
+    // Cukup update status saja.
+    if (cameras.length === 0) {
+      refresh(); // Hanya fetch lengkap jika belum ada data sama sekali
+    } else {
+      fetchStatuses();
+      setLastUpdate(new Date());
+    }
     const interval = setInterval(fetchStatuses, 10000);
     return () => clearInterval(interval);
-  }, [refresh, fetchStatuses]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentLayout = LAYOUTS.find(l => l.key === layout);
   const cols          = currentLayout?.cols || 2;

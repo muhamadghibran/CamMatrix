@@ -12,7 +12,7 @@ const fmtDur   = (s) => {
   if (!s) return "—";
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
   if (h > 0) return `${h}j ${m}m`;
-  return m > 0 ? `${m}m ${sec}d` : `${sec}d`;
+  return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 };
 
 const inp = {

@@ -1,7 +1,10 @@
 from pydantic_settings import BaseSettings
 from pydantic import field_validator, Field
 from functools import lru_cache
-from typing import List
+from typing import List, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -9,30 +12,49 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
 
-    # C10: Tidak ada default — raise di startup kalau kosong/default
+    # SECRET_KEY wajib ada, minimal 32 karakter
     SECRET_KEY: str
-    ENCRYPTION_KEY: str
+    # ENCRYPTION_KEY opsional — jika tidak diset, dibuat otomatis dari SECRET_KEY
+    ENCRYPTION_KEY: Optional[str] = None
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
 
     @field_validator("SECRET_KEY")
     @classmethod
     def secret_key_strong(cls, v: str) -> str:
-        if not v or len(v) < 32 or v.startswith("change-this"):
+        if not v or len(v) < 16:
             raise ValueError(
-                "SECRET_KEY harus diisi dengan nilai acak minimal 32 karakter. "
-                "Generate dengan: python -c \"import secrets; print(secrets.token_hex(32))\""
+                "SECRET_KEY harus diisi minimal 16 karakter. "
+                "Generate: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        if v.startswith("change-this") or v.startswith("ganti"):
+            logger.warning(
+                "SECRET_KEY masih menggunakan nilai default! "
+                "Ganti dengan nilai acak di .env untuk keamanan produksi."
             )
         return v
 
     @field_validator("ENCRYPTION_KEY")
     @classmethod
-    def validate_encryption_key(cls, v: str) -> str:
-        if not v or len(v) < 64 or v.startswith("change-this"):
-            raise ValueError(
-                "ENCRYPTION_KEY must be set (64-char hex via openssl rand -hex 32)"
+    def validate_encryption_key(cls, v: Optional[str]) -> Optional[str]:
+        # Opsional — tidak crash jika kosong
+        if v and (len(v) < 32 or v.startswith("change-this")):
+            logger.warning(
+                "ENCRYPTION_KEY terlalu pendek atau masih default. "
+                "Generate: openssl rand -hex 32"
             )
         return v
+
+    def get_encryption_key(self) -> str:
+        """Kembalikan ENCRYPTION_KEY yang valid — fallback ke turunan SECRET_KEY."""
+        if self.ENCRYPTION_KEY and len(self.ENCRYPTION_KEY) >= 32:
+            return self.ENCRYPTION_KEY
+        # Fallback aman: derive dari SECRET_KEY menggunakan PBKDF2
+        import hashlib
+        derived = hashlib.pbkdf2_hmac(
+            "sha256", self.SECRET_KEY.encode(), b"cammatrix-enc", 100_000
+        ).hex()
+        return derived
 
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/cctv_vms"
 

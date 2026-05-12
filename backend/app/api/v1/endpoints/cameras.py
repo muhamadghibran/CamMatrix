@@ -115,6 +115,65 @@ async def remove_camera_from_mediamtx(user_id: int, camera_id: int):
         print(f"Failed to remove camera {camera_id}: {e}")
 
 
+def write_cameras_to_config(cameras: list):
+    """Tulis semua kamera ke mediamtx.yml agar persist setelah restart.
+    Dipanggil dari sync endpoint — menulis ke path Linux/lokal sesuai settings.
+    """
+    config_path = settings.MEDIAMTX_CONFIG_PATH  # /etc/mediamtx/mediamtx.yml
+
+    paths_section = ""
+    for cam in cameras:
+        path_name = _path_name(cam.owner_id, cam.id)
+        paths_section += f"  {path_name}:\n"
+        paths_section += f"    source: {cam.rtsp_url}\n"
+        paths_section += f"    sourceOnDemandCloseAfter: 60s\n"
+        paths_section += f"    record: yes\n"
+        paths_section += f"    recordPath: /var/www/CamMatrix/recordings/{path_name}/%Y-%m-%d_%H-%M-%S\n"
+        paths_section += f"    recordSegmentDuration: 60s\n"
+        paths_section += f"    recordDeleteAfter: 2h\n"
+        paths_section += f"\n"
+
+    content = f"""###############################################################
+# MediaMTX Configuration — CCTV VMS Platform (Auto-generated)
+###############################################################
+
+rtspAddress: :8554
+webrtcAddress: :8889
+
+hlsAddress: :8888
+hlsAlwaysRemux: yes
+hlsSegmentDuration: 2s
+hlsPartDuration: 500ms
+
+api: yes
+apiAddress: :9997
+
+logLevel: info
+logDestinations: [stdout]
+
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+      - action: read
+      - action: playback
+      - action: api
+
+paths:
+  all_others:
+
+{paths_section}"""
+
+    try:
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"✅ mediamtx.yml diperbarui dengan {len(cameras)} kamera")
+    except Exception as e:
+        print(f"⚠️  Gagal menulis mediamtx.yml: {e}")
+
+
 
 
 
