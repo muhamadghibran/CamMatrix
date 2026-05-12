@@ -58,4 +58,4 @@ paths:
     record: yes
     recordPath: /var/www/CamMatrix/recordings/%path/%Y-%m-%d_%H-%M-%S.mp4
     recordPartDuration: 1s
-    recordSegmentDuration: 3600s
+    recordSegmentDuration: 300s
