@@ -9,7 +9,7 @@ async def add_path(slug: str, rtsp_url: str):
             "record": True,
             "recordPath": "/var/www/CamMatrix/recordings/%path/%Y-%m-%d_%H-%M-%S",
             "recordPartDuration": "1s",
-            "recordSegmentDuration": "600s",
+            "recordSegmentDuration": "60s",   # Segmen 1 menit — file tersedia lebih cepat
         }
         # Mode pull: kamera CCTV yang punya RTSP URL
         # Mode push: Larix/app yang push ke MediaMTX (source = publisher)
@@ -43,9 +43,11 @@ async def add_path(slug: str, rtsp_url: str):
 
 async def remove_path(slug: str):
     async with httpx.AsyncClient() as client:
-        r = await client.post(
+        r = await client.delete(
             f"{settings.MEDIAMTX_API_URL}/v3/config/paths/delete/{slug}",
             auth=("publisher", settings.MTX_PUBLISHER_PASS),
             timeout=5,
         )
-        r.raise_for_status()
+        # 404 berarti path memang sudah tidak ada — bukan error
+        if r.status_code not in (200, 204, 404):
+            r.raise_for_status()

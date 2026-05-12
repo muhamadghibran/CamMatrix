@@ -110,18 +110,16 @@ async def remove_camera_from_mediamtx(user_id: int, camera_id: int):
     """Hapus path dari MediaMTX saat kamera dihapus."""
     try:
         path = _path_name(user_id, camera_id)
-<<<<<<< HEAD
-        async with httpx.AsyncClient(timeout=2.0) as client:
-            await client.delete(f"{MEDIAMTX_API}/v3/config/paths/delete/{path}")
-    except Exception:
-        pass
+        await mediamtx_client.remove_path(path)
+    except Exception as e:
+        print(f"Failed to remove camera {camera_id}: {e}")
 
 
 def write_cameras_to_config(cameras: list):
-    """Tulis semua kamera ke mediamtx.yml agar persist setelah restart."""
-    import os
-    # Gunakan path konfigurasi sistem yang sesungguhnya di Linux
-    config_path = "/etc/mediamtx/mediamtx.yml"
+    """Tulis semua kamera ke mediamtx.yml agar persist setelah restart.
+    Dipanggil dari sync endpoint — menulis ke path Linux/lokal sesuai settings.
+    """
+    config_path = settings.MEDIAMTX_CONFIG_PATH  # /etc/mediamtx/mediamtx.yml
 
     paths_section = ""
     for cam in cameras:
@@ -129,6 +127,9 @@ def write_cameras_to_config(cameras: list):
         paths_section += f"  {path_name}:\n"
         paths_section += f"    source: {cam.rtsp_url}\n"
         paths_section += f"    sourceOnDemandCloseAfter: 60s\n"
+        paths_section += f"    record: yes\n"
+        paths_section += f"    recordPath: /var/www/CamMatrix/recordings/{path_name}/%Y-%m-%d_%H-%M-%S\n"
+        paths_section += f"    recordSegmentDuration: 60s\n"
         paths_section += f"\n"
 
     content = f"""###############################################################
@@ -168,11 +169,8 @@ paths:
         with open(config_path, "w", encoding="utf-8") as f:
             f.write(content)
         print(f"✅ mediamtx.yml diperbarui dengan {len(cameras)} kamera")
-=======
-        await mediamtx_client.remove_path(path)
->>>>>>> ba86f2ad1181291e14a9800e43809d2f1e4d2ea4
     except Exception as e:
-        print(f"Failed to remove camera {camera_id}: {e}")
+        print(f"⚠️  Gagal menulis mediamtx.yml: {e}")
 
 
 
