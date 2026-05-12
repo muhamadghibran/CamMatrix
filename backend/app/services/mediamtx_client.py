@@ -9,7 +9,7 @@ async def add_path(slug: str, rtsp_url: str):
             "record": True,
             "recordPath": "/var/www/CamMatrix/recordings/%path/%Y-%m-%d_%H-%M-%S",
             "recordPartDuration": "1s",
-            "recordSegmentDuration": "60s",   # Segmen 1 menit — file tersedia lebih cepat
+            "recordSegmentDuration": "300s",   # Segmen 5 menit
             "recordDeleteAfter": "2h",         # Auto-hapus segmen > 2 jam agar disk tidak penuh
         }
         # Mode pull: kamera CCTV yang punya RTSP URL
