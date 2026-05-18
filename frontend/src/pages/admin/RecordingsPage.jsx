@@ -108,9 +108,7 @@ function VideoModal({ rec, onClose }) {
       const token = useAuthStore.getState().token;
       const { API_BASE_URL } = require("../../constants/api");
       return `${API_BASE_URL}/recordings/${rec.id}/download?token=${encodeURIComponent(token)}`;
-    } catch {
-      return "";
-    } catch { return ""; }
+    } catch (_e) { return ""; }
   };
 
   useEffect(() => {
