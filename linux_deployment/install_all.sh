@@ -157,12 +157,7 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
 
 cd $APP_DIR/frontend
-cat <<EOF > .env
-VITE_API_BASE_URL=http://${SERVER_IP}:8000/api/v1
-VITE_WS_BASE_URL=ws://${SERVER_IP}:8000/ws
-VITE_MEDIAMTX_URL=http://${SERVER_IP}:9997
-EOF
-
+# Frontend .env sudah ditulis di atas (baris [2/8]) — langsung build
 npm install
 npm run build
 

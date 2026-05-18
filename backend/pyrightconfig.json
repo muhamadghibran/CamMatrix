@@ -1,0 +1,8 @@
+{
+  "include": ["app"],
+  "exclude": ["**/__pycache__"],
+  "reportMissingImports": false,
+  "reportMissingModuleSource": false,
+  "reportUnknownMemberType": false,
+  "typeCheckingMode": "off"
+}

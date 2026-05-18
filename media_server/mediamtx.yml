@@ -55,6 +55,10 @@ authInternalUsers:
 
 paths:
   all_others:
+
+  cam_1_1:
+    source: rtsp://192.168.29.210:8080/h264_ulaw.sdp
+    sourceOnDemandCloseAfter: 60s
     record: yes
     recordPath: /var/www/CamMatrix/recordings/%path/%Y-%m-%d_%H-%M-%S.mp4
     recordPartDuration: 1s
