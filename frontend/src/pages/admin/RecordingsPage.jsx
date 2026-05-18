@@ -1,8 +1,8 @@
 import {
   Film, Download, Search, Filter, Clock,
-  HardDrive, X, ChevronDown, Calendar, RefreshCw, Trash2
+  HardDrive, X, ChevronDown, Calendar, RefreshCw, Trash2, Play
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import FaceAnalyticsPage from "./FaceAnalyticsPage";
 import api from "../../utils/api";
 
@@ -97,6 +97,119 @@ function FilterDropdown({ value, onChange, options }) {
   );
 }
 
+/* ── Video Modal ── */
+function VideoModal({ rec, onClose }) {
+  const videoRef = useRef(null);
+
+  // Build streaming URL dengan token auth
+  const buildVideoUrl = () => {
+    try {
+      const { useAuthStore } = require("../../store/authStore");
+      const token = useAuthStore.getState().token;
+      const { API_BASE_URL } = require("../../constants/api");
+      return `${API_BASE_URL}/recordings/${rec.id}/download?token=${encodeURIComponent(token)}`;
+    } catch {
+      return "";
+    }
+  };
+
+  // Tutup modal saat tekan Escape
+  useEffect(() => {
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const dt = rec.created_at ? new Date(rec.created_at) : null;
+  const dateStr = dt ? dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—";
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        animation: "fadeUp 0.2s ease both",
+        padding: 20,
+      }}>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 900,
+          background: "#0D0D14", border: "1px solid #1F1F2E",
+          borderRadius: 16, overflow: "hidden",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.8)",
+          animation: "fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both",
+        }}>
+
+        {/* Header modal */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px 20px", borderBottom: "1px solid #1F1F2E", background: "#0A0A0F"
+        }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF" }}>
+              {rec.camera_name || `Kamera #${rec.camera_id}`}
+            </span>
+            <span style={{ fontSize: 11, color: "#71717A", fontFamily: "monospace" }}>
+              {dateStr} · {timeStr} · {rec.size_bytes ? `${(rec.size_bytes/1e6).toFixed(1)} MB` : "—"}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {/* Tombol unduh di modal */}
+            <a
+              href={buildVideoUrl()}
+              download={`${(rec.camera_name||"cam").replace(/ /g,"_")}_rekaman.mp4`}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 14px", borderRadius: 7, fontSize: 12, fontWeight: 600,
+                background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+                color: "#FFFFFF", textDecoration: "none", cursor: "pointer",
+              }}>
+              <Download size={12} /> Unduh
+            </a>
+            <button onClick={onClose} style={{
+              width: 30, height: 30, borderRadius: 7, background: "#111118",
+              border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color="#FFF"; e.currentTarget.style.background="#1F1F2E"; }}
+            onMouseLeave={e => { e.currentTarget.style.color="#71717A"; e.currentTarget.style.background="#111118"; }}>
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Video player */}
+        <div style={{ background: "#000", position: "relative" }}>
+          <video
+            ref={videoRef}
+            controls
+            autoPlay
+            style={{ width: "100%", maxHeight: "55vh", display: "block", background: "#000" }}
+            src={buildVideoUrl()}
+            onError={() => console.error("Gagal memuat video")}
+          >
+            Browser kamu tidak mendukung tag video.
+          </video>
+        </div>
+
+        {/* Footer info */}
+        <div style={{
+          padding: "10px 20px", borderTop: "1px solid #1F1F2E",
+          display: "flex", alignItems: "center", gap: 16,
+          background: "#0A0A0F"
+        }}>
+          <span style={{ fontSize: 11, color: "#3D3D4F" }}>⌨ Tekan Esc untuk menutup</span>
+          <span style={{ fontSize: 11, color: "#3D3D4F" }}>🖱 Klik di luar video untuk menutup</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Page ── */
 export default function RecordingsPage() {
   const [recordings, setRecordings] = useState([]);
@@ -108,6 +221,7 @@ export default function RecordingsPage() {
   const [sortField, setSortField]   = useState("created_at");
   const [sortDir, setSortDir]       = useState("desc");
   const [deletingId, setDeletingId] = useState(null);
+  const [watchRec, setWatchRec]     = useState(null);
 
   // Fetch rekaman dari API
   const fetchRecordings = async () => {
@@ -386,6 +500,19 @@ export default function RecordingsPage() {
                       {/* Aksi */}
                       <td style={{ padding: "13px 20px", textAlign: "right" }}>
                         <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                          {/* Tonton */}
+                          <button onClick={() => setWatchRec(rec)} title="Tonton rekaman" style={{
+                            width: 30, height: 30, borderRadius: 7,
+                            background: isHov ? "rgba(255,255,255,0.08)" : "transparent",
+                            border: `1px solid ${isHov ? "rgba(255,255,255,0.2)" : "#1F1F2E"}`,
+                            color: isHov ? "#FFFFFF" : "#71717A", cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            opacity: isHov ? 1 : 0.4, transition: "all 0.15s"
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.color="#FFF"; e.currentTarget.style.background="rgba(255,255,255,0.1)"; e.currentTarget.style.borderColor="rgba(255,255,255,0.25)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.color="#71717A"; e.currentTarget.style.background="transparent"; e.currentTarget.style.borderColor="#1F1F2E"; }}>
+                            <Play size={12} />
+                          </button>
                           {/* Download */}
                           <button onClick={() => handleDownload(rec)} title="Unduh rekaman" style={{
                             width: 30, height: 30, borderRadius: 7, background: "transparent",
@@ -427,6 +554,9 @@ export default function RecordingsPage() {
           </div>
         </div>
       )}
+
+      {/* Modal tonton video */}
+      {watchRec && <VideoModal rec={watchRec} onClose={() => setWatchRec(null)} />}
     </div>
   );
 }
