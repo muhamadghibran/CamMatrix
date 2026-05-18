@@ -1,7 +1,7 @@
 """add face analysis tables
 
-Revision ID: a1b2c3d4e5f6
-Revises: (latest migration)
+Revision ID: e5f6a7b8c9d0
+Revises: d4e5f6a7b8c9
 Create Date: 2026-05-18
 
 Tabel baru (tidak mengubah tabel yang sudah ada):
@@ -11,8 +11,8 @@ Tabel baru (tidak mengubah tabel yang sudah ada):
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'a1b2c3d4e5f6'
-down_revision = None  # Ganti dengan revision terakhir jika ada chain
+revision = 'e5f6a7b8c9d0'
+down_revision = 'd4e5f6a7b8c9'
 branch_labels = None
 depends_on = None
 
