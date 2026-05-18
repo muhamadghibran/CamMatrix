@@ -100,111 +100,205 @@ function FilterDropdown({ value, onChange, options }) {
 /* ── Video Modal ── */
 function VideoModal({ rec, onClose }) {
   const videoRef = useRef(null);
+  const [aiPanel, setAiPanel] = useState(false);
 
   const getToken = () => {
-    try {
-      const { useAuthStore } = require("../../store/authStore");
-      return useAuthStore.getState().token || "";
-    } catch (_e) { return ""; }
+    try { return require("../../store/authStore").useAuthStore.getState().token || ""; }
+    catch (_e) { return ""; }
+  };
+  const getBase = () => {
+    try { return require("../../constants/api").API_BASE_URL || ""; }
+    catch (_e) { return ""; }
   };
 
-  const getApiBase = () => {
-    try {
-      const { API_BASE_URL } = require("../../constants/api");
-      return API_BASE_URL || "";
-    } catch (_e) { return ""; }
-  };
-
-  const videoUrl = `${getApiBase()}/recordings/${rec.id}/download?token=${encodeURIComponent(getToken())}`;
+  const videoUrl = `${getBase()}/recordings/${rec.id}/download?token=${encodeURIComponent(getToken())}`;
 
   useEffect(() => {
-    const handler = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    const fn = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
   }, [onClose]);
 
-  const dt = rec.created_at ? new Date(rec.created_at) : null;
-  const dateStr = dt ? dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "—";
-  const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—";
+  const dt      = rec.created_at ? new Date(rec.created_at) : null;
+  const dateStr = dt ? dt.toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric" }) : "—";
+  const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit" }) : "—";
+  const sizeStr = rec.size_bytes ? `${(rec.size_bytes/1e6).toFixed(1)} MB` : "—";
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 20,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 900,
-          background: "#0D0D14", border: "1px solid #1F1F2E",
-          borderRadius: 16, overflow: "hidden",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.85)",
-        }}
-      >
-        {/* Header */}
+    <div onClick={onClose} style={{
+      position:"fixed", inset:0, zIndex:1000,
+      background:"rgba(0,0,0,0.92)", backdropFilter:"blur(12px)",
+      display:"flex", alignItems:"center", justifyContent:"center", padding:24,
+    }}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        width:"100%", maxWidth: aiPanel ? 1160 : 860,
+        background:"#0D0D14", borderRadius:20,
+        border:"1px solid rgba(255,255,255,0.08)",
+        boxShadow:"0 40px 100px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.04)",
+        overflow:"hidden", display:"flex", flexDirection:"column",
+        transition:"max-width 0.35s cubic-bezier(0.16,1,0.3,1)",
+      }}>
+
+        {/* ── Header ── */}
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 20px", borderBottom: "1px solid #1F1F2E", background: "#0A0A0F",
+          display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"16px 22px",
+          background:"linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)",
+          borderBottom:"1px solid rgba(255,255,255,0.07)",
         }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#FFF" }}>
-              {rec.camera_name || `Kamera #${rec.camera_id}`}
-            </span>
-            <span style={{ fontSize: 11, color: "#71717A", fontFamily: "monospace" }}>
-              {dateStr} · {timeStr} · {rec.size_bytes ? `${(rec.size_bytes / 1e6).toFixed(1)} MB` : "—"}
-            </span>
+          {/* Info kamera */}
+          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+            <div style={{
+              width:40, height:40, borderRadius:10, flexShrink:0,
+              background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)",
+              display:"flex", alignItems:"center", justifyContent:"center", fontSize:18,
+            }}>📹</div>
+            <div>
+              <div style={{ fontSize:15, fontWeight:700, color:"#FFF", letterSpacing:"-0.02em" }}>
+                {rec.camera_name || `Kamera #${rec.camera_id}`}
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:3 }}>
+                {[dateStr, timeStr, sizeStr].map((v,i) => (
+                  <span key={i} style={{ fontSize:11, color:"#71717A", fontFamily:"monospace" }}>
+                    {i>0 && <span style={{ marginRight:8, color:"#2D2D3F" }}>·</span>}{v}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <a
-              href={videoUrl}
-              download={`${(rec.camera_name || "cam").replace(/ /g, "_")}_rekaman.mp4`}
+
+          {/* Aksi */}
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            {/* Tombol AI */}
+            <button onClick={() => setAiPanel(v=>!v)} style={{
+              display:"flex", alignItems:"center", gap:8,
+              padding:"8px 16px", borderRadius:9, fontSize:12, fontWeight:600, cursor:"pointer",
+              background: aiPanel
+                ? "linear-gradient(135deg,rgba(255,255,255,0.15),rgba(255,255,255,0.08))"
+                : "rgba(255,255,255,0.05)",
+              border:`1px solid ${aiPanel ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)"}`,
+              color: aiPanel ? "#FFF" : "#A0A0A0",
+              transition:"all 0.2s", boxShadow: aiPanel ? "0 0 16px rgba(255,255,255,0.06)" : "none",
+            }}>
+              <span style={{ fontSize:15 }}>🔍</span>
+              Analisis Wajah
+              <span style={{
+                fontSize:9, fontWeight:700, letterSpacing:"0.07em",
+                padding:"2px 6px", borderRadius:4,
+                background: aiPanel ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)",
+                color: aiPanel ? "#FFF" : "#71717A",
+              }}>AI</span>
+            </button>
+
+            {/* Unduh */}
+            <a href={videoUrl}
+              download={`${(rec.camera_name||"cam").replace(/ /g,"_")}_rekaman.mp4`}
               style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "7px 14px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
-                color: "#FFF", textDecoration: "none",
+                display:"flex", alignItems:"center", gap:7,
+                padding:"8px 16px", borderRadius:9, fontSize:12, fontWeight:600,
+                background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.12)",
+                color:"#FFF", textDecoration:"none", transition:"all 0.2s",
               }}
+              onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.14)";}}
+              onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.08)";}}
             >
-              <Download size={12} /> Unduh
+              <Download size={13} /> Unduh
             </a>
-            <button
-              onClick={onClose}
-              style={{
-                width: 30, height: 30, borderRadius: 7, background: "#111118",
-                border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#FFF"; e.currentTarget.style.background = "#1F1F2E"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#71717A"; e.currentTarget.style.background = "#111118"; }}
+
+            {/* Tutup */}
+            <button onClick={onClose} style={{
+              width:34, height:34, borderRadius:9, cursor:"pointer",
+              background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)",
+              color:"#71717A", display:"flex", alignItems:"center", justifyContent:"center",
+              transition:"all 0.2s",
+            }}
+            onMouseEnter={e=>{e.currentTarget.style.color="#FFF"; e.currentTarget.style.background="rgba(255,255,255,0.12)";}}
+            onMouseLeave={e=>{e.currentTarget.style.color="#71717A"; e.currentTarget.style.background="rgba(255,255,255,0.05)";}}
             >
-              <X size={14} />
+              <X size={15}/>
             </button>
           </div>
         </div>
 
-        {/* Video */}
-        <div style={{ background: "#000" }}>
-          <video
-            ref={videoRef}
-            controls
-            autoPlay
-            style={{ width: "100%", maxHeight: "60vh", display: "block" }}
-            src={videoUrl}
-          />
+        {/* ── Body ── */}
+        <div style={{ display:"flex", flex:1 }}>
+
+          {/* Video */}
+          <div style={{ flex:1, background:"#000", position:"relative", minWidth:0 }}>
+            <video ref={videoRef} controls autoPlay
+              style={{ width:"100%", maxHeight:"62vh", display:"block" }}
+              src={videoUrl}
+            />
+          </div>
+
+          {/* Panel AI */}
+          {aiPanel && (
+            <div style={{
+              width:270, flexShrink:0,
+              borderLeft:"1px solid rgba(255,255,255,0.07)",
+              background:"#080810", display:"flex", flexDirection:"column",
+            }}>
+              {/* Panel header */}
+              <div style={{
+                padding:"14px 18px", borderBottom:"1px solid rgba(255,255,255,0.07)",
+                background:"linear-gradient(180deg,rgba(255,255,255,0.03) 0%,transparent 100%)",
+              }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
+                  <span style={{ fontSize:16 }}>🔍</span>
+                  <span style={{ fontSize:13, fontWeight:700, color:"#FFF" }}>Analisis Wajah</span>
+                  <span style={{
+                    fontSize:9, fontWeight:700, letterSpacing:"0.07em",
+                    padding:"2px 6px", borderRadius:4,
+                    background:"rgba(255,255,255,0.1)", color:"#71717A",
+                  }}>BETA</span>
+                </div>
+                <p style={{ fontSize:11, color:"#3D3D4F", margin:0, lineHeight:1.5 }}>
+                  Deteksi dan analisis wajah dari frame rekaman secara real-time
+                </p>
+              </div>
+
+              {/* Placeholder konten */}
+              <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, gap:16 }}>
+                <div style={{
+                  width:64, height:64, borderRadius:16,
+                  background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)",
+                  display:"flex", alignItems:"center", justifyContent:"center", fontSize:28,
+                }}>👤</div>
+                <div style={{ textAlign:"center" }}>
+                  <p style={{ fontSize:13, fontWeight:600, color:"#FFFFFF", margin:"0 0 6px" }}>
+                    Siap Diaktifkan
+                  </p>
+                  <p style={{ fontSize:11, color:"#71717A", margin:0, lineHeight:1.6 }}>
+                    Fitur deteksi wajah akan menganalisis setiap frame video dan menampilkan hasil di sini
+                  </p>
+                </div>
+                <button style={{
+                  width:"100%", padding:"10px 0", borderRadius:9, fontSize:12, fontWeight:600, cursor:"pointer",
+                  background:"linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0.06))",
+                  border:"1px solid rgba(255,255,255,0.15)", color:"#FFF",
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+                }}>
+                  <span>▶</span> Mulai Deteksi
+                </button>
+              </div>
+
+              {/* Panel footer */}
+              <div style={{ padding:"12px 18px", borderTop:"1px solid rgba(255,255,255,0.07)" }}>
+                <p style={{ fontSize:10, color:"#2D2D3F", margin:0, lineHeight:1.5 }}>
+                  Memerlukan koneksi ke backend AI endpoint
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Footer */}
+        {/* ── Footer ── */}
         <div style={{
-          padding: "10px 20px", borderTop: "1px solid #1F1F2E",
-          display: "flex", alignItems: "center", gap: 16, background: "#0A0A0F",
+          padding:"10px 22px", borderTop:"1px solid rgba(255,255,255,0.06)",
+          display:"flex", alignItems:"center", gap:20, background:"rgba(0,0,0,0.3)",
         }}>
-          <span style={{ fontSize: 11, color: "#3D3D4F" }}>⌨ Tekan Esc untuk menutup</span>
-          <span style={{ fontSize: 11, color: "#3D3D4F" }}>🖱 Klik di luar untuk menutup</span>
+          <span style={{ fontSize:11, color:"#2D2D3F" }}>⌨ Esc untuk menutup</span>
+          <span style={{ fontSize:11, color:"#2D2D3F" }}>🖱 Klik luar untuk menutup</span>
         </div>
       </div>
     </div>
