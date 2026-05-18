@@ -30,7 +30,7 @@ def _get_cascade():
     return _cascade
 
 
-def _detect_faces_in_frame(frame_bgr: "np.ndarray") -> list[dict]:
+def _detect_faces_in_frame(frame_bgr) -> list[dict]:
     """
     Deteksi wajah dalam satu frame menggunakan Haar Cascade.
     Return: list of dict {x, y, w, h, confidence}
