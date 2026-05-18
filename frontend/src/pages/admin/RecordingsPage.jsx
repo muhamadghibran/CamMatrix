@@ -1,6 +1,6 @@
 import {
   Film, Download, Search, Filter, Clock,
-  HardDrive, X, ChevronDown, Calendar, RefreshCw, Trash2, Play
+  HardDrive, X, ChevronDown, Calendar, RefreshCw, Trash2, Play, ScanFace
 } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import FaceAnalyticsPage from "./FaceAnalyticsPage";
@@ -120,113 +120,127 @@ function VideoModal({ rec, onClose }) {
   }, [onClose]);
 
   const dt      = rec.created_at ? new Date(rec.created_at) : null;
-  const dateStr = dt ? dt.toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric" }) : "—";
-  const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit" }) : "—";
-  const sizeStr = rec.size_bytes ? `${(rec.size_bytes/1e6).toFixed(1)} MB` : "—";
+  const dateStr = dt ? dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—";
+  const sizeStr = rec.size_bytes ? `${(rec.size_bytes / 1e6).toFixed(1)} MB` : "—";
 
   return (
-    <div onClick={onClose} style={{
-      position:"fixed", inset:0, zIndex:1000,
-      background:"rgba(0,0,0,0.92)", backdropFilter:"blur(12px)",
-      display:"flex", alignItems:"center", justifyContent:"center", padding:24,
-    }}>
-      <div onClick={e=>e.stopPropagation()} style={{
-        width:"100%", maxWidth: aiPanel ? 1160 : 860,
-        background:"#0D0D14", borderRadius:20,
-        border:"1px solid rgba(255,255,255,0.08)",
-        boxShadow:"0 40px 100px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.04)",
-        overflow:"hidden", display:"flex", flexDirection:"column",
-        transition:"max-width 0.35s cubic-bezier(0.16,1,0.3,1)",
-      }}>
-
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 50,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16, background: "rgba(5,5,8,0.88)", backdropFilter: "blur(12px)",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: aiPanel ? 1080 : 760,
+          borderRadius: 14, background: "#0D0D14",
+          border: "1px solid #1F1F2E", overflow: "hidden",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.6)",
+          transition: "max-width 0.3s cubic-bezier(0.16,1,0.3,1)",
+          display: "flex", flexDirection: "column",
+        }}
+      >
         {/* ── Header ── */}
         <div style={{
-          display:"flex", alignItems:"center", justifyContent:"space-between",
-          padding:"16px 22px",
-          background:"linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)",
-          borderBottom:"1px solid rgba(255,255,255,0.07)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "16px 20px", borderBottom: "1px solid #1F1F2E", background: "#0A0A0F",
         }}>
-          {/* Info kamera */}
-          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
-              width:40, height:40, borderRadius:10, flexShrink:0,
-              background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)",
-              display:"flex", alignItems:"center", justifyContent:"center", fontSize:18,
-            }}>📹</div>
+              width: 32, height: 32, borderRadius: 8,
+              background: "#111118", border: "1px solid #1F1F2E",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <Film size={15} style={{ color: "#71717A" }} />
+            </div>
             <div>
-              <div style={{ fontSize:15, fontWeight:700, color:"#FFF", letterSpacing:"-0.02em" }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#FFFFFF", margin: 0 }}>
                 {rec.camera_name || `Kamera #${rec.camera_id}`}
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:3 }}>
-                {[dateStr, timeStr, sizeStr].map((v,i) => (
-                  <span key={i} style={{ fontSize:11, color:"#71717A", fontFamily:"monospace" }}>
-                    {i>0 && <span style={{ marginRight:8, color:"#2D2D3F" }}>·</span>}{v}
-                  </span>
-                ))}
-              </div>
+              </h3>
+              <p style={{ fontSize: 11, color: "#71717A", margin: 0, fontFamily: "monospace" }}>
+                {dateStr} · {timeStr} · {sizeStr}
+              </p>
             </div>
           </div>
 
-          {/* Aksi */}
-          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-            {/* Tombol AI */}
-            <button onClick={() => setAiPanel(v=>!v)} style={{
-              display:"flex", alignItems:"center", gap:8,
-              padding:"8px 16px", borderRadius:9, fontSize:12, fontWeight:600, cursor:"pointer",
-              background: aiPanel
-                ? "linear-gradient(135deg,rgba(255,255,255,0.15),rgba(255,255,255,0.08))"
-                : "rgba(255,255,255,0.05)",
-              border:`1px solid ${aiPanel ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)"}`,
-              color: aiPanel ? "#FFF" : "#A0A0A0",
-              transition:"all 0.2s", boxShadow: aiPanel ? "0 0 16px rgba(255,255,255,0.06)" : "none",
-            }}>
-              <span style={{ fontSize:15 }}>🔍</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Tombol Analisis Wajah */}
+            <button
+              onClick={() => setAiPanel(v => !v)}
+              style={{
+                display: "flex", alignItems: "center", gap: 7,
+                padding: "8px 14px", borderRadius: 8,
+                background: aiPanel ? "#FFFFFF" : "transparent",
+                border: `1px solid ${aiPanel ? "#FFFFFF" : "#1F1F2E"}`,
+                color: aiPanel ? "#0A0A0F" : "#71717A",
+                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                if (!aiPanel) { e.currentTarget.style.color = "#FFF"; e.currentTarget.style.borderColor = "#2D2D3F"; }
+              }}
+              onMouseLeave={(e) => {
+                if (!aiPanel) { e.currentTarget.style.color = "#71717A"; e.currentTarget.style.borderColor = "#1F1F2E"; }
+              }}
+            >
+              <ScanFace size={13} />
               Analisis Wajah
               <span style={{
-                fontSize:9, fontWeight:700, letterSpacing:"0.07em",
-                padding:"2px 6px", borderRadius:4,
-                background: aiPanel ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)",
-                color: aiPanel ? "#FFF" : "#71717A",
+                fontSize: 9, fontWeight: 700, letterSpacing: "0.06em",
+                padding: "1px 5px", borderRadius: 3,
+                background: aiPanel ? "rgba(0,0,0,0.15)" : "#111118",
+                border: `1px solid ${aiPanel ? "rgba(0,0,0,0.2)" : "#1F1F2E"}`,
+                color: aiPanel ? "#0A0A0F" : "#3D3D4F",
               }}>AI</span>
             </button>
 
             {/* Unduh */}
-            <a href={videoUrl}
-              download={`${(rec.camera_name||"cam").replace(/ /g,"_")}_rekaman.mp4`}
+            <a
+              href={videoUrl}
+              download={`${(rec.camera_name || "cam").replace(/ /g, "_")}_rekaman.mp4`}
               style={{
-                display:"flex", alignItems:"center", gap:7,
-                padding:"8px 16px", borderRadius:9, fontSize:12, fontWeight:600,
-                background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.12)",
-                color:"#FFF", textDecoration:"none", transition:"all 0.2s",
+                display: "flex", alignItems: "center", gap: 7,
+                padding: "8px 14px", borderRadius: 8,
+                background: "transparent", border: "1px solid #1F1F2E",
+                color: "#71717A", fontSize: 12, fontWeight: 600, textDecoration: "none",
+                transition: "color 0.15s, border-color 0.15s",
               }}
-              onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.14)";}}
-              onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.08)";}}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#FFF"; e.currentTarget.style.borderColor = "#2D2D3F"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#71717A"; e.currentTarget.style.borderColor = "#1F1F2E"; }}
             >
               <Download size={13} /> Unduh
             </a>
 
             {/* Tutup */}
-            <button onClick={onClose} style={{
-              width:34, height:34, borderRadius:9, cursor:"pointer",
-              background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)",
-              color:"#71717A", display:"flex", alignItems:"center", justifyContent:"center",
-              transition:"all 0.2s",
-            }}
-            onMouseEnter={e=>{e.currentTarget.style.color="#FFF"; e.currentTarget.style.background="rgba(255,255,255,0.12)";}}
-            onMouseLeave={e=>{e.currentTarget.style.color="#71717A"; e.currentTarget.style.background="rgba(255,255,255,0.05)";}}
+            <button
+              onClick={onClose}
+              style={{
+                width: 28, height: 28, borderRadius: 6, background: "transparent",
+                border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = "#FFF"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "#71717A"}
             >
-              <X size={15}/>
+              <X size={13} />
             </button>
           </div>
         </div>
 
         {/* ── Body ── */}
-        <div style={{ display:"flex", flex:1 }}>
+        <div style={{ display: "flex" }}>
 
           {/* Video */}
-          <div style={{ flex:1, background:"#000", position:"relative", minWidth:0 }}>
-            <video ref={videoRef} controls autoPlay
-              style={{ width:"100%", maxHeight:"62vh", display:"block" }}
+          <div style={{ flex: 1, background: "#000", minWidth: 0 }}>
+            <video
+              ref={videoRef}
+              controls
+              autoPlay
+              style={{ width: "100%", maxHeight: "60vh", display: "block" }}
               src={videoUrl}
             />
           </div>
@@ -234,59 +248,78 @@ function VideoModal({ rec, onClose }) {
           {/* Panel AI */}
           {aiPanel && (
             <div style={{
-              width:270, flexShrink:0,
-              borderLeft:"1px solid rgba(255,255,255,0.07)",
-              background:"#080810", display:"flex", flexDirection:"column",
+              width: 260, flexShrink: 0,
+              borderLeft: "1px solid #1F1F2E",
+              background: "#0A0A0F",
+              display: "flex", flexDirection: "column",
             }}>
               {/* Panel header */}
               <div style={{
-                padding:"14px 18px", borderBottom:"1px solid rgba(255,255,255,0.07)",
-                background:"linear-gradient(180deg,rgba(255,255,255,0.03) 0%,transparent 100%)",
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "13px 16px", borderBottom: "1px solid #1F1F2E",
               }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-                  <span style={{ fontSize:16 }}>🔍</span>
-                  <span style={{ fontSize:13, fontWeight:700, color:"#FFF" }}>Analisis Wajah</span>
-                  <span style={{
-                    fontSize:9, fontWeight:700, letterSpacing:"0.07em",
-                    padding:"2px 6px", borderRadius:4,
-                    background:"rgba(255,255,255,0.1)", color:"#71717A",
-                  }}>BETA</span>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 7,
+                  background: "#111118", border: "1px solid #1F1F2E",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <ScanFace size={13} style={{ color: "#71717A" }} />
                 </div>
-                <p style={{ fontSize:11, color:"#3D3D4F", margin:0, lineHeight:1.5 }}>
-                  Deteksi dan analisis wajah dari frame rekaman secara real-time
-                </p>
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#FFF", display: "block" }}>Analisis Wajah</span>
+                  <span style={{ fontSize: 10, color: "#3D3D4F" }}>Deteksi AI real-time</span>
+                </div>
+                <span style={{
+                  marginLeft: "auto", fontSize: 9, fontWeight: 700, letterSpacing: "0.07em",
+                  padding: "2px 7px", borderRadius: 4,
+                  background: "#111118", border: "1px solid #1F1F2E", color: "#3D3D4F",
+                }}>BETA</span>
               </div>
 
-              {/* Placeholder konten */}
-              <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, gap:16 }}>
+              {/* Konten panel */}
+              <div style={{
+                flex: 1, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                padding: 24, gap: 16,
+              }}>
                 <div style={{
-                  width:64, height:64, borderRadius:16,
-                  background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)",
-                  display:"flex", alignItems:"center", justifyContent:"center", fontSize:28,
-                }}>👤</div>
-                <div style={{ textAlign:"center" }}>
-                  <p style={{ fontSize:13, fontWeight:600, color:"#FFFFFF", margin:"0 0 6px" }}>
+                  width: 44, height: 44, borderRadius: 11,
+                  background: "#111118", border: "1px solid #1F1F2E",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <ScanFace size={20} style={{ color: "#2D2D3F" }} />
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#FFFFFF", margin: "0 0 6px" }}>
                     Siap Diaktifkan
                   </p>
-                  <p style={{ fontSize:11, color:"#71717A", margin:0, lineHeight:1.6 }}>
-                    Fitur deteksi wajah akan menganalisis setiap frame video dan menampilkan hasil di sini
+                  <p style={{ fontSize: 11, color: "#71717A", margin: 0, lineHeight: 1.6 }}>
+                    Klik tombol di bawah untuk mulai mendeteksi wajah pada rekaman video ini
                   </p>
                 </div>
+
                 <button style={{
-                  width:"100%", padding:"10px 0", borderRadius:9, fontSize:12, fontWeight:600, cursor:"pointer",
-                  background:"linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0.06))",
-                  border:"1px solid rgba(255,255,255,0.15)", color:"#FFF",
-                  display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-                }}>
-                  <span>▶</span> Mulai Deteksi
+                  width: "100%", padding: "10px 0",
+                  borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  background: "#FFFFFF", color: "#0A0A0F", border: "none",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "#E5E5E5"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "#FFFFFF"}
+                >
+                  <Play size={12} /> Mulai Deteksi
                 </button>
               </div>
 
               {/* Panel footer */}
-              <div style={{ padding:"12px 18px", borderTop:"1px solid rgba(255,255,255,0.07)" }}>
-                <p style={{ fontSize:10, color:"#2D2D3F", margin:0, lineHeight:1.5 }}>
-                  Memerlukan koneksi ke backend AI endpoint
-                </p>
+              <div style={{
+                padding: "10px 16px", borderTop: "1px solid #1F1F2E",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: "#0A0A0F",
+              }}>
+                <span style={{ fontSize: 10, color: "#3D3D4F" }}>0 wajah terdeteksi</span>
+                <span style={{ fontSize: 10, color: "#3D3D4F", fontFamily: "monospace" }}>AI READY</span>
               </div>
             </div>
           )}
@@ -294,16 +327,18 @@ function VideoModal({ rec, onClose }) {
 
         {/* ── Footer ── */}
         <div style={{
-          padding:"10px 22px", borderTop:"1px solid rgba(255,255,255,0.06)",
-          display:"flex", alignItems:"center", gap:20, background:"rgba(0,0,0,0.3)",
+          padding: "10px 20px", borderTop: "1px solid #1F1F2E",
+          display: "flex", alignItems: "center", gap: 16, background: "#0A0A0F",
         }}>
-          <span style={{ fontSize:11, color:"#2D2D3F" }}>⌨ Esc untuk menutup</span>
-          <span style={{ fontSize:11, color:"#2D2D3F" }}>🖱 Klik luar untuk menutup</span>
+          <span style={{ fontSize: 11, color: "#3D3D4F" }}>⌨ Tekan Esc untuk menutup</span>
+          <span style={{ fontSize: 11, color: "#3D3D4F" }}>🖱 Klik di luar untuk menutup</span>
         </div>
       </div>
     </div>
   );
 }
+
+
 
 /* ── Main Page ── */
 export default function RecordingsPage() {
