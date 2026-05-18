@@ -102,11 +102,11 @@ function VideoModal({ rec, onClose }) {
   const videoRef = useRef(null);
   const pollRef  = useRef(null);
   const [aiPanel,   setAiPanel]   = useState(false);
-  const [jobStatus, setJobStatus] = useState(null); // null | 'pending' | 'running' | 'done' | 'failed'
-  const [jobId,     setJobId]     = useState(null);
+  const [jobStatus, setJobStatus] = useState(null);
   const [progress,  setProgress]  = useState(0);
-  const [results,   setResults]   = useState(null); // { faces_found, detections[] }
+  const [results,   setResults]   = useState(null);
   const [starting,  setStarting]  = useState(false);
+  const [videoDur,  setVideoDur]  = useState(rec.duration || 0);
 
   const getToken = () => {
     try { return require("../../store/authStore").useAuthStore.getState().token || ""; }
@@ -125,7 +125,27 @@ function VideoModal({ rec, onClose }) {
     return () => { window.removeEventListener("keydown", fn); clearInterval(pollRef.current); };
   }, [onClose]);
 
-  // ── Polling status job ──
+  // ── Group deteksi menjadi "scene" (penampakan) berdasarkan jarak waktu ──
+  const groupIntoScenes = (detections, gapSec = 4) => {
+    if (!detections || detections.length === 0) return [];
+    const sorted = [...detections].sort((a, b) => a.timestamp_sec - b.timestamp_sec);
+    const scenes = [];
+    let current = { start: sorted[0].timestamp_sec, end: sorted[0].timestamp_sec, faces: [sorted[0]] };
+    for (let i = 1; i < sorted.length; i++) {
+      const d = sorted[i];
+      if (d.timestamp_sec - current.end <= gapSec) {
+        current.end = d.timestamp_sec;
+        current.faces.push(d);
+      } else {
+        scenes.push(current);
+        current = { start: d.timestamp_sec, end: d.timestamp_sec, faces: [d] };
+      }
+    }
+    scenes.push(current);
+    return scenes;
+  };
+
+  // ── Polling ──
   const startPolling = (jId) => {
     pollRef.current = setInterval(async () => {
       try {
@@ -136,18 +156,14 @@ function VideoModal({ rec, onClose }) {
         const data = await r.json();
         setJobStatus(data.status);
         setProgress(data.progress_pct || 0);
-
         if (data.status === "done") {
           clearInterval(pollRef.current);
-          // Ambil hasil deteksi
           const r2 = await fetch(`${getBase()}/ai/jobs/${jId}/results`, {
             headers: { Authorization: `Bearer ${getToken()}` },
           });
           if (r2.ok) setResults(await r2.json());
         }
-        if (data.status === "failed") {
-          clearInterval(pollRef.current);
-        }
+        if (data.status === "failed") clearInterval(pollRef.current);
       } catch (_e) { /* silent */ }
     }, 2000);
   };
@@ -163,11 +179,9 @@ function VideoModal({ rec, onClose }) {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || "Gagal memulai analisis");
-      setJobId(data.job_id);
+      if (!r.ok) throw new Error(data.detail || "Gagal");
       setJobStatus(data.status);
       if (data.status === "done") {
-        // Sudah punya hasil sebelumnya
         const r2 = await fetch(`${getBase()}/ai/jobs/${data.job_id}/results`, {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
@@ -175,19 +189,23 @@ function VideoModal({ rec, onClose }) {
       } else {
         startPolling(data.job_id);
       }
-    } catch (err) {
+    } catch (_e) {
       setJobStatus("failed");
     } finally {
       setStarting(false);
     }
   };
 
+  const jumpTo = (sec) => { if (videoRef.current) videoRef.current.currentTime = sec; };
+  const fmtSec = (s) => { const m = Math.floor(s/60); return `${m}:${String(Math.floor(s%60)).padStart(2,"0")}`; };
+
   const dt      = rec.created_at ? new Date(rec.created_at) : null;
   const dateStr = dt ? dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "—";
   const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—";
   const sizeStr = rec.size_bytes ? `${(rec.size_bytes / 1e6).toFixed(1)} MB` : "—";
-
   const isRunning = jobStatus === "pending" || jobStatus === "running";
+  const scenes = results ? groupIntoScenes(results.detections) : [];
+  const dur = videoDur || 1;
 
   return (
     <div onClick={onClose} style={{
@@ -205,49 +223,42 @@ function VideoModal({ rec, onClose }) {
       }}>
 
         {/* ── Header ── */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "16px 20px", borderBottom: "1px solid #1F1F2E", background: "#0A0A0F",
-        }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid #1F1F2E", background: "#0A0A0F" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "#111118", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Film size={15} style={{ color: "#71717A" }} />
             </div>
             <div>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#FFF", margin: 0 }}>
-                {rec.camera_name || `Kamera #${rec.camera_id}`}
-              </h3>
-              <p style={{ fontSize: 11, color: "#71717A", margin: 0, fontFamily: "monospace" }}>
-                {dateStr} · {timeStr} · {sizeStr}
-              </p>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#FFF", margin: 0 }}>{rec.camera_name || `Kamera #${rec.camera_id}`}</h3>
+              <p style={{ fontSize: 11, color: "#71717A", margin: 0, fontFamily: "monospace" }}>{dateStr} · {timeStr} · {sizeStr}</p>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button onClick={() => setAiPanel(v => !v)} style={{
               display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 8,
-              background: aiPanel ? "#FFFFFF" : "transparent",
-              border: `1px solid ${aiPanel ? "#FFFFFF" : "#1F1F2E"}`,
-              color: aiPanel ? "#0A0A0F" : "#71717A",
-              fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
+              background: aiPanel ? "#FFFFFF" : "transparent", border: `1px solid ${aiPanel ? "#FFFFFF" : "#1F1F2E"}`,
+              color: aiPanel ? "#0A0A0F" : "#71717A", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s",
             }}
             onMouseEnter={(e) => { if (!aiPanel) { e.currentTarget.style.color="#FFF"; e.currentTarget.style.borderColor="#2D2D3F"; } }}
-            onMouseLeave={(e) => { if (!aiPanel) { e.currentTarget.style.color="#71717A"; e.currentTarget.style.borderColor="#1F1F2E"; } }}
-            >
+            onMouseLeave={(e) => { if (!aiPanel) { e.currentTarget.style.color="#71717A"; e.currentTarget.style.borderColor="#1F1F2E"; } }}>
               <ScanFace size={13} /> Analisis Wajah
-              {isRunning && <span style={{ width: 6, height: 6, borderRadius: "50%", background: aiPanel ? "#0A0A0F" : "#FFF", animation: "spin 1s linear infinite" }} />}
-              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", padding: "1px 5px", borderRadius: 3, background: aiPanel ? "rgba(0,0,0,0.15)" : "#111118", border: `1px solid ${aiPanel ? "rgba(0,0,0,0.2)" : "#1F1F2E"}`, color: aiPanel ? "#0A0A0F" : "#3D3D4F" }}>AI</span>
+              {isRunning && <span style={{ width:6, height:6, borderRadius:"50%", background: aiPanel?"#0A0A0F":"#FFF", animation:"spin 1s linear infinite" }} />}
+              {jobStatus === "done" && scenes.length > 0 && (
+                <span style={{ fontSize:9, fontWeight:700, padding:"1px 6px", borderRadius:3, background: aiPanel?"rgba(0,0,0,0.2)":"#1F1F2E", color: aiPanel?"#0A0A0F":"#FFF" }}>
+                  {scenes.length}
+                </span>
+              )}
+              <span style={{ fontSize:9, fontWeight:700, letterSpacing:"0.06em", padding:"1px 5px", borderRadius:3, background: aiPanel?"rgba(0,0,0,0.15)":"#111118", border:`1px solid ${aiPanel?"rgba(0,0,0,0.2)":"#1F1F2E"}`, color: aiPanel?"#0A0A0F":"#3D3D4F" }}>AI</span>
             </button>
-            <a href={videoUrl} download={`${(rec.camera_name || "cam").replace(/ /g, "_")}_rekaman.mp4`}
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 8, background: "transparent", border: "1px solid #1F1F2E", color: "#71717A", fontSize: 12, fontWeight: 600, textDecoration: "none", transition: "color 0.15s, border-color 0.15s" }}
+            <a href={videoUrl} download={`${(rec.camera_name||"cam").replace(/ /g,"_")}_rekaman.mp4`}
+              style={{ display:"flex", alignItems:"center", gap:7, padding:"8px 14px", borderRadius:8, background:"transparent", border:"1px solid #1F1F2E", color:"#71717A", fontSize:12, fontWeight:600, textDecoration:"none", transition:"color 0.15s, border-color 0.15s" }}
               onMouseEnter={(e) => { e.currentTarget.style.color="#FFF"; e.currentTarget.style.borderColor="#2D2D3F"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color="#71717A"; e.currentTarget.style.borderColor="#1F1F2E"; }}
-            >
+              onMouseLeave={(e) => { e.currentTarget.style.color="#71717A"; e.currentTarget.style.borderColor="#1F1F2E"; }}>
               <Download size={13} /> Unduh
             </a>
-            <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 6, background: "transparent", border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-              onMouseEnter={(e) => e.currentTarget.style.color = "#FFF"}
-              onMouseLeave={(e) => e.currentTarget.style.color = "#71717A"}
-            >
+            <button onClick={onClose} style={{ width:28, height:28, borderRadius:6, background:"transparent", border:"1px solid #1F1F2E", color:"#71717A", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}
+              onMouseEnter={(e) => e.currentTarget.style.color="#FFF"}
+              onMouseLeave={(e) => e.currentTarget.style.color="#71717A"}>
               <X size={13} />
             </button>
           </div>
@@ -260,76 +271,75 @@ function VideoModal({ rec, onClose }) {
             <video ref={videoRef} controls autoPlay
               style={{ width: "100%", maxHeight: "60vh", display: "block" }}
               src={videoUrl}
+              onLoadedMetadata={(e) => setVideoDur(e.target.duration)}
             />
           </div>
 
-          {/* Panel AI */}
+          {/* ── Panel AI ── */}
           {aiPanel && (
-            <div style={{ width: 260, flexShrink: 0, borderLeft: "1px solid #1F1F2E", background: "#0A0A0F", display: "flex", flexDirection: "column" }}>
+            <div style={{ width: 280, flexShrink: 0, borderLeft: "1px solid #1F1F2E", background: "#0A0A0F", display: "flex", flexDirection: "column" }}>
 
               {/* Panel header */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px", borderBottom: "1px solid #1F1F2E" }}>
-                <div style={{ width: 28, height: 28, borderRadius: 7, background: "#111118", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <ScanFace size={13} style={{ color: "#71717A" }} />
+              <div style={{ padding: "13px 16px", borderBottom: "1px solid #1F1F2E" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 6, background: "#111118", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <ScanFace size={12} style={{ color: "#71717A" }} />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#FFF" }}>Analisis Wajah</span>
+                  <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, letterSpacing: "0.07em", padding: "2px 6px", borderRadius: 4, background: "#111118", border: "1px solid #1F1F2E", color: "#3D3D4F" }}>BETA</span>
                 </div>
-                <div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#FFF", display: "block" }}>Analisis Wajah</span>
-                  <span style={{ fontSize: 10, color: "#3D3D4F" }}>
-                    {jobStatus === "done" ? `${results?.faces_found || 0} wajah ditemukan` : "Deteksi AI pada rekaman"}
-                  </span>
-                </div>
-                <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, letterSpacing: "0.07em", padding: "2px 7px", borderRadius: 4, background: "#111118", border: "1px solid #1F1F2E", color: "#3D3D4F" }}>BETA</span>
+                <p style={{ fontSize: 11, color: "#3D3D4F", margin: 0 }}>
+                  {jobStatus === "done"
+                    ? `${scenes.length} penampakan terdeteksi dari ${results.faces_found} frame`
+                    : "Deteksi penampakan wajah dalam rekaman"}
+                </p>
               </div>
 
-              {/* Konten panel */}
+              {/* Konten */}
               <div style={{ flex: 1, overflowY: "auto" }}>
 
                 {/* State: belum mulai */}
                 {!jobStatus && (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, gap: 16, height: "100%" }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 11, background: "#111118", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <ScanFace size={20} style={{ color: "#2D2D3F" }} />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 20px", gap: 16, minHeight: 200 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 12, background: "#111118", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <ScanFace size={22} style={{ color: "#2D2D3F" }} />
                     </div>
                     <div style={{ textAlign: "center" }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#FFF", margin: "0 0 6px" }}>Siap Diaktifkan</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#FFF", margin: "0 0 6px" }}>Mulai Analisis</p>
                       <p style={{ fontSize: 11, color: "#71717A", margin: 0, lineHeight: 1.6 }}>
-                        Klik tombol di bawah untuk mulai mendeteksi wajah pada rekaman ini
+                        AI akan memindai seluruh rekaman dan mengelompokkan penampakan wajah berdasarkan waktu kemunculan
                       </p>
                     </div>
                     <button onClick={handleStartAnalysis} disabled={starting} style={{
                       width: "100%", padding: "10px 0", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
                       background: "#FFFFFF", color: "#0A0A0F", border: "none",
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                      opacity: starting ? 0.7 : 1, transition: "background 0.15s",
+                      opacity: starting ? 0.7 : 1,
                     }}
-                    onMouseEnter={(e) => { if (!starting) e.currentTarget.style.background = "#E5E5E5"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "#FFFFFF"; }}
-                    >
+                    onMouseEnter={(e) => { if (!starting) e.currentTarget.style.background="#E5E5E5"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background="#FFFFFF"; }}>
                       <Play size={12} /> {starting ? "Memulai..." : "Mulai Deteksi"}
                     </button>
                   </div>
                 )}
 
-                {/* State: running/pending */}
+                {/* State: running */}
                 {isRunning && (
-                  <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 9, background: "#111118", border: "1px solid #1F1F2E" }}>
                       <RefreshCw size={14} style={{ color: "#71717A", animation: "spin 1s linear infinite", flexShrink: 0 }} />
                       <div>
                         <p style={{ fontSize: 12, fontWeight: 600, color: "#FFF", margin: 0 }}>
-                          {jobStatus === "pending" ? "Menunggu..." : "Menganalisis..."}
+                          {jobStatus === "pending" ? "Menunggu giliran..." : "Memindai rekaman..."}
                         </p>
-                        <p style={{ fontSize: 10, color: "#71717A", margin: "2px 0 0", fontFamily: "monospace" }}>
-                          {progress}% selesai
-                        </p>
+                        <p style={{ fontSize: 10, color: "#71717A", margin: "2px 0 0", fontFamily: "monospace" }}>{progress}% selesai</p>
                       </div>
                     </div>
-                    {/* Progress bar */}
-                    <div style={{ height: 4, borderRadius: 99, background: "#1F1F2E", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${progress}%`, background: "#FFFFFF", borderRadius: 99, transition: "width 0.5s ease" }} />
+                    <div style={{ height: 3, borderRadius: 99, background: "#1F1F2E", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${progress}%`, background: "#FFF", borderRadius: 99, transition: "width 0.5s ease" }} />
                     </div>
-                    <p style={{ fontSize: 11, color: "#3D3D4F", margin: 0, lineHeight: 1.5 }}>
-                      Video dianalisis 1 frame/detik untuk menghemat resource server.
+                    <p style={{ fontSize: 10, color: "#2D2D3F", margin: 0, lineHeight: 1.6 }}>
+                      Menganalisis 1 frame/detik untuk efisiensi server
                     </p>
                   </div>
                 )}
@@ -339,9 +349,7 @@ function VideoModal({ rec, onClose }) {
                   <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
                     <div style={{ padding: "12px 14px", borderRadius: 9, background: "#0A0A0F", border: "1px solid #1F1F2E" }}>
                       <p style={{ fontSize: 12, fontWeight: 600, color: "#FFF", margin: "0 0 4px" }}>Analisis Gagal</p>
-                      <p style={{ fontSize: 11, color: "#71717A", margin: 0, lineHeight: 1.5 }}>
-                        File video mungkin tidak ditemukan di server atau terjadi error saat proses.
-                      </p>
+                      <p style={{ fontSize: 11, color: "#71717A", margin: 0, lineHeight: 1.5 }}>File video tidak dapat dibaca. Pastikan rekaman tersimpan di server.</p>
                     </div>
                     <button onClick={handleStartAnalysis} style={{ width: "100%", padding: "9px 0", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", background: "transparent", border: "1px solid #1F1F2E", color: "#71717A" }}>
                       Coba Lagi
@@ -349,54 +357,127 @@ function VideoModal({ rec, onClose }) {
                   </div>
                 )}
 
-                {/* State: done — tampilkan hasil */}
+                {/* State: done ── Timeline + Scene grouping ── */}
                 {jobStatus === "done" && results && (
-                  <div style={{ padding: "8px 0" }}>
-                    {results.detections.length === 0 ? (
+                  <div>
+                    {scenes.length === 0 ? (
                       <div style={{ padding: "32px 16px", textAlign: "center" }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 9, background: "#111118", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 9, background: "#111118", border: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
                           <ScanFace size={16} style={{ color: "#2D2D3F" }} />
                         </div>
                         <p style={{ fontSize: 12, fontWeight: 600, color: "#FFF", margin: "0 0 4px" }}>Tidak ada wajah</p>
                         <p style={{ fontSize: 11, color: "#71717A", margin: 0 }}>Tidak ada wajah terdeteksi dalam rekaman ini.</p>
                       </div>
-                    ) : results.detections.map((det, i) => (
-                      <div key={det.id} style={{ margin: "4px 10px", padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid #1A1A26", display: "flex", alignItems: "center", gap: 10 }}>
-                        {/* Thumbnail wajah */}
-                        {det.face_crop_b64 && (
-                          <img
-                            src={`data:image/jpeg;base64,${det.face_crop_b64}`}
-                            alt={`Wajah ${i+1}`}
-                            style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover", border: "1px solid #1F1F2E", flexShrink: 0 }}
-                          />
-                        )}
-                        <div style={{ minWidth: 0 }}>
-                          <p style={{ fontSize: 12, fontWeight: 600, color: "#FFF", margin: "0 0 3px" }}>Wajah {i+1}</p>
-                          <p style={{ fontSize: 10, color: "#71717A", margin: 0, fontFamily: "monospace" }}>
-                            {det.timestamp_sec.toFixed(1)}s · {Math.round(det.bbox.w * 100)}×{Math.round(det.bbox.h * 100)}%
+                    ) : (
+                      <>
+                        {/* ── Timeline Bar ── */}
+                        <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #1A1A26" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                            <span style={{ fontSize: 10, color: "#3D3D4F" }}>0:00</span>
+                            <span style={{ fontSize: 10, color: "#3D3D4F" }}>{fmtSec(dur)}</span>
+                          </div>
+                          {/* Track */}
+                          <div style={{ position: "relative", height: 20, borderRadius: 6, background: "#111118", border: "1px solid #1A1A26", overflow: "hidden" }}>
+                            {/* Marker tiap deteksi */}
+                            {results.detections.map((det, i) => (
+                              <button key={i} onClick={() => jumpTo(det.timestamp_sec)}
+                                title={`Wajah di ${fmtSec(det.timestamp_sec)}`}
+                                style={{
+                                  position: "absolute", left: `${(det.timestamp_sec / dur) * 100}%`,
+                                  top: "50%", transform: "translate(-50%,-50%)",
+                                  width: 6, height: 6, borderRadius: "50%",
+                                  background: "#FFFFFF", border: "none", cursor: "pointer", padding: 0,
+                                  opacity: 0.7,
+                                }}
+                              />
+                            ))}
+                            {/* Scene range highlight */}
+                            {scenes.map((sc, i) => (
+                              <div key={i} onClick={() => jumpTo(sc.start)} style={{
+                                position: "absolute",
+                                left: `${(sc.start / dur) * 100}%`,
+                                width: `${Math.max(((sc.end - sc.start) / dur) * 100, 1)}%`,
+                                top: 0, bottom: 0,
+                                background: "rgba(255,255,255,0.08)",
+                                cursor: "pointer",
+                              }} />
+                            ))}
+                          </div>
+                          <p style={{ fontSize: 10, color: "#2D2D3F", margin: "6px 0 0" }}>
+                            {results.detections.length} titik deteksi · {scenes.length} penampakan
                           </p>
                         </div>
-                        {/* Tombol jump ke waktu */}
-                        <button onClick={() => { if (videoRef.current) videoRef.current.currentTime = det.timestamp_sec; }}
-                          title="Lompat ke waktu ini"
-                          style={{ marginLeft: "auto", width: 26, height: 26, borderRadius: 6, background: "transparent", border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                          onMouseEnter={(e) => { e.currentTarget.style.color="#FFF"; e.currentTarget.style.borderColor="#2D2D3F"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.color="#71717A"; e.currentTarget.style.borderColor="#1F1F2E"; }}
-                        >
-                          <Play size={10} />
-                        </button>
-                      </div>
-                    ))}
+
+                        {/* ── Scene Cards ── */}
+                        <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
+                          {scenes.map((sc, idx) => {
+                            // Ambil thumbnail pertama yang ada di scene ini
+                            const thumb = sc.faces.find(f => f.face_crop_b64);
+                            const facesWithThumb = sc.faces.filter(f => f.face_crop_b64);
+                            return (
+                              <div key={idx} style={{ borderRadius: 9, background: "#111118", border: "1px solid #1A1A26", overflow: "hidden" }}>
+                                {/* Scene header */}
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
+                                  {/* Thumbnails */}
+                                  <div style={{ display: "flex", gap: -4, flexShrink: 0 }}>
+                                    {facesWithThumb.slice(0, 3).map((f, fi) => (
+                                      <img key={fi} src={`data:image/jpeg;base64,${f.face_crop_b64}`}
+                                        alt="" style={{ width: 36, height: 36, borderRadius: 7, objectFit: "cover", border: "2px solid #111118", marginLeft: fi > 0 ? -8 : 0 }} />
+                                    ))}
+                                    {!thumb && (
+                                      <div style={{ width: 36, height: 36, borderRadius: 7, background: "#0A0A0F", border: "1px solid #1A1A26", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <ScanFace size={14} style={{ color: "#2D2D3F" }} />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontSize: 12, fontWeight: 700, color: "#FFF", margin: "0 0 2px" }}>
+                                      Penampakan {idx + 1}
+                                    </p>
+                                    <p style={{ fontSize: 10, color: "#71717A", margin: 0, fontFamily: "monospace" }}>
+                                      {fmtSec(sc.start)}{sc.end > sc.start ? ` – ${fmtSec(sc.end)}` : ""} · {sc.faces.length} frame
+                                    </p>
+                                  </div>
+
+                                  {/* Jump button */}
+                                  <button onClick={() => jumpTo(sc.start)} title={`Lompat ke ${fmtSec(sc.start)}`}
+                                    style={{ width: 28, height: 28, borderRadius: 6, background: "transparent", border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.color="#FFF"; e.currentTarget.style.background="rgba(255,255,255,0.08)"; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.color="#71717A"; e.currentTarget.style.background="transparent"; }}>
+                                    <Play size={11} />
+                                  </button>
+                                </div>
+
+                                {/* Duration bar */}
+                                <div style={{ height: 2, background: "#1A1A26" }}>
+                                  <div style={{ height: "100%", width: `${Math.min(((sc.end - sc.start + 1) / dur) * 100 * 5, 100)}%`, background: "rgba(255,255,255,0.2)" }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Ulangi analisis */}
+                        <div style={{ padding: "4px 10px 12px" }}>
+                          <button onClick={handleStartAnalysis} style={{ width: "100%", padding: "7px 0", borderRadius: 7, fontSize: 11, fontWeight: 500, cursor: "pointer", background: "transparent", border: "1px solid #1A1A26", color: "#3D3D4F" }}
+                            onMouseEnter={(e) => { e.currentTarget.style.color="#71717A"; e.currentTarget.style.borderColor="#2D2D3F"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color="#3D3D4F"; e.currentTarget.style.borderColor="#1A1A26"; }}>
+                            Analisis Ulang
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
 
               {/* Panel footer */}
-              <div style={{ padding: "10px 16px", borderTop: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0A0A0F" }}>
-                <span style={{ fontSize: 10, color: "#3D3D4F" }}>
-                  {jobStatus === "done" ? `${results?.faces_found || 0} wajah` : isRunning ? `${progress}%` : "Belum dijalankan"}
+              <div style={{ padding: "9px 16px", borderTop: "1px solid #1F1F2E", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0A0A0F" }}>
+                <span style={{ fontSize: 10, color: "#2D2D3F" }}>
+                  {jobStatus === "done" ? `${scenes.length} penampakan` : isRunning ? `${progress}%` : "Siap"}
                 </span>
-                <span style={{ fontSize: 10, color: "#3D3D4F", fontFamily: "monospace" }}>
+                <span style={{ fontSize: 10, color: "#2D2D3F", fontFamily: "monospace" }}>
                   {jobStatus === "done" ? "SELESAI" : isRunning ? "PROSES..." : "READY"}
                 </span>
               </div>
@@ -413,6 +494,8 @@ function VideoModal({ rec, onClose }) {
     </div>
   );
 }
+
+
 /* ── Main Page ── */
 export default function RecordingsPage() {
   const [recordings, setRecordings] = useState([]);
