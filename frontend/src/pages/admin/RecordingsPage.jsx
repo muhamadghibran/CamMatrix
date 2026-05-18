@@ -110,100 +110,195 @@ function VideoModal({ rec, onClose }) {
       return `${API_BASE_URL}/recordings/${rec.id}/download?token=${encodeURIComponent(token)}`;
     } catch {
       return "";
-    }
+    } catch { return ""; }
   };
 
-  // Tutup modal saat tekan Escape
   useEffect(() => {
     const handler = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
+  const drawBoxes = (detectedFaces) => {
+    const canvas = canvasRef.current;
+    const video  = videoRef.current;
+    if (!canvas || !video) return;
+    canvas.width  = video.clientWidth;
+    canvas.height = video.clientHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const sx = canvas.width  / (video.videoWidth  || canvas.width);
+    const sy = canvas.height / (video.videoHeight || canvas.height);
+    detectedFaces.forEach((f, i) => {
+      const x = (f.boundingBox?.x ?? 0) * sx;
+      const y = (f.boundingBox?.y ?? 0) * sy;
+      const w = (f.boundingBox?.width  ?? 80) * sx;
+      const h = (f.boundingBox?.height ?? 80) * sy;
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = "rgba(0,0,0,0.75)";
+      ctx.fillRect(x, y - 22, 80, 20);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 11px monospace";
+      ctx.fillText(`Wajah ${i+1}`, x + 6, y - 7);
+    });
+  };
+
+  const analyzeFrame = async () => {
+    const video = videoRef.current;
+    if (!video || video.paused || video.ended || !video.videoWidth) return;
+    if (!("FaceDetector" in window)) { setApiSupported(false); return; }
+    setScanning(true);
+    try {
+      const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 10 });
+      const detected = await detector.detect(video);
+      setFaces(detected);
+      drawBoxes(detected);
+      setFrameCount(c => c + 1);
+    } catch { /* silent */ }
+    finally { setScanning(false); }
+  };
+
+  useEffect(() => {
+    if (faceMode) {
+      intervalRef.current = setInterval(analyzeFrame, 2000);
+    } else {
+      clearInterval(intervalRef.current);
+      setFaces([]);
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext("2d");
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [faceMode]);
+
   const dt = rec.created_at ? new Date(rec.created_at) : null;
-  const dateStr = dt ? dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "—";
-  const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—";
+  const dateStr = dt ? dt.toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric" }) : "—";
+  const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit" }) : "—";
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        animation: "fadeUp 0.2s ease both",
-        padding: 20,
+    <div onClick={onClose} style={{
+      position:"fixed", inset:0, zIndex:1000,
+      background:"rgba(0,0,0,0.88)", backdropFilter:"blur(10px)",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      padding:20, animation:"fadeUp 0.2s ease both",
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width:"100%", maxWidth: faceMode ? 1200 : 900,
+        background:"#0D0D14", border:"1px solid #1F1F2E",
+        borderRadius:16, overflow:"hidden",
+        boxShadow:"0 32px 80px rgba(0,0,0,0.9)",
+        transition:"max-width 0.3s cubic-bezier(0.16,1,0.3,1)",
+        animation:"fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both",
       }}>
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: 900,
-          background: "#0D0D14", border: "1px solid #1F1F2E",
-          borderRadius: 16, overflow: "hidden",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.8)",
-          animation: "fadeUp 0.25s cubic-bezier(0.16,1,0.3,1) both",
-        }}>
 
-        {/* Header modal */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 20px", borderBottom: "1px solid #1F1F2E", background: "#0A0A0F"
-        }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF" }}>
-              {rec.camera_name || `Kamera #${rec.camera_id}`}
-            </span>
-            <span style={{ fontSize: 11, color: "#71717A", fontFamily: "monospace" }}>
-              {dateStr} · {timeStr} · {rec.size_bytes ? `${(rec.size_bytes/1e6).toFixed(1)} MB` : "—"}
-            </span>
+        {/* ── Header ── */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 20px", borderBottom:"1px solid #1F1F2E", background:"#0A0A0F" }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+            <span style={{ fontSize:15, fontWeight:700, color:"#FFF" }}>{rec.camera_name || `Kamera #${rec.camera_id}`}</span>
+            <span style={{ fontSize:11, color:"#71717A", fontFamily:"monospace" }}>{dateStr} · {timeStr} · {rec.size_bytes ? `${(rec.size_bytes/1e6).toFixed(1)} MB` : "—"}</span>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {/* Tombol unduh di modal */}
-            <a
-              href={buildVideoUrl()}
-              download={`${(rec.camera_name||"cam").replace(/ /g,"_")}_rekaman.mp4`}
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "7px 14px", borderRadius: 7, fontSize: 12, fontWeight: 600,
-                background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
-                color: "#FFFFFF", textDecoration: "none", cursor: "pointer",
-              }}>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            <button onClick={() => setFaceMode(v => !v)} style={{
+              display:"flex", alignItems:"center", gap:7,
+              padding:"7px 14px", borderRadius:7, fontSize:12, fontWeight:600, cursor:"pointer",
+              background: faceMode ? "rgba(255,255,255,0.12)" : "transparent",
+              border:`1px solid ${faceMode ? "rgba(255,255,255,0.3)" : "#1F1F2E"}`,
+              color: faceMode ? "#FFFFFF" : "#71717A", transition:"all 0.2s",
+            }}>
+              <span style={{ fontSize:14 }}>🔍</span>
+              {faceMode ? "Nonaktifkan AI" : "Analisis Wajah"}
+              {faceMode && scanning && (
+                <span style={{ width:7, height:7, borderRadius:"50%", background:"#fff", animation:"pulse 1s ease infinite" }} />
+              )}
+            </button>
+            <a href={buildVideoUrl()} download={`${(rec.camera_name||"cam").replace(/ /g,"_")}_rekaman.mp4`}
+              style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 14px", borderRadius:7, fontSize:12, fontWeight:600, background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.15)", color:"#FFF", textDecoration:"none" }}>
               <Download size={12} /> Unduh
             </a>
-            <button onClick={onClose} style={{
-              width: 30, height: 30, borderRadius: 7, background: "#111118",
-              border: "1px solid #1F1F2E", color: "#71717A", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.color="#FFF"; e.currentTarget.style.background="#1F1F2E"; }}
-            onMouseLeave={e => { e.currentTarget.style.color="#71717A"; e.currentTarget.style.background="#111118"; }}>
+            <button onClick={onClose} style={{ width:30, height:30, borderRadius:7, background:"#111118", border:"1px solid #1F1F2E", color:"#71717A", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}
+              onMouseEnter={e => { e.currentTarget.style.color="#FFF"; e.currentTarget.style.background="#1F1F2E"; }}
+              onMouseLeave={e => { e.currentTarget.style.color="#71717A"; e.currentTarget.style.background="#111118"; }}>
               <X size={14} />
             </button>
           </div>
         </div>
 
-        {/* Video player */}
-        <div style={{ background: "#000", position: "relative" }}>
-          <video
-            ref={videoRef}
-            controls
-            autoPlay
-            style={{ width: "100%", maxHeight: "55vh", display: "block", background: "#000" }}
-            src={buildVideoUrl()}
-            onError={() => console.error("Gagal memuat video")}
-          >
-            Browser kamu tidak mendukung tag video.
-          </video>
+        {/* ── Body: Video + Panel ── */}
+        <div style={{ display:"flex" }}>
+          {/* Video + canvas overlay */}
+          <div style={{ flex:1, background:"#000", position:"relative", minWidth:0 }}>
+            <video ref={videoRef} controls autoPlay
+              style={{ width:"100%", maxHeight:"55vh", display:"block", background:"#000" }}
+              src={buildVideoUrl()}
+            />
+            <canvas ref={canvasRef} style={{ position:"absolute", inset:0, pointerEvents:"none", width:"100%", height:"100%" }} />
+            {faceMode && scanning && (
+              <div style={{ position:"absolute", top:10, left:10, display:"flex", alignItems:"center", gap:6, padding:"4px 10px", borderRadius:6, background:"rgba(0,0,0,0.7)", border:"1px solid rgba(255,255,255,0.1)" }}>
+                <span style={{ width:6, height:6, borderRadius:"50%", background:"#fff", animation:"pulse 1s ease infinite" }} />
+                <span style={{ fontSize:11, color:"#FFF", fontWeight:600 }}>Mendeteksi...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Panel Analisis */}
+          {faceMode && (
+            <div style={{ width:250, flexShrink:0, borderLeft:"1px solid #1F1F2E", background:"#0A0A0F", display:"flex", flexDirection:"column", animation:"fadeUp 0.25s ease both" }}>
+              <div style={{ padding:"13px 16px", borderBottom:"1px solid #1F1F2E", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <span style={{ fontSize:12, fontWeight:700, color:"#FFF" }}>🔍 Deteksi Wajah</span>
+                <span style={{ fontSize:10, color:"#3D3D4F", fontFamily:"monospace" }}>#{frameCount}</span>
+              </div>
+              {!apiSupported && (
+                <div style={{ margin:12, padding:"10px 12px", borderRadius:8, background:"rgba(255,255,255,0.04)", border:"1px solid #2D2D3F" }}>
+                  <p style={{ fontSize:11, color:"#71717A", margin:0, lineHeight:1.6 }}>
+                    ⚠️ Gunakan <strong style={{ color:"#FFF" }}>Chrome/Edge</strong> terbaru untuk fitur ini.
+                  </p>
+                </div>
+              )}
+              <div style={{ flex:1, overflowY:"auto", padding:"8px 0" }}>
+                {faces.length === 0 ? (
+                  <div style={{ padding:"32px 16px", textAlign:"center" }}>
+                    <div style={{ fontSize:28, marginBottom:8 }}>👤</div>
+                    <p style={{ fontSize:12, color:"#71717A", margin:0 }}>Belum ada wajah terdeteksi</p>
+                    <p style={{ fontSize:11, color:"#3D3D4F", margin:"4px 0 0" }}>Scan tiap 2 detik...</p>
+                  </div>
+                ) : faces.map((f, i) => {
+                  const conf = f.confidence ? Math.round(f.confidence * 100) : null;
+                  return (
+                    <div key={i} style={{ margin:"4px 10px", padding:"10px 12px", borderRadius:8, background:"rgba(255,255,255,0.04)", border:"1px solid #1A1A26" }}>
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
+                        <span style={{ fontSize:12, fontWeight:700, color:"#FFF" }}>Wajah {i+1}</span>
+                        {conf !== null && (
+                          <span style={{ fontSize:10, fontWeight:600, color:"#FFF", padding:"2px 7px", borderRadius:4, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.15)" }}>{conf}%</span>
+                        )}
+                      </div>
+                      {conf !== null && (
+                        <div style={{ height:3, borderRadius:99, background:"#1A1A26", overflow:"hidden" }}>
+                          <div style={{ height:"100%", width:`${conf}%`, background:"#FFF", borderRadius:99, transition:"width 0.3s" }} />
+                        </div>
+                      )}
+                      <p style={{ fontSize:10, color:"#3D3D4F", margin:"6px 0 0", fontFamily:"monospace" }}>
+                        {f.boundingBox ? `${Math.round(f.boundingBox.width)}×${Math.round(f.boundingBox.height)}px` : ""}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ padding:"10px 14px", borderTop:"1px solid #1F1F2E" }}>
+                <p style={{ fontSize:10, color:"#3D3D4F", margin:0 }}>Scan setiap 2 detik · {faces.length} wajah</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Footer info */}
-        <div style={{
-          padding: "10px 20px", borderTop: "1px solid #1F1F2E",
-          display: "flex", alignItems: "center", gap: 16,
-          background: "#0A0A0F"
-        }}>
-          <span style={{ fontSize: 11, color: "#3D3D4F" }}>⌨ Tekan Esc untuk menutup</span>
-          <span style={{ fontSize: 11, color: "#3D3D4F" }}>🖱 Klik di luar video untuk menutup</span>
+        {/* Footer */}
+        <div style={{ padding:"10px 20px", borderTop:"1px solid #1F1F2E", display:"flex", alignItems:"center", gap:16, background:"#0A0A0F" }}>
+          <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
+          <span style={{ fontSize:11, color:"#3D3D4F" }}>⌨ Esc untuk menutup</span>
+          <span style={{ fontSize:11, color:"#3D3D4F" }}>🖱 Klik luar untuk menutup</span>
+          {faceMode && <span style={{ fontSize:11, color:"#3D3D4F", marginLeft:"auto" }}>🔍 AI aktif · Chrome/Edge diperlukan</span>}
         </div>
       </div>
     </div>
