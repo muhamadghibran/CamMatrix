@@ -1,6 +1,8 @@
 """
 Endpoint publik statistik dashboard — data real dari database dan MediaMTX.
 """
+import psutil
+from datetime import datetime, timedelta
 from typing import Any
 import asyncio
 import httpx
@@ -11,6 +13,8 @@ from app.api import deps
 from app.models.camera import Camera
 from app.models.recording import Recording
 from app.models.user import User
+from app.models.person_tracking import PersonSighting
+from app.models.face_analysis import FaceAnalysisJob
 from app.core.config import settings
 from app.api.v1.endpoints.cameras import _path_name
 
@@ -70,6 +74,65 @@ async def dashboard_stats(
     )
     active_users = user_result.scalar() or 0
 
+    # System Health
+    try:
+        cpu_usage = psutil.cpu_percent(interval=None)
+        ram = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        net = psutil.net_io_counters()
+        net_mb = round((net.bytes_sent + net.bytes_recv) / 1024 / 1024, 1)
+        system_health = [
+            {"label": "CPU Usage", "value": round(cpu_usage), "max": 100, "unit": "%"},
+            {"label": "RAM Usage", "value": round(ram.percent), "max": 100, "unit": "%"},
+            {"label": "Disk Usage", "value": round(disk.percent), "max": 100, "unit": "%"},
+            {"label": "Network I/O", "value": net_mb, "max": max(100, net_mb), "unit": " MB"},
+        ]
+    except Exception as e:
+        system_health = []
+
+    # Heat Data (Detection by hour for the last 24h)
+    heat_data = [0] * 24
+    try:
+        now = datetime.now()
+        past_24h = now - timedelta(hours=24)
+        sighting_result = await db.execute(
+            select(PersonSighting.created_at)
+            .where(PersonSighting.created_at >= past_24h)
+        )
+        for (created_at,) in sighting_result:
+            if created_at:
+                heat_data[created_at.hour] += 1
+    except Exception:
+        pass
+
+    # Alerts
+    alerts = []
+    # 1. Offline cameras
+    for cam, is_live in zip(cameras, live_statuses):
+        if not is_live:
+            alerts.append({"level": "high", "msg": f"Kamera {cam.name} offline", "time": "—"})
+    
+    # 2. Failed AI Jobs
+    try:
+        job_result = await db.execute(
+            select(FaceAnalysisJob)
+            .where(FaceAnalysisJob.status == "failed")
+            .order_by(FaceAnalysisJob.created_at.desc())
+            .limit(3)
+        )
+        for j in job_result.scalars().all():
+            time_str = j.created_at.strftime("%H:%M") if j.created_at else "—"
+            alerts.append({"level": "medium", "msg": f"Analisis AI Gagal (Rekaman {j.recording_id})", "time": time_str})
+    except Exception:
+        pass
+
+    # 3. Disk Space Alert
+    try:
+        if disk.percent > 85:
+            alerts.append({"level": "high", "msg": f"Penyimpanan kritis {disk.percent}%", "time": "—"})
+    except Exception:
+        pass
+
     return {
         "total_cameras":   total_cameras,
         "live_cameras":    live_count,
@@ -77,6 +140,9 @@ async def dashboard_stats(
         "total_recordings": total_recordings,
         "storage_gb":      storage_gb,
         "active_users":    active_users,
+        "system_health":   system_health,
+        "heat_data":       heat_data,
+        "alerts":          alerts,
     }
 
 

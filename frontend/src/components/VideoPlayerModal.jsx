@@ -2,11 +2,7 @@ import { X, Download, Play, Pause, Volume2, VolumeX, Maximize2, ScanFace, User, 
 import { useState, useRef, useEffect } from "react";
 
 /* Placeholder face detection results - ready for AI integration */
-const mockFaceResults = [
-  { id: 1, label: "Orang #1", confidence: 0.94, time: "00:03", known: false },
-  { id: 2, label: "Orang #2", confidence: 0.87, time: "00:11", known: false },
-  { id: 3, label: "Orang #3", confidence: 0.91, time: "00:22", known: false },
-];
+const mockFaceResults = [];
 
 function FaceDetectionPanel({ isAnalyzing }) {
   return (

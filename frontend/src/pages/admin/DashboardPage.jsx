@@ -159,26 +159,11 @@ export default function DashboardPage() {
     { label: "Pengguna",        value: stats.active_users,     sub: "akun aktif",                              icon: Users,     trend: "online" },
   ] : [];
 
-  /* Mock data — replace with real API when ready */
-  const mockAlerts = [
-    { level: "high",   msg: "Kamera HP Larix offline",             time: now ?? "—" },
-    { level: "medium", msg: "Deteksi wajah tidak dikenal — Lobi",  time: "12:35"   },
-    { level: "medium", msg: "Penyimpanan mendekati batas 80%",     time: "11:20"   },
-    { level: "low",    msg: "Sistem dimulai ulang — Server Room",  time: "08:00"   },
-  ];
-
-  const heatData = [
-    3,0,0,1,0,0,2,4,8,5,3,6, // 00-11
-    9,7,11,8,5,4,10,12,7,4,2,1 // 12-23
-  ];
-  const heatMax = Math.max(...heatData);
-
-  const systemHealth = [
-    { label: "CPU Usage",  value: 23, max: 100, unit: "%" },
-    { label: "RAM Usage",  value: 41, max: 100, unit: "%" },
-    { label: "Disk Usage", value: 12, max: 100, unit: "%" },
-    { label: "Network",    value: 38, max: 100, unit: " Mbps" },
-  ];
+  /* Data riil dari backend */
+  const alerts = stats?.alerts || [];
+  const heatData = stats?.heat_data || Array(24).fill(0);
+  const heatMax = Math.max(...heatData, 1);
+  const systemHealth = stats?.system_health || [];
 
   const quickActions = [
     { label: "Siaran Langsung", path: "/app/live",       icon: MonitorPlay },
@@ -283,14 +268,14 @@ export default function DashboardPage() {
               <div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#FFFFFF", display: "block" }}>Log Peringatan</span>
                 <span style={{ fontSize: 11, color: "#71717A" }}>
-                  <span style={{ color: "#FF4444" }}>●</span> {mockAlerts.filter(a => a.level === "high").length} kritis ·&nbsp;
-                  {mockAlerts.filter(a => a.level === "medium").length} sedang
+                  <span style={{ color: "#FF4444" }}>●</span> {alerts.filter(a => a.level === "high").length} kritis ·&nbsp;
+                  {alerts.filter(a => a.level === "medium").length} sedang
                 </span>
               </div>
             </div>
             <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, background: "#0A0A0F", border: "1px solid #1F1F2E", color: "#3D3D4F", fontWeight: 600, letterSpacing: "0.06em" }}>LIVE</span>
           </div>
-          {mockAlerts.map((a, i) => <AlertRow key={i} {...a} last={i === mockAlerts.length - 1} />)}
+          {alerts.map((a, i) => <AlertRow key={i} {...a} last={i === alerts.length - 1} />)}
         </div>
 
         {/* Right col: System Health + Quick Actions */}

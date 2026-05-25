@@ -66,58 +66,7 @@ const searchItems = [
     desc: "Deteksi wajah AI",
   },
 ];
-const mockNotifications = [
-  {
-    id: 1,
-    type: "alert",
-    title: "Wajah Tidak Dikenal",
-    desc: "Main Entrance — 08:14",
-    time: "2 mnt lalu",
-    read: false,
-    icon: "🚨",
-    color: "#ef4444",
-  },
-  {
-    id: 2,
-    type: "warning",
-    title: "Kamera Offline",
-    desc: "Parking Lot",
-    time: "15 mnt lalu",
-    read: false,
-    icon: "⚠️",
-    color: "#f59e0b",
-  },
-  {
-    id: 3,
-    type: "alert",
-    title: "Pergerakan Malam",
-    desc: "Side Gate — 02:33",
-    time: "3 jam lalu",
-    read: false,
-    icon: "🌙",
-    color: "#FFFFFF",
-  },
-  {
-    id: 4,
-    type: "info",
-    title: "AI Model Diperbarui",
-    desc: "Versi 3.2.1 aktif",
-    time: "1 hari lalu",
-    read: true,
-    icon: "🤖",
-    color: "#FFFFFF",
-  },
-  {
-    id: 5,
-    type: "info",
-    title: "Rekaman Otomatis Aktif",
-    desc: "5 kamera sedang merekam",
-    time: "1 hari lalu",
-    read: true,
-    icon: "🎬",
-    color: "#10b981",
-  },
-];
+const mockNotifications = [];
 function SearchModal({ onClose, isDark }) {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
