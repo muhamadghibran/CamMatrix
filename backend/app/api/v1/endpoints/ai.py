@@ -29,11 +29,21 @@ RECORDINGS_BASE = "/var/www/CamMatrix/recordings"
 
 
 def _resolve_video_path(minio_key: str) -> Optional[str]:
-    """Ambil path file lokal dari minio_key."""
-    if minio_key and minio_key.startswith("local:"):
-        parts = minio_key.split(":", 2)
-        return parts[2] if len(parts) >= 3 else None
-    return None
+    """Ekstrak path file lokal dari minio_key.
+    Format lama : 'local:{uuid}:{/abs/path/to/file.mp4}'
+    Format baru : 'local:{uuid}:{/abs/path/to/file.mp4}:src={source_basename}'
+    """
+    if not minio_key or not minio_key.startswith("local:"):
+        return None
+    parts = minio_key.split(":", 2)
+    if len(parts) < 3:
+        return None
+    raw_path = parts[2]
+    # Hapus suffix ':src=...' jika ada (format baru)
+    src_marker = ":src="
+    if src_marker in raw_path:
+        raw_path = raw_path[:raw_path.index(src_marker)]
+    return raw_path
 
 
 async def _run_job_background(job_id: int, video_path: str):

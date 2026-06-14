@@ -5,6 +5,8 @@ import {
 import { useState, useMemo, useEffect, useRef } from "react";
 import FaceAnalyticsPage from "./FaceAnalyticsPage";
 import api from "../../utils/api";
+import { useAuthStore } from "../../store/authStore";
+import { API_BASE_URL } from "../../constants/api";
 
 // ── Helpers ──
 const fmtSize  = (b) => b > 1e9 ? `${(b/1e9).toFixed(1)} GB` : `${(b/1e6).toFixed(1)} MB`;
@@ -103,19 +105,14 @@ function VideoModal({ rec, onClose }) {
   const pollRef  = useRef(null);
   const [aiPanel,   setAiPanel]   = useState(false);
   const [jobStatus, setJobStatus] = useState(null);
+  const [jobError,  setJobError]  = useState("");
   const [progress,  setProgress]  = useState(0);
   const [results,   setResults]   = useState(null);
   const [starting,  setStarting]  = useState(false);
   const [videoDur,  setVideoDur]  = useState(rec.duration || 0);
 
-  const getToken = () => {
-    try { return require("../../store/authStore").useAuthStore.getState().token || ""; }
-    catch (_e) { return ""; }
-  };
-  const getBase = () => {
-    try { return require("../../constants/api").API_BASE_URL || ""; }
-    catch (_e) { return ""; }
-  };
+  const getToken = () => useAuthStore.getState().token || "";
+  const getBase  = () => API_BASE_URL || "";
 
   const videoUrl = `${getBase()}/recordings/${rec.id}/download?token=${encodeURIComponent(getToken())}`;
 
@@ -173,13 +170,14 @@ function VideoModal({ rec, onClose }) {
     setStarting(true);
     setResults(null);
     setProgress(0);
+    setJobError("");
     try {
       const r = await fetch(`${getBase()}/ai/analyze/${rec.id}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || "Gagal");
+      if (!r.ok) throw new Error(data.detail || "Terjadi error pada server");
       setJobStatus(data.status);
       if (data.status === "done") {
         const r2 = await fetch(`${getBase()}/ai/jobs/${data.job_id}/results`, {
@@ -189,8 +187,9 @@ function VideoModal({ rec, onClose }) {
       } else {
         startPolling(data.job_id);
       }
-    } catch (_e) {
+    } catch (e) {
       setJobStatus("failed");
+      setJobError(e.message || "Koneksi ke server gagal");
     } finally {
       setStarting(false);
     }
@@ -349,7 +348,9 @@ function VideoModal({ rec, onClose }) {
                   <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
                     <div style={{ padding: "12px 14px", borderRadius: 9, background: "#0A0A0F", border: "1px solid #1F1F2E" }}>
                       <p style={{ fontSize: 12, fontWeight: 600, color: "#FFF", margin: "0 0 4px" }}>Analisis Gagal</p>
-                      <p style={{ fontSize: 11, color: "#71717A", margin: 0, lineHeight: 1.5 }}>File video tidak dapat dibaca. Pastikan rekaman tersimpan di server.</p>
+                      <p style={{ fontSize: 11, color: "#71717A", margin: 0, lineHeight: 1.5 }}>
+                        {jobError || "File video mungkin tidak ditemukan di server atau terjadi error saat proses."}
+                      </p>
                     </div>
                     <button onClick={handleStartAnalysis} style={{ width: "100%", padding: "9px 0", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", background: "transparent", border: "1px solid #1F1F2E", color: "#71717A" }}>
                       Coba Lagi
