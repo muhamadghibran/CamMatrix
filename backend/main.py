@@ -94,8 +94,9 @@ app.add_middleware(SlowAPIMiddleware)
 app.include_router(api_router, prefix="/api/v1")
 
 # WebSocket — real-time face detection
-from app.api.v1.endpoints import realtime_ws
-app.include_router(realtime_ws.router, prefix="/ws", tags=["realtime"])
+from app.api.v1.endpoints.realtime_ws import router as realtime_ws_router
+app.include_router(realtime_ws_router, prefix="/ws", tags=["realtime"])
+
 
 
 
