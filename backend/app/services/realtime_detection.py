@@ -178,9 +178,9 @@ class CameraWorker:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 faces = cascade.detectMultiScale(
                     gray,
-                    scaleFactor=1.1,
-                    minNeighbors=5,
-                    minSize=(30, 30),
+                    scaleFactor=1.05,
+                    minNeighbors=3,
+                    minSize=(20, 20),
                 )
 
                 boxes = []

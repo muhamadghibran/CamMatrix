@@ -4,15 +4,12 @@ import {
   Camera, Clock, Users, AlertCircle, CheckCircle2, Eye
 } from "lucide-react";
 import api from "../../utils/api";
+import { API_BASE_URL } from "../../constants/api";
+import { useAuthStore } from "../../store/authStore";
 
-const BASE = (() => {
-  try { return require("../../constants/api").API_BASE_URL || ""; }
-  catch (_) { return ""; }
-})();
-const token = () => {
-  try { return require("../../store/authStore").useAuthStore.getState().token || ""; }
-  catch (_) { return ""; }
-};
+const BASE = API_BASE_URL;
+const token = () => useAuthStore.getState().token || "";
+
 
 const fmtSec = (s) => {
   if (!s && s !== 0) return "—";
