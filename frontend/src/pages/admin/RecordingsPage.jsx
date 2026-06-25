@@ -2,9 +2,11 @@ import {
   Film, Download, Search, Filter, Clock,
   HardDrive, X, ChevronDown, Calendar, RefreshCw, Trash2, Play, ScanFace
 } from "lucide-react";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, Component } from "react";
 import FaceAnalyticsPage from "./FaceAnalyticsPage";
 import api from "../../utils/api";
+import { useAuthStore } from "../../store/authStore";
+import { API_BASE_URL } from "../../constants/api";
 
 // ── Helpers ──
 const fmtSize  = (b) => b > 1e9 ? `${(b/1e9).toFixed(1)} GB` : `${(b/1e6).toFixed(1)} MB`;
@@ -97,25 +99,73 @@ function FilterDropdown({ value, onChange, options }) {
   );
 }
 
+/* ── Error Boundary: tangkap crash React → tampilkan pesan error, bukan layar hitam ── */
+class ModalErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error("[CamMatrix] VideoModal crash:", error, info?.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div onClick={this.props.onClose} style={{
+          position: "fixed", inset: 0, zIndex: 50, display: "flex",
+          alignItems: "center", justifyContent: "center",
+          background: "rgba(5,5,8,0.88)", backdropFilter: "blur(12px)",
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: "#0D0D14", border: "1px solid #7f1d1d",
+            borderRadius: 12, padding: "28px 32px", maxWidth: 440,
+          }}>
+            <p style={{ color: "#f87171", fontWeight: 700, fontSize: 14, margin: "0 0 8px" }}>
+              Terjadi Error saat Menampilkan Data
+            </p>
+            <p style={{ color: "#71717A", fontSize: 12, margin: "0 0 16px", lineHeight: 1.6 }}>
+              {this.state.error?.message || "Unknown error"}
+            </p>
+            <p style={{ color: "#3D3D4F", fontSize: 11, margin: "0 0 16px", fontFamily: "monospace" }}>
+              Buka Console browser (F12) untuk detail lebih lanjut.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => this.setState({ hasError: false, error: null })}
+                style={{ flex: 1, padding: "8px 0", borderRadius: 7, background: "#1F1F2E", border: "none", color: "#FFF", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                Coba Lagi
+              </button>
+              <button
+                onClick={this.props.onClose}
+                style={{ flex: 1, padding: "8px 0", borderRadius: 7, background: "transparent", border: "1px solid #1F1F2E", color: "#71717A", fontSize: 12, cursor: "pointer" }}>
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 /* ── Video Modal ── */
 function VideoModal({ rec, onClose }) {
   const videoRef = useRef(null);
   const pollRef  = useRef(null);
   const [aiPanel,   setAiPanel]   = useState(false);
   const [jobStatus, setJobStatus] = useState(null);
+  const [jobError,  setJobError]  = useState("");
   const [progress,  setProgress]  = useState(0);
   const [results,   setResults]   = useState(null);
   const [starting,  setStarting]  = useState(false);
   const [videoDur,  setVideoDur]  = useState(rec.duration || 0);
 
-  const getToken = () => {
-    try { return require("../../store/authStore").useAuthStore.getState().token || ""; }
-    catch (_e) { return ""; }
-  };
-  const getBase = () => {
-    try { return require("../../constants/api").API_BASE_URL || ""; }
-    catch (_e) { return ""; }
-  };
+  const getToken = () => useAuthStore.getState().token || "";
+  const getBase  = () => API_BASE_URL || "";
 
   const videoUrl = `${getBase()}/recordings/${rec.id}/download?token=${encodeURIComponent(getToken())}`;
 
@@ -173,13 +223,14 @@ function VideoModal({ rec, onClose }) {
     setStarting(true);
     setResults(null);
     setProgress(0);
+    setJobError("");
     try {
       const r = await fetch(`${getBase()}/ai/analyze/${rec.id}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || "Gagal");
+      if (!r.ok) throw new Error(data.detail || "Terjadi error pada server");
       setJobStatus(data.status);
       if (data.status === "done") {
         const r2 = await fetch(`${getBase()}/ai/jobs/${data.job_id}/results`, {
@@ -189,8 +240,9 @@ function VideoModal({ rec, onClose }) {
       } else {
         startPolling(data.job_id);
       }
-    } catch (_e) {
+    } catch (e) {
       setJobStatus("failed");
+      setJobError(e.message || "Koneksi ke server gagal");
     } finally {
       setStarting(false);
     }
@@ -204,8 +256,11 @@ function VideoModal({ rec, onClose }) {
   const timeStr = dt ? dt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—";
   const sizeStr = rec.size_bytes ? `${(rec.size_bytes / 1e6).toFixed(1)} MB` : "—";
   const isRunning = jobStatus === "pending" || jobStatus === "running";
-  const scenes = results ? groupIntoScenes(results.detections) : [];
-  const dur = videoDur || 1;
+  const detections = Array.isArray(results?.detections) ? results.detections : [];
+  const scenes = detections.length > 0 ? groupIntoScenes(detections) : [];
+  const dur = Math.max(videoDur || 0, detections.reduce((mx, d) => Math.max(mx, d.timestamp_sec || 0), 0), 1);
+  // Batasi dot timeline (maks 200) agar tidak lambat
+  const timelineDots = detections.length > 200 ? detections.filter((_, i) => i % Math.ceil(detections.length / 200) === 0) : detections;
 
   return (
     <div onClick={onClose} style={{
@@ -290,7 +345,7 @@ function VideoModal({ rec, onClose }) {
                 </div>
                 <p style={{ fontSize: 11, color: "#3D3D4F", margin: 0 }}>
                   {jobStatus === "done"
-                    ? `${scenes.length} penampakan terdeteksi dari ${results.faces_found} frame`
+                    ? `${scenes.length} penampakan terdeteksi dari ${detections.length} deteksi`
                     : "Deteksi penampakan wajah dalam rekaman"}
                 </p>
               </div>
@@ -349,7 +404,9 @@ function VideoModal({ rec, onClose }) {
                   <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
                     <div style={{ padding: "12px 14px", borderRadius: 9, background: "#0A0A0F", border: "1px solid #1F1F2E" }}>
                       <p style={{ fontSize: 12, fontWeight: 600, color: "#FFF", margin: "0 0 4px" }}>Analisis Gagal</p>
-                      <p style={{ fontSize: 11, color: "#71717A", margin: 0, lineHeight: 1.5 }}>File video tidak dapat dibaca. Pastikan rekaman tersimpan di server.</p>
+                      <p style={{ fontSize: 11, color: "#71717A", margin: 0, lineHeight: 1.5 }}>
+                        {jobError || "File video mungkin tidak ditemukan di server atau terjadi error saat proses."}
+                      </p>
                     </div>
                     <button onClick={handleStartAnalysis} style={{ width: "100%", padding: "9px 0", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", background: "transparent", border: "1px solid #1F1F2E", color: "#71717A" }}>
                       Coba Lagi
@@ -378,12 +435,12 @@ function VideoModal({ rec, onClose }) {
                           </div>
                           {/* Track */}
                           <div style={{ position: "relative", height: 20, borderRadius: 6, background: "#111118", border: "1px solid #1A1A26", overflow: "hidden" }}>
-                            {/* Marker tiap deteksi */}
-                            {results.detections.map((det, i) => (
+                            {/* Marker tiap deteksi — dibatasi 200 dot agar tidak lambat */}
+                            {timelineDots.map((det, i) => (
                               <button key={i} onClick={() => jumpTo(det.timestamp_sec)}
-                                title={`Wajah di ${fmtSec(det.timestamp_sec)}`}
+                                title={`Wajah di ${fmtSec(det.timestamp_sec || 0)}`}
                                 style={{
-                                  position: "absolute", left: `${(det.timestamp_sec / dur) * 100}%`,
+                                  position: "absolute", left: `${Math.min(((det.timestamp_sec || 0) / dur) * 100, 99)}%`,
                                   top: "50%", transform: "translate(-50%,-50%)",
                                   width: 6, height: 6, borderRadius: "50%",
                                   background: "#FFFFFF", border: "none", cursor: "pointer", padding: 0,
@@ -395,7 +452,7 @@ function VideoModal({ rec, onClose }) {
                             {scenes.map((sc, i) => (
                               <div key={i} onClick={() => jumpTo(sc.start)} style={{
                                 position: "absolute",
-                                left: `${(sc.start / dur) * 100}%`,
+                                left: `${Math.min(((sc.start || 0) / dur) * 100, 99)}%`,
                                 width: `${Math.max(((sc.end - sc.start) / dur) * 100, 1)}%`,
                                 top: 0, bottom: 0,
                                 background: "rgba(255,255,255,0.08)",
@@ -404,7 +461,7 @@ function VideoModal({ rec, onClose }) {
                             ))}
                           </div>
                           <p style={{ fontSize: 10, color: "#2D2D3F", margin: "6px 0 0" }}>
-                            {results.detections.length} titik deteksi · {scenes.length} penampakan
+                            {detections.length} titik deteksi · {scenes.length} penampakan
                           </p>
                         </div>
 
@@ -418,8 +475,8 @@ function VideoModal({ rec, onClose }) {
                               <div key={idx} style={{ borderRadius: 9, background: "#111118", border: "1px solid #1A1A26", overflow: "hidden" }}>
                                 {/* Scene header */}
                                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px" }}>
-                                  {/* Thumbnails */}
-                                  <div style={{ display: "flex", gap: -4, flexShrink: 0 }}>
+                                  {/* Thumbnails — overlap stack */}
+                                  <div style={{ display: "flex", flexShrink: 0, position: "relative" }}>
                                     {facesWithThumb.slice(0, 3).map((f, fi) => (
                                       <img key={fi} src={`data:image/jpeg;base64,${f.face_crop_b64}`}
                                         alt="" style={{ width: 36, height: 36, borderRadius: 7, objectFit: "cover", border: "2px solid #111118", marginLeft: fi > 0 ? -8 : 0 }} />
@@ -841,8 +898,12 @@ export default function RecordingsPage() {
         </div>
       )}
 
-      {/* Modal tonton video */}
-      {watchRec && <VideoModal rec={watchRec} onClose={() => setWatchRec(null)} />}
+      {/* Modal tonton video — dibungkus ErrorBoundary agar crash tidak menjadi layar hitam */}
+      {watchRec && (
+        <ModalErrorBoundary onClose={() => setWatchRec(null)}>
+          <VideoModal rec={watchRec} onClose={() => setWatchRec(null)} />
+        </ModalErrorBoundary>
+      )}
     </div>
   );
 }
