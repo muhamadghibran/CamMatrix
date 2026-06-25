@@ -175,23 +175,62 @@ class CameraWorker:
                 h_img, w_img = frame.shape[:2]
 
                 # ── Deteksi wajah ──
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                faces = cascade.detectMultiScale(
-                    gray,
-                    scaleFactor=1.05,
-                    minNeighbors=3,
-                    minSize=(20, 20),
-                )
-
                 boxes = []
-                if len(faces) > 0:
-                    for (x, y, w, h) in faces:
-                        boxes.append(FaceBox(
-                            x=round(x / w_img, 4),
-                            y=round(y / h_img, 4),
-                            w=round(w / w_img, 4),
-                            h=round(h / h_img, 4),
-                        ))
+                use_face_rec = False
+                try:
+                    import face_recognition
+                    use_face_rec = True
+                except ImportError:
+                    pass
+
+                if use_face_rec:
+                    try:
+                        # Resize frame untuk mempercepat deteksi (max width 640)
+                        target_w = 640
+                        if w_img > target_w:
+                            scale = target_w / w_img
+                            small_frame = cv2.resize(frame, (target_w, int(h_img * scale)))
+                        else:
+                            scale = 1.0
+                            small_frame = frame
+
+                        rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+                        # HOG model dari dlib sangat akurat dan hemat resource CPU
+                        locations = face_recognition.face_locations(rgb, model="hog")
+                        
+                        for top, right, bottom, left in locations:
+                            # Kembalikan koordinat ke skala gambar asli
+                            orig_left = left / scale
+                            orig_top = top / scale
+                            orig_right = right / scale
+                            orig_bottom = bottom / scale
+                            
+                            boxes.append(FaceBox(
+                                x=round(orig_left / w_img, 4),
+                                y=round(orig_top / h_img, 4),
+                                w=round((orig_right - orig_left) / w_img, 4),
+                                h=round((orig_bottom - orig_top) / h_img, 4),
+                            ))
+                    except Exception as e:
+                        logger.error(f"Error running face_recognition detector: {e}")
+                        use_face_rec = False # Fallback jika terjadi error runtime
+
+                if not use_face_rec:
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    faces = cascade.detectMultiScale(
+                        gray,
+                        scaleFactor=1.1,
+                        minNeighbors=5,
+                        minSize=(30, 30),
+                    )
+                    if len(faces) > 0:
+                        for (x, y, w, h) in faces:
+                            boxes.append(FaceBox(
+                                x=round(x / w_img, 4),
+                                y=round(y / h_img, 4),
+                                w=round(w / w_img, 4),
+                                h=round(h / h_img, 4),
+                            ))
 
                 # ── Simpan hasil ──
                 self._latest_result = DetectionResult(
@@ -203,7 +242,9 @@ class CameraWorker:
                 )
 
                 # Bebaskan RAM
-                del frame, gray
+                if not use_face_rec:
+                    del gray
+                del frame
 
                 # ── Rate limiting ──
                 elapsed = time.time() - loop_start

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, memo } from "react";
+import { useState, useRef, useEffect, useCallback, memo, forwardRef } from "react";
 import {
   Maximize2, Grid2X2, Grid3X3, LayoutGrid, WifiOff,
   Expand, Minimize2, RefreshCw, Download, MonitorPlay,
@@ -20,12 +20,11 @@ const LAYOUTS = [
 /* ── HLS Player ── */
 // Dibungkus memo() agar TIDAK di-render ulang saat status kamera berubah.
 // Tanpa ini, setiap update status (tiap 10 detik) akan restart stream HLS.
-const MemoHlsPlayer = memo(function HlsPlayer({ src, objectFit = "cover" }) {
-  const videoRef = useRef(null);
+const MemoHlsPlayer = memo(forwardRef(function HlsPlayer({ src, objectFit = "cover" }, ref) {
   const hlsRef   = useRef(null);
 
   useEffect(() => {
-    const video = videoRef.current;
+    const video = ref?.current;
     if (!video || !src) return;
     if (Hls.isSupported()) {
       const hls = new Hls({
@@ -47,19 +46,20 @@ const MemoHlsPlayer = memo(function HlsPlayer({ src, objectFit = "cover" }) {
       video.play().catch(() => {});
     }
     return () => { hlsRef.current?.destroy(); };
-  }, [src]);
+  }, [src, ref]);
 
   return (
     <video
-      ref={videoRef}
+      ref={ref}
       muted playsInline autoPlay
       style={{ width: "100%", height: "100%", objectFit, background: "#000" }}
     />
   );
-});
+}));
+
 
 /* ── Detection Overlay — Canvas untuk menggambar kotak hijau ── */
-function DetectionOverlay({ cameraId, enabled }) {
+function DetectionOverlay({ cameraId, enabled, videoRef, objectFit = "cover" }) {
   const canvasRef = useRef(null);
   const wsRef = useRef(null);
   const facesRef = useRef([]);
@@ -158,6 +158,28 @@ function DetectionOverlay({ cameraId, enabled }) {
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
+      // --- HITUNG BOUNDING BOX VIDEO AKTIF (OBJECT-FIT) ---
+      let rx = 0, ry = 0, rw = w, rh = h;
+      const video = videoRef?.current;
+      if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        
+        if (objectFit === "contain") {
+          const scale = Math.min(w / vw, h / vh);
+          rw = vw * scale;
+          rh = vh * scale;
+          rx = (w - rw) / 2;
+          ry = (h - rh) / 2;
+        } else if (objectFit === "cover") {
+          const scale = Math.max(w / vw, h / vh);
+          rw = vw * scale;
+          rh = vh * scale;
+          rx = (w - rw) / 2;
+          ry = (h - rh) / 2;
+        }
+      }
+
       const targets = targetFacesRef.current;
       const current = facesRef.current;
 
@@ -178,11 +200,11 @@ function DetectionOverlay({ cameraId, enabled }) {
         c.w = lerp(c.w, t.w, LERP_SPEED);
         c.h = lerp(c.h, t.h, LERP_SPEED);
 
-        // Konversi koordinat relatif → pixel
-        const px = c.x * w;
-        const py = c.y * h;
-        const pw = c.w * w;
-        const ph = c.h * h;
+        // Konversi koordinat relatif → pixel (relative terhadap video rect yang aktif)
+        const px = rx + c.x * rw;
+        const py = ry + c.y * rh;
+        const pw = c.w * rw;
+        const ph = c.h * rh;
 
         // ── Gambar kotak hijau ──
         // Outer glow
@@ -253,7 +275,7 @@ function DetectionOverlay({ cameraId, enabled }) {
         animFrameRef.current = null;
       }
     };
-  }, [enabled, cameraId]);
+  }, [enabled, cameraId, videoRef, objectFit]);
 
   if (!enabled) return null;
 
@@ -307,6 +329,7 @@ function CameraCard({ cam, index, aiEnabled, onToggleAI }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [downloadState, setDownloadState] = useState({ state: "idle", progress: 0 });
   const cardRef = useRef(null);
+  const videoRef = useRef(null);
   const isOffline = cam.status === "offline";
   const isLive    = cam.status === "live" || cam.status === "recording";
 
@@ -380,12 +403,12 @@ function CameraCard({ cam, index, aiEnabled, onToggleAI }) {
               <span style={{ color: "#3D3D4F", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Sinyal Terputus</span>
             </div>
           ) : (
-            cam.stream_url && <MemoHlsPlayer src={cam.stream_url} objectFit={isFullscreen ? "contain" : "cover"} />
+            cam.stream_url && <MemoHlsPlayer ref={videoRef} src={cam.stream_url} objectFit={isFullscreen ? "contain" : "cover"} />
           )}
 
           {/* ── AI Detection Overlay (canvas kotak hijau) ── */}
           {!isOffline && (
-            <DetectionOverlay cameraId={cam.id} enabled={aiEnabled} />
+            <DetectionOverlay cameraId={cam.id} enabled={aiEnabled} videoRef={videoRef} objectFit={isFullscreen ? "contain" : "cover"} />
           )}
         </div>{/* /inner wrapper */}
 
