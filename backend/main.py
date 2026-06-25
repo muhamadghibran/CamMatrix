@@ -56,6 +56,14 @@ async def lifespan(app: FastAPI):
 
     yield  # Server berjalan di sini
 
+    # ── Shutdown: cleanup real-time detection workers ──
+    try:
+        from app.services.realtime_detection import shutdown_detector
+        shutdown_detector()
+        print("✅ Shutdown: real-time detection workers stopped")
+    except Exception as e:
+        print(f"⚠️  Shutdown cleanup: {e}")
+
 
 
 app = FastAPI(
@@ -84,6 +92,11 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(api_router, prefix="/api/v1")
+
+# WebSocket — real-time face detection
+from app.api.v1.endpoints import realtime_ws
+app.include_router(realtime_ws.router, prefix="/ws", tags=["realtime"])
+
 
 
 @app.get("/", tags=["Health"])
