@@ -78,6 +78,10 @@ class Settings(BaseSettings):
     AI_FACE_CONFIDENCE: float = 0.75
     AI_SIMILARITY_THRESHOLD: float = 0.6
 
+    # Real-time detection settings
+    AI_REALTIME_FPS: int = 5          # Frame rate deteksi real-time (frame/detik)
+    AI_REALTIME_TIMEOUT: int = 30     # Detik sebelum worker auto-stop tanpa subscriber
+
     class Config:
         env_file = ".env"
         case_sensitive = True

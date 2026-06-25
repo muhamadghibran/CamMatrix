@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect, useCallback, memo } from "react";
 import {
   Maximize2, Grid2X2, Grid3X3, LayoutGrid, WifiOff,
-  Expand, Minimize2, RefreshCw, Download, MonitorPlay
+  Expand, Minimize2, RefreshCw, Download, MonitorPlay,
+  ScanFace
 } from "lucide-react";
 import Hls from "hls.js";
 import { useCameraStore } from "../../store/cameraStore";
+import { useAuthStore } from "../../store/authStore";
 import api from "../../utils/api";
+import { WS_BASE_URL } from "../../constants/api";
 
 const LAYOUTS = [
   { key: "1x1", icon: Maximize2,  cols: 1, label: "1×1",  max: 1  },
@@ -55,8 +58,251 @@ const MemoHlsPlayer = memo(function HlsPlayer({ src, objectFit = "cover" }) {
   );
 });
 
+/* ── Detection Overlay — Canvas untuk menggambar kotak hijau ── */
+function DetectionOverlay({ cameraId, enabled }) {
+  const canvasRef = useRef(null);
+  const wsRef = useRef(null);
+  const facesRef = useRef([]);
+  const targetFacesRef = useRef([]);
+  const animFrameRef = useRef(null);
+  const faceCountRef = useRef(0);
+  const [faceCount, setFaceCount] = useState(0);
+  const [wsConnected, setWsConnected] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) {
+      // Cleanup saat dimatikan
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+      facesRef.current = [];
+      targetFacesRef.current = [];
+      setFaceCount(0);
+      setWsConnected(false);
+
+      // Clear canvas
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      return;
+    }
+
+    // ── Connect WebSocket ──
+    const token = useAuthStore.getState().token;
+    if (!token) return;
+
+    const wsUrl = `${WS_BASE_URL}/realtime/${cameraId}?token=${token}`;
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setWsConnected(true);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "connected") return; // Pesan awal
+
+        // Simpan target faces untuk interpolasi smooth
+        targetFacesRef.current = data.faces || [];
+        const count = data.face_count || 0;
+        if (count !== faceCountRef.current) {
+          faceCountRef.current = count;
+          setFaceCount(count);
+        }
+      } catch (_) {}
+    };
+
+    ws.onclose = () => {
+      setWsConnected(false);
+    };
+
+    ws.onerror = () => {
+      setWsConnected(false);
+    };
+
+    // ── Animation loop: gambar kotak hijau dengan smooth interpolation ──
+    const LERP_SPEED = 0.3; // Kecepatan interpolasi (0-1, lebih tinggi = lebih cepat)
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function animate() {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        animFrameRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      // Resize canvas mengikuti parent
+      const parent = canvas.parentElement;
+      if (parent) {
+        const rect = parent.getBoundingClientRect();
+        if (canvas.width !== rect.width || canvas.height !== rect.height) {
+          canvas.width = rect.width;
+          canvas.height = rect.height;
+        }
+      }
+
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const targets = targetFacesRef.current;
+      const current = facesRef.current;
+
+      // Interpolasi smooth: pindahkan current menuju target
+      while (current.length < targets.length) {
+        current.push({ ...targets[current.length] });
+      }
+      // Jika target berkurang, fade out kelebihan
+      if (current.length > targets.length) {
+        current.length = targets.length;
+      }
+
+      for (let i = 0; i < targets.length; i++) {
+        const t = targets[i];
+        const c = current[i];
+        c.x = lerp(c.x, t.x, LERP_SPEED);
+        c.y = lerp(c.y, t.y, LERP_SPEED);
+        c.w = lerp(c.w, t.w, LERP_SPEED);
+        c.h = lerp(c.h, t.h, LERP_SPEED);
+
+        // Konversi koordinat relatif → pixel
+        const px = c.x * w;
+        const py = c.y * h;
+        const pw = c.w * w;
+        const ph = c.h * h;
+
+        // ── Gambar kotak hijau ──
+        // Outer glow
+        ctx.shadowColor = "rgba(0, 255, 0, 0.4)";
+        ctx.shadowBlur = 12;
+        ctx.strokeStyle = "#00FF00";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(px, py, pw, ph);
+
+        // Reset shadow
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+
+        // Corner accents (garis pendek di tiap sudut untuk tampilan futuristik)
+        const cornerLen = Math.min(pw, ph) * 0.25;
+        ctx.strokeStyle = "#00FF00";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        // Top-left
+        ctx.moveTo(px, py + cornerLen);
+        ctx.lineTo(px, py);
+        ctx.lineTo(px + cornerLen, py);
+        // Top-right
+        ctx.moveTo(px + pw - cornerLen, py);
+        ctx.lineTo(px + pw, py);
+        ctx.lineTo(px + pw, py + cornerLen);
+        // Bottom-right
+        ctx.moveTo(px + pw, py + ph - cornerLen);
+        ctx.lineTo(px + pw, py + ph);
+        ctx.lineTo(px + pw - cornerLen, py + ph);
+        // Bottom-left
+        ctx.moveTo(px + cornerLen, py + ph);
+        ctx.lineTo(px, py + ph);
+        ctx.lineTo(px, py + ph - cornerLen);
+        ctx.stroke();
+
+        // Label "FACE" di atas kotak
+        const labelH = 18;
+        const labelText = "FACE";
+        ctx.font = "bold 10px monospace";
+        const textWidth = ctx.measureText(labelText).width;
+        const labelW = textWidth + 12;
+
+        // Background label
+        ctx.fillStyle = "rgba(0, 255, 0, 0.85)";
+        ctx.beginPath();
+        ctx.roundRect(px, py - labelH - 2, labelW, labelH, 3);
+        ctx.fill();
+
+        // Text label
+        ctx.fillStyle = "#000000";
+        ctx.fillText(labelText, px + 6, py - labelH + 13);
+      }
+
+      animFrameRef.current = requestAnimationFrame(animate);
+    }
+
+    animFrameRef.current = requestAnimationFrame(animate);
+
+    // ── Cleanup ──
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+    };
+  }, [enabled, cameraId]);
+
+  if (!enabled) return null;
+
+  return (
+    <>
+      {/* Canvas overlay transparan di atas video */}
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+          zIndex: 5,
+        }}
+      />
+
+      {/* AI Status indicator — top-left bawah LIVE badge */}
+      <div style={{
+        position: "absolute",
+        top: 32,
+        left: 10,
+        display: "flex",
+        alignItems: "center",
+        gap: 5,
+        background: "rgba(0, 0, 0, 0.72)",
+        border: `1px solid ${wsConnected ? "rgba(0, 255, 0, 0.3)" : "rgba(255, 100, 100, 0.3)"}`,
+        padding: "3px 9px",
+        borderRadius: 5,
+        backdropFilter: "blur(6px)",
+        zIndex: 6,
+      }}>
+        <ScanFace size={10} style={{ color: wsConnected ? "#00FF00" : "#f87171" }} />
+        <span style={{
+          fontSize: 9,
+          fontWeight: 700,
+          color: wsConnected ? "#00FF00" : "#f87171",
+          letterSpacing: "0.06em",
+        }}>
+          AI {faceCount > 0 ? `· ${faceCount}` : ""}
+        </span>
+      </div>
+    </>
+  );
+}
+
 /* ── Camera Card (mirip halaman publik, dengan fitur admin) ── */
-function CameraCard({ cam, index }) {
+function CameraCard({ cam, index, aiEnabled, onToggleAI }) {
   const [hov, setHov] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [downloadState, setDownloadState] = useState({ state: "idle", progress: 0 });
@@ -108,7 +354,7 @@ function CameraCard({ cam, index }) {
       onMouseLeave={() => setHov(false)}
       style={{
         background: "#111118",
-        border: `1px solid ${hov ? "rgba(255,255,255,0.18)" : "#1F1F2E"}`,
+        border: `1px solid ${hov ? "rgba(255,255,255,0.18)" : aiEnabled ? "rgba(0,255,0,0.15)" : "#1F1F2E"}`,
         borderRadius: isFullscreen ? 0 : 12,
         overflow: "hidden",
         display: "flex",
@@ -136,6 +382,11 @@ function CameraCard({ cam, index }) {
           ) : (
             cam.stream_url && <MemoHlsPlayer src={cam.stream_url} objectFit={isFullscreen ? "contain" : "cover"} />
           )}
+
+          {/* ── AI Detection Overlay (canvas kotak hijau) ── */}
+          {!isOffline && (
+            <DetectionOverlay cameraId={cam.id} enabled={aiEnabled} />
+          )}
         </div>{/* /inner wrapper */}
 
         {/* LIVE / OFFLINE badge — top left */}
@@ -144,6 +395,7 @@ function CameraCard({ cam, index }) {
           display: "flex", alignItems: "center", gap: 5,
           background: "rgba(0,0,0,0.72)", border: "1px solid rgba(255,255,255,0.1)",
           padding: "3px 9px", borderRadius: 5, backdropFilter: "blur(6px)",
+          zIndex: 7,
         }}>
           <span style={{
             width: 5, height: 5, borderRadius: "50%",
@@ -160,6 +412,7 @@ function CameraCard({ cam, index }) {
           position: "absolute", bottom: 10, right: 10,
           background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.06)",
           borderRadius: 4, padding: "2px 7px", backdropFilter: "blur(4px)",
+          zIndex: 7,
         }}>
           <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 600, fontFamily: "monospace" }}>
             CAM {String(index + 1).padStart(2, "0")}
@@ -171,7 +424,34 @@ function CameraCard({ cam, index }) {
           <div style={{
             position: "absolute", top: 10, right: 10,
             display: "flex", gap: 6,
+            zIndex: 8,
           }}>
+            {/* Toggle AI Detection per kamera */}
+            {!isOffline && (
+              <button
+                onClick={() => onToggleAI(cam.id)}
+                title={aiEnabled ? "Matikan AI Detection" : "Aktifkan AI Detection"}
+                style={{
+                  height: 28, padding: "0 10px", borderRadius: 6,
+                  background: aiEnabled ? "rgba(0,255,0,0.18)" : "rgba(0,0,0,0.72)",
+                  border: `1px solid ${aiEnabled ? "rgba(0,255,0,0.4)" : "rgba(255,255,255,0.12)"}`,
+                  color: aiEnabled ? "#00FF00" : "#FFFFFF",
+                  cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 5,
+                  fontSize: 10, fontWeight: 700, backdropFilter: "blur(6px)",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={e => {
+                  if (!aiEnabled) { e.currentTarget.style.background = "rgba(0,255,0,0.12)"; e.currentTarget.style.color = "#00FF00"; }
+                }}
+                onMouseLeave={e => {
+                  if (!aiEnabled) { e.currentTarget.style.background = "rgba(0,0,0,0.72)"; e.currentTarget.style.color = "#FFFFFF"; }
+                }}
+              >
+                <ScanFace size={11} /> AI
+              </button>
+            )}
+
             {/* Simpan Rekaman button */}
             {!isOffline && (
               <button
@@ -217,10 +497,22 @@ function CameraCard({ cam, index }) {
 
       {/* Info bawah — disembunyikan saat fullscreen */}
       {!isFullscreen && (
-        <div style={{ padding: "14px 16px", borderTop: "1px solid #1A1A26" }}>
-          <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: "#FFFFFF" }}>{cam.name}</p>
-          {cam.location && (
-            <p style={{ margin: "3px 0 0", fontSize: 12, color: "#71717A" }}>{cam.location}</p>
+        <div style={{ padding: "14px 16px", borderTop: "1px solid #1A1A26", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: "#FFFFFF" }}>{cam.name}</p>
+            {cam.location && (
+              <p style={{ margin: "3px 0 0", fontSize: 12, color: "#71717A" }}>{cam.location}</p>
+            )}
+          </div>
+          {aiEnabled && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 5,
+              padding: "3px 8px", borderRadius: 4,
+              background: "rgba(0,255,0,0.08)", border: "1px solid rgba(0,255,0,0.15)",
+            }}>
+              <ScanFace size={10} style={{ color: "#00FF00" }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#00FF00", letterSpacing: "0.06em" }}>AI AKTIF</span>
+            </div>
           )}
         </div>
       )}
@@ -246,6 +538,7 @@ export default function LiveViewPage() {
   const { cameras, fetchCameras, fetchStatuses, loading } = useCameraStore();
   const [layout, setLayout] = useState("2x2");
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [aiCameras, setAiCameras] = useState({}); // { [cameraId]: true/false }
   const fullscreenRef = useRef(null);
 
   const refresh = useCallback(async () => {
@@ -253,6 +546,23 @@ export default function LiveViewPage() {
     await fetchStatuses();
     setLastUpdate(new Date());
   }, [fetchCameras, fetchStatuses]);
+
+  // Efek untuk mengaktifkan AI Detection secara otomatis pada semua kamera yang live/recording saat halaman dimuat atau status terupdate
+  useEffect(() => {
+    if (cameras.length > 0) {
+      setAiCameras(prev => {
+        let changed = false;
+        const updated = { ...prev };
+        cameras.forEach(cam => {
+          if (updated[cam.id] === undefined && (cam.status === "live" || cam.status === "recording")) {
+            updated[cam.id] = true;
+            changed = true;
+          }
+        });
+        return changed ? updated : prev;
+      });
+    }
+  }, [cameras]);
 
   useEffect(() => {
     // Jika kamera sudah ada di store (navigasi kembali), JANGAN fetch ulang
@@ -274,6 +584,29 @@ export default function LiveViewPage() {
 
   const liveCount    = cameras.filter(c => c.status === "live" || c.status === "recording").length;
   const offlineCount = cameras.filter(c => c.status === "offline").length;
+  const aiActiveCount = Object.values(aiCameras).filter(Boolean).length;
+
+  const handleToggleAI = (camId) => {
+    setAiCameras(prev => ({
+      ...prev,
+      [camId]: !prev[camId],
+    }));
+  };
+
+  const handleToggleAllAI = () => {
+    const liveCams = cameras.filter(c => c.status === "live" || c.status === "recording");
+    if (aiActiveCount > 0) {
+      // Matikan semua (atur secara eksplisit ke false agar tidak diaktifkan kembali oleh useEffect)
+      const newState = {};
+      cameras.forEach(c => { newState[c.id] = false; });
+      setAiCameras(newState);
+    } else {
+      // Aktifkan semua kamera yang live
+      const newState = {};
+      liveCams.forEach(c => { newState[c.id] = true; });
+      setAiCameras(newState);
+    }
+  };
 
   const handleFullscreen = (cam) => {
     // Buka URL stream dalam tab baru sebagai fallback sederhana
@@ -295,6 +628,10 @@ export default function LiveViewPage() {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
         }
+        @keyframes aiPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,0,0.4); }
+          50% { box-shadow: 0 0 0 4px rgba(0,255,0,0); }
+        }
       `}</style>
 
       {/* ── Header ── */}
@@ -312,6 +649,9 @@ export default function LiveViewPage() {
             {loading ? "Memuat..." : `${cameras.length} kamera · `}
             {!loading && <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{liveCount} aktif</span>}
             {!loading && offlineCount > 0 && <span style={{ color: "#52525B" }}> · {offlineCount} mati</span>}
+            {!loading && aiActiveCount > 0 && (
+              <span style={{ color: "#00FF00", fontWeight: 600 }}> · 🧠 {aiActiveCount} AI</span>
+            )}
           </p>
         </div>
 
@@ -323,6 +663,32 @@ export default function LiveViewPage() {
               {lastUpdate.toLocaleTimeString("id-ID")}
             </span>
           )}
+
+          {/* Toggle AI Detection (semua kamera) */}
+          <button
+            onClick={handleToggleAllAI}
+            title={aiActiveCount > 0 ? "Matikan Semua AI Detection" : "Aktifkan AI Detection (Semua Kamera)"}
+            style={{
+              height: 34, padding: "0 14px", borderRadius: 8,
+              background: aiActiveCount > 0 ? "rgba(0,255,0,0.1)" : "transparent",
+              border: `1px solid ${aiActiveCount > 0 ? "rgba(0,255,0,0.3)" : "#1A1A26"}`,
+              color: aiActiveCount > 0 ? "#00FF00" : "#71717A",
+              cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 7,
+              fontSize: 12, fontWeight: 600,
+              transition: "all 0.2s",
+              animation: aiActiveCount > 0 ? "aiPulse 2s ease-in-out infinite" : "none",
+            }}
+            onMouseEnter={e => {
+              if (aiActiveCount === 0) { e.currentTarget.style.color = "#00FF00"; e.currentTarget.style.borderColor = "rgba(0,255,0,0.3)"; }
+            }}
+            onMouseLeave={e => {
+              if (aiActiveCount === 0) { e.currentTarget.style.color = "#71717A"; e.currentTarget.style.borderColor = "#1A1A26"; }
+            }}
+          >
+            <ScanFace size={14} />
+            {aiActiveCount > 0 ? `AI (${aiActiveCount})` : "AI Detection"}
+          </button>
 
           {/* Refresh */}
           <button onClick={refresh} title="Refresh" style={{
@@ -387,7 +753,13 @@ export default function LiveViewPage() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: cols_css, gap: 16 }}>
           {visibleCams.map((cam, i) => (
-            <CameraCard key={cam.id} cam={cam} index={i} />
+            <CameraCard
+              key={cam.id}
+              cam={cam}
+              index={i}
+              aiEnabled={!!aiCameras[cam.id]}
+              onToggleAI={handleToggleAI}
+            />
           ))}
         </div>
       )}
