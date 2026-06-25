@@ -28,10 +28,16 @@ SAMPLE_EVERY_N  = 45     # Ambil 1 frame setiap 45 frame (~1.5 detik pada 30fps)
 
 
 def _resolve_path(minio_key: str):
-    if minio_key and minio_key.startswith("local:"):
-        parts = minio_key.split(":", 2)
-        return parts[2] if len(parts) >= 3 else None
-    return None
+    if not minio_key or not minio_key.startswith("local:"):
+        return None
+    parts = minio_key.split(":", 2)
+    if len(parts) < 3:
+        return None
+    raw_path = parts[2]
+    src_marker = ":src="
+    if src_marker in raw_path:
+        raw_path = raw_path[:raw_path.index(src_marker)]
+    return raw_path
 
 
 def _extract_face_data_from_video(video_path: str) -> list[dict]:
