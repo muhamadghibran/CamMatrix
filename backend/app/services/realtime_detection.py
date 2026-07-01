@@ -219,7 +219,7 @@ class CameraWorker:
 
                         # ── Real-time Face Tracking embedding extraction and queueing ──
                         now = time.time()
-                        if len(locations) > 0 and (now - self._last_tracking_time >= 1.5):
+                        if len(locations) > 0 and (now - self._last_tracking_time >= 0.8):
                             self._last_tracking_time = now
                             encodings = face_recognition.face_encodings(rgb, locations)
                             for loc, enc in zip(locations, encodings):
@@ -250,6 +250,7 @@ class CameraWorker:
                         minSize=(30, 30),
                     )
                     if len(faces) > 0:
+                        now = time.time()
                         for (x, y, w, h) in faces:
                             boxes.append(FaceBox(
                                 x=round(x / w_img, 4),
@@ -257,6 +258,24 @@ class CameraWorker:
                                 w=round(w / w_img, 4),
                                 h=round(h / h_img, 4),
                             ))
+                        # Haar Cascade fallback: enqueue bounding box ke tracking
+                        # (tanpa embedding — hanya catat kehadiran wajah)
+                        if now - self._last_tracking_time >= 0.8:
+                            self._last_tracking_time = now
+                            for (x, y, w, h) in faces:
+                                face_crop = frame[y:y+h, x:x+w]
+                                if face_crop.size > 0:
+                                    face_small = cv2.resize(face_crop, (64, 64))
+                                    _, buf = cv2.imencode(".jpg", face_small, [cv2.IMWRITE_JPEG_QUALITY, 65])
+                                    crop_b64 = base64.b64encode(buf).decode("utf-8")
+                                    enqueue_tracking_item({
+                                        "camera_id": self.camera_id,
+                                        "camera_name": self.camera_name,
+                                        "embedding": None,  # Haar tidak punya embedding
+                                        "thumbnail": crop_b64,
+                                        "timestamp": now,
+                                    })
+                                    break  # cukup satu wajah per frame untuk Haar
 
                 # ── Simpan hasil ──
                 self._latest_result = DetectionResult(
@@ -441,7 +460,7 @@ async def _process_realtime_sighting(
     db,
     camera_id: int,
     camera_name: str,
-    embedding: list[float],
+    embedding,  # list[float] atau None (Haar Cascade fallback)
     thumbnail: str,
     timestamp: float,
 ):
@@ -457,6 +476,11 @@ async def _process_realtime_sighting(
         return
 
     try:
+        # Jika tidak ada embedding (Haar fallback), hanya catat sighting tanpa matching
+        if embedding is None:
+            await _record_haar_sighting(db, camera_id, camera_name, thumbnail, timestamp)
+            return
+
         # 1. Ambil semua data person untuk dicocokkan
         result = await db.execute(select(TrackedPerson))
         tracked_persons = result.scalars().all()
@@ -480,7 +504,7 @@ async def _process_realtime_sighting(
             if rep_encs:
                 distances = face_recognition.face_distance(rep_encs, target_enc)
                 min_idx = int(np.argmin(distances))
-                if distances[min_idx] < 0.50:  # MATCH_THRESHOLD
+                if distances[min_idx] < 0.55:  # MATCH_THRESHOLD
                     matched_person = valid_persons[min_idx]
                     matched_distance = distances[min_idx]
 
@@ -558,3 +582,154 @@ async def _process_realtime_sighting(
     except Exception as e:
         logger.error(f"Error processing realtime sighting in database: {e}", exc_info=True)
         await db.rollback()
+
+
+async def _record_haar_sighting(db, camera_id: int, camera_name: str, thumbnail: str, timestamp: float):
+    """Catat sighting dari Haar Cascade (tanpa face_recognition embedding).
+    Buat TrackedPerson baru dengan embedding kosong jika belum ada sighting
+    real-time untuk kamera ini dalam 60 detik terakhir.
+    """
+    try:
+        import json
+        from sqlalchemy import select
+        from app.models.person_tracking import TrackedPerson, PersonSighting
+
+        # Cari sighting real-time terakhir dari kamera ini (dalam 60 detik)
+        recent = await db.execute(
+            select(PersonSighting)
+            .where(
+                PersonSighting.camera_id == camera_id,
+                PersonSighting.recording_id == None,
+            )
+            .order_by(PersonSighting.last_timestamp_sec.desc())
+            .limit(1)
+        )
+        last = recent.scalar_one_or_none()
+
+        if last and (timestamp - last.last_timestamp_sec < 60.0):
+            # Perbarui sighting yang ada
+            last.last_timestamp_sec = timestamp
+            last.frame_count += 1
+            last.thumbnail = thumbnail
+            db.add(last)
+        else:
+            # Buat TrackedPerson baru (placeholder, tanpa embedding)
+            tp = TrackedPerson(
+                embedding_json=json.dumps([]),  # kosong — Haar tidak punya embedding
+                first_thumbnail=thumbnail,
+                first_camera_name=camera_name,
+                first_seen_at=timestamp,
+                total_sightings=1,
+            )
+            db.add(tp)
+            await db.flush()
+
+            ps = PersonSighting(
+                person_id=tp.id,
+                recording_id=None,
+                camera_name=camera_name,
+                camera_id=camera_id,
+                first_timestamp_sec=timestamp,
+                last_timestamp_sec=timestamp,
+                frame_count=1,
+                thumbnail=thumbnail,
+            )
+            db.add(ps)
+
+        await db.commit()
+    except Exception as e:
+        logger.error(f"Error recording Haar sighting: {e}", exc_info=True)
+        await db.rollback()
+
+
+# ── Always-on background detection (tanpa perlu WS subscriber) ──
+_always_on_task: Optional[asyncio.Task] = None
+_stop_always_on = False
+
+
+async def start_always_on_detection():
+    """Mulai deteksi background untuk semua kamera yang ada di DB.
+    Berjalan independen dari WebSocket — kamera terus dimonitor meski tidak ada
+    browser yang membuka Live View.
+    """
+    global _always_on_task, _stop_always_on
+    if _always_on_task is not None:
+        return
+    _stop_always_on = False
+    _always_on_task = asyncio.create_task(_always_on_loop())
+    logger.info("Always-on background detection started")
+
+
+async def stop_always_on_detection():
+    """Hentikan always-on detection."""
+    global _always_on_task, _stop_always_on
+    _stop_always_on = True
+    if _always_on_task:
+        _always_on_task.cancel()
+        try:
+            await _always_on_task
+        except asyncio.CancelledError:
+            pass
+        _always_on_task = None
+    logger.info("Always-on background detection stopped")
+
+
+async def _always_on_loop():
+    """Loop background: pastikan semua kamera aktif selalu terdeteksi."""
+    from app.core.database import AsyncSessionLocal
+    from app.models.camera import Camera
+    from sqlalchemy import select
+
+    # Tunggu sebentar agar server fully ready
+    await asyncio.sleep(5)
+    logger.info("Always-on loop: checking cameras in DB...")
+
+    while not _stop_always_on:
+        try:
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(select(Camera))
+                cameras = result.scalars().all()
+
+            detector = get_detector()
+            for cam in cameras:
+                try:
+                    # Build RTSP URL
+                    from app.core.config import settings
+                    if cam.rtsp_url == "publisher":
+                        rtsp_url = f"{settings.MEDIAMTX_RTSP_BASE}/cam_{cam.owner_id}_{cam.id}"
+                    else:
+                        try:
+                            from app.api.v1.endpoints.cameras import _build_rtsp_with_auth
+                            rtsp_url = _build_rtsp_with_auth(cam.rtsp_url, cam.username, cam.password)
+                        except Exception:
+                            rtsp_url = cam.rtsp_url
+
+                    # Start worker jika belum running (tidak tambah subscriber —
+                    # worker ini tidak auto-stop karena subscriber=0)
+                    worker = detector._workers.get(cam.id)
+                    if worker is None or not worker.is_running:
+                        logger.info(f"Always-on: starting worker for camera {cam.id} ({cam.name})")
+                        # Buat worker dengan timeout sangat panjang (24 jam)
+                        new_worker = CameraWorker(
+                            camera_id=cam.id,
+                            camera_name=cam.name,
+                            rtsp_url=rtsp_url,
+                            fps=detector._fps,
+                            timeout=86400,  # 24 jam — efektif "selalu menyala"
+                        )
+                        # Tambah 1 subscriber virtual agar worker tidak auto-stop
+                        new_worker._subscribers = 1
+                        with detector._lock:
+                            detector._workers[cam.id] = new_worker
+                        new_worker.start()
+                except Exception as e:
+                    logger.warning(f"Always-on: failed to start worker for camera {cam.id}: {e}")
+
+            # Periksa lagi setiap 60 detik
+            await asyncio.sleep(60)
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Always-on loop error: {e}", exc_info=True)
+            await asyncio.sleep(30)
