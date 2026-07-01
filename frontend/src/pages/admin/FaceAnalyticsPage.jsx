@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   ScanFace, Play, RefreshCw, Trash2, ChevronRight,
   Camera, Clock, Users, AlertCircle, CheckCircle2, Eye,
-  Video
+  Radio, Video
 } from "lucide-react";
 import api from "../../utils/api";
 import { API_BASE_URL } from "../../constants/api";
@@ -519,57 +519,22 @@ export default function FaceAnalyticsPage() {
               <Trash2 size={12} /> Reset Data
             </button>
           )}
-
-          <button onClick={handleStartTracking} disabled={tracking} style={{
-            display: "flex", alignItems: "center", gap: 7, padding: "8px 18px", borderRadius: 8,
-            background: tracking ? "#1F1F2E" : "#FFFFFF",
-            border: tracking ? "1px solid #2D2D3F" : "none",
-            color: tracking ? "#71717A" : "#0A0A0F",
-            fontSize: 12, fontWeight: 700, cursor: tracking ? "wait" : "pointer",
-            transition: "all 0.2s",
-          }}>
-            {tracking
-              ? <><RefreshCw size={12} style={{ animation: "spin 1s linear infinite" }} /> Menganalisis...</>
-              : <><ScanFace size={13} /> Analisis Rekaman</>}
-          </button>
         </div>
       </div>
-
-
-      {/* ── Status Sesi Tracking Rekaman ── */}
-      {sessionInfo && (
-        <div style={{
-          padding: "14px 18px", borderRadius: 10,
-          background: sessionInfo.status === "done" ? "rgba(5,46,22,0.4)" : sessionInfo.status === "failed" ? "rgba(42,10,10,0.4)" : "#111118",
-          border: `1px solid ${sessionInfo.status === "done" ? "#14532d" : sessionInfo.status === "failed" ? "#450a0a" : "#1F1F2E"}`,
-          display: "flex", alignItems: "center", gap: 12,
-        }}>
-          {sessionInfo.status === "done" ? (
-            <CheckCircle2 size={16} style={{ color: "#4ade80", flexShrink: 0 }} />
-          ) : sessionInfo.status === "failed" ? (
-            <AlertCircle size={16} style={{ color: "#f87171", flexShrink: 0 }} />
-          ) : (
-            <RefreshCw size={16} style={{ color: "#71717A", animation: "spin 1s linear infinite", flexShrink: 0 }} />
-          )}
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#FFF", margin: "0 0 2px" }}>
-              {sessionInfo.status === "done"
-                ? `Analisis rekaman selesai — ${sessionInfo.persons_found} orang teridentifikasi`
-                : sessionInfo.status === "failed"
-                ? `Analisis gagal: ${sessionInfo.error_msg || "error tidak diketahui"}`
-                : `Menganalisis ${sessionInfo.recordings_to_analyze || "semua"} rekaman...`}
-            </p>
-            <p style={{ fontSize: 11, color: "#71717A", margin: 0 }}>
-              {sessionInfo.status === "done"
-                ? `${sessionInfo.recordings_analyzed} rekaman dianalisis dari berbagai kamera`
-                : sessionInfo.status === "running"
-                ? "AI sedang mengekstrak sidik jari wajah dan membandingkan lintas kamera"
-                : "Sesi antri, akan dimulai sebentar"}
-            </p>
-          </div>
-          <StatusBadge status={sessionInfo.status} />
-        </div>
-      )}
+      {/* ── Info: real-time tracking berjalan otomatis ── */}
+      <div style={{
+        padding: "12px 16px", borderRadius: 10,
+        background: "rgba(10,18,30,0.7)", border: "1px solid rgba(96,165,250,0.2)",
+        display: "flex", alignItems: "center", gap: 12,
+        marginBottom: 20
+      }}>
+        <Radio size={14} style={{ color: "#60a5fa", flexShrink: 0 }} />
+        <p style={{ fontSize: 12, color: "#71717A", margin: 0, lineHeight: 1.6 }}>
+          <strong style={{ color: "#93c5fd" }}>Tracking live stream aktif otomatis</strong>{" "}
+          — saat AI Detection dinyalakan di halaman Live View, setiap wajah yang terdeteksi
+          langsung dicocokkan dan dicatat di sini secara real-time. Data diperbarui setiap 15 detik.
+        </p>
+      </div>
 
       {/* ── Error ── */}
       {error && (
@@ -600,19 +565,10 @@ export default function FaceAnalyticsPage() {
             <ScanFace size={24} style={{ color: "#2D2D3F" }} />
           </div>
           <p style={{ fontSize: 14, fontWeight: 600, color: "#FFF", margin: "0 0 8px" }}>Belum ada data tracking</p>
-          <p style={{ fontSize: 12, color: "#71717A", margin: "0 0 20px", lineHeight: 1.7 }}>
+          <p style={{ fontSize: 12, color: "#71717A", margin: 0, lineHeight: 1.7 }}>
             Aktifkan <strong style={{ color: "#FFF" }}>AI Detection</strong> di halaman Live View agar wajah dari
-            live stream otomatis dicocokkan dan muncul di sini.<br />
-            Atau, klik <strong style={{ color: "#FFF" }}>Analisis Rekaman</strong> untuk memproses video yang sudah tersimpan.
+            live stream otomatis dicocokkan dan muncul di sini secara real-time.
           </p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={handleStartTracking} disabled={tracking} style={{
-              display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", borderRadius: 8,
-              background: "#FFFFFF", color: "#0A0A0F", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer",
-            }}>
-              <ScanFace size={14} /> Analisis Rekaman
-            </button>
-          </div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
