@@ -535,9 +535,6 @@ export default function FaceAnalyticsPage() {
         </div>
       </div>
 
-      {/* ── Info: real-time tracking berjalan otomatis ── */}
-      <div style={{
-
 
       {/* ── Status Sesi Tracking Rekaman ── */}
       {sessionInfo && (
