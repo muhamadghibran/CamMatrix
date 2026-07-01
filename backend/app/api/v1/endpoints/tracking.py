@@ -114,11 +114,11 @@ async def list_persons(
 
     out = []
     for p in persons:
-        # Ambil sightings untuk person ini, urut kronologis
+        # Ambil sightings untuk person ini, urut kronologis berdasarkan waktu
         sightings_result = await db.execute(
             select(PersonSighting)
             .where(PersonSighting.person_id == p.id)
-            .order_by(PersonSighting.recording_id)
+            .order_by(PersonSighting.first_timestamp_sec)
         )
         sightings = sightings_result.scalars().all()
 
@@ -126,10 +126,11 @@ async def list_persons(
             "person_id":          p.id,
             "first_thumbnail":    p.first_thumbnail,
             "first_camera_name":  p.first_camera_name,
-            "total_cameras":      len(set(s.camera_name for s in sightings)),
+            "total_cameras":      len(set(s.camera_name for s in sightings if s.camera_name)),
             "total_sightings":    p.total_sightings,
             "trail": [
                 {
+                    "step":                i + 1,
                     "camera_name":        s.camera_name,
                     "camera_id":          s.camera_id,
                     "recording_id":       s.recording_id,
@@ -138,7 +139,7 @@ async def list_persons(
                     "frame_count":         s.frame_count,
                     "thumbnail":           s.thumbnail,
                 }
-                for s in sightings
+                for i, s in enumerate(sightings)
             ],
         })
     return out
@@ -161,7 +162,7 @@ async def get_person_trail(
     sightings_result = await db.execute(
         select(PersonSighting)
         .where(PersonSighting.person_id == person_id)
-        .order_by(PersonSighting.recording_id)
+        .order_by(PersonSighting.first_timestamp_sec)
     )
     sightings = sightings_result.scalars().all()
 
