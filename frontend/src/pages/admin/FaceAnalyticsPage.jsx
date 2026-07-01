@@ -486,7 +486,7 @@ export default function FaceAnalyticsPage() {
             )}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {/* Refresh manual */}
           <button onClick={() => fetchPersons()} title="Refresh" style={{
             width: 34, height: 34, borderRadius: 8, background: "transparent",
@@ -501,12 +501,51 @@ export default function FaceAnalyticsPage() {
           {/* Auto-refresh indicator */}
           <div style={{
             display: "flex", alignItems: "center", gap: 6,
-            padding: "0 12px", borderRadius: 8,
+            padding: "0 12px", height: 34, borderRadius: 8,
             background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.15)",
             fontSize: 11, fontWeight: 600, color: "#4ade80",
           }}>
             <LiveDot /> Auto-refresh 15s
           </div>
+
+          {/* ── Tombol Analisis Wajah Manual ── */}
+          {!tracking ? (
+            <button
+              onClick={handleStartTracking}
+              title="Analisis rekaman video untuk mendeteksi dan mencocokkan wajah"
+              style={{
+                display: "flex", alignItems: "center", gap: 7,
+                padding: "0 16px", height: 34, borderRadius: 8,
+                background: "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(99,102,241,0.15))",
+                border: "1px solid rgba(139,92,246,0.35)",
+                color: "#a78bfa", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(139,92,246,0.28), rgba(99,102,241,0.28))";
+                e.currentTarget.style.borderColor = "rgba(139,92,246,0.6)";
+                e.currentTarget.style.color = "#c4b5fd";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(99,102,241,0.15))";
+                e.currentTarget.style.borderColor = "rgba(139,92,246,0.35)";
+                e.currentTarget.style.color = "#a78bfa";
+              }}
+            >
+              <ScanFace size={13} />
+              Analisis Wajah
+            </button>
+          ) : (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 7,
+              padding: "0 14px", height: 34, borderRadius: 8,
+              background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)",
+              fontSize: 11, fontWeight: 600, color: "#a78bfa",
+            }}>
+              <RefreshCw size={11} style={{ animation: "spin 1s linear infinite" }} />
+              {sessionInfo?.status === "running" ? "Menganalisis..." : "Mempersiapkan..."}
+            </div>
+          )}
 
           {persons.length > 0 && (
             <button onClick={handleReset} style={{
