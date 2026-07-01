@@ -19,6 +19,7 @@ from sqlalchemy import select, update, delete
 from app.models.person_tracking import TrackedPerson, PersonSighting, TrackingSession
 from app.models.recording import Recording
 from app.models.camera import Camera
+from app.core.dlib_lock import dlib_lock  # Cegah SEGFAULT akibat concurrent dlib
 
 logger = logging.getLogger(__name__)
 
@@ -72,14 +73,16 @@ def _extract_face_data_from_video(video_path: str) -> list[dict]:
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             # Deteksi lokasi wajah (HOG, ringan)
-            locations = face_recognition.face_locations(rgb, model="hog")
+            with dlib_lock:
+                locations = face_recognition.face_locations(rgb, model="hog")
             if not locations:
                 frame_idx += 1
                 del frame
                 continue
 
             # Ekstrak embedding 128-dim
-            encodings = face_recognition.face_encodings(rgb, locations)
+            with dlib_lock:
+                encodings = face_recognition.face_encodings(rgb, locations)
 
             for loc, enc in zip(locations, encodings):
                 top, right, bottom, left = loc
@@ -129,7 +132,8 @@ def _cluster_persons(all_detections: list[dict], threshold: float = MATCH_THRESH
         # Cari person yang sudah ada dengan jarak terdekat
         if persons:
             rep_encs = [np.array(p["representative_embedding"]) for p in persons]
-            distances = face_recognition.face_distance(rep_encs, enc)
+            with dlib_lock:
+                distances = face_recognition.face_distance(rep_encs, enc)
             min_idx   = int(np.argmin(distances))
             if distances[min_idx] < threshold:
                 matched_idx = min_idx

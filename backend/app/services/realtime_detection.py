@@ -22,6 +22,8 @@ import base64
 from dataclasses import dataclass, field
 from typing import Optional
 
+from app.core.dlib_lock import dlib_lock  # Cegah SEGFAULT akibat concurrent dlib
+
 logger = logging.getLogger(__name__)
 
 # ── Haar Cascade (built-in OpenCV) ──
@@ -200,8 +202,10 @@ class CameraWorker:
                             small_frame = frame
 
                         rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-                        # HOG model dari dlib sangat akurat dan hemat resource CPU
-                        locations = face_recognition.face_locations(rgb, model="hog")
+
+                        # dlib tidak thread-safe — gunakan lock sebelum memanggil face_recognition
+                        with dlib_lock:
+                            locations = face_recognition.face_locations(rgb, model="hog")
                         
                         for top, right, bottom, left in locations:
                             # Kembalikan koordinat ke skala gambar asli
@@ -221,7 +225,8 @@ class CameraWorker:
                         now = time.time()
                         if len(locations) > 0 and (now - self._last_tracking_time >= 0.8):
                             self._last_tracking_time = now
-                            encodings = face_recognition.face_encodings(rgb, locations)
+                            with dlib_lock:
+                                encodings = face_recognition.face_encodings(rgb, locations)
                             for loc, enc in zip(locations, encodings):
                                 top_c, right_c, bottom_c, left_c = loc
                                 face_crop = small_frame[top_c:bottom_c, left_c:right_c]
@@ -502,7 +507,8 @@ async def _process_realtime_sighting(
                     continue
 
             if rep_encs:
-                distances = face_recognition.face_distance(rep_encs, target_enc)
+                with dlib_lock:
+                    distances = face_recognition.face_distance(rep_encs, target_enc)
                 min_idx = int(np.argmin(distances))
                 if distances[min_idx] < 0.55:  # MATCH_THRESHOLD
                     matched_person = valid_persons[min_idx]
