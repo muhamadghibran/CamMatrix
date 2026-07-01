@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   ScanFace, Play, RefreshCw, Trash2, ChevronRight,
   Camera, Clock, Users, AlertCircle, CheckCircle2, Eye,
-  Radio, Video
+  Video
 } from "lucide-react";
 import api from "../../utils/api";
 import { API_BASE_URL } from "../../constants/api";
@@ -537,17 +537,7 @@ export default function FaceAnalyticsPage() {
 
       {/* ── Info: real-time tracking berjalan otomatis ── */}
       <div style={{
-        padding: "12px 16px", borderRadius: 10,
-        background: "rgba(10,18,30,0.7)", border: "1px solid rgba(96,165,250,0.2)",
-        display: "flex", alignItems: "center", gap: 12,
-      }}>
-        <Radio size={14} style={{ color: "#60a5fa", flexShrink: 0 }} />
-        <p style={{ fontSize: 12, color: "#71717A", margin: 0, lineHeight: 1.6 }}>
-          <strong style={{ color: "#93c5fd" }}>Tracking live stream aktif otomatis</strong>{" "}
-          — saat AI Detection dinyalakan di halaman Live View, setiap wajah yang terdeteksi
-          langsung dicocokkan dan dicatat di sini secara real-time. Data diperbarui setiap 15 detik.
-        </p>
-      </div>
+
 
       {/* ── Status Sesi Tracking Rekaman ── */}
       {sessionInfo && (

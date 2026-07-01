@@ -112,41 +112,23 @@ async def ws_realtime_detection(
     await websocket.accept()
     logger.info(f"WS connected: user={user.email}, camera={camera_id}")
 
-    # ── 4. Start/join detection worker ──
-    detector = get_detector()
-    worker = detector.get_or_create_worker(camera_id, cam.name, rtsp_url)
-    worker.add_subscriber()
-
+    # ── 4. Start/join detection worker (DISABLED) ──
+    # Kami menonaktifkan real-time detection worker demi efisiensi CPU sesuai permintaan user.
     try:
         # Kirim pesan awal
         await websocket.send_json({
             "type": "connected",
             "camera_id": camera_id,
             "camera_name": cam.name,
-            "message": "Real-time detection started",
+            "message": "Real-time detection is disabled by admin",
         })
 
-        # ── 5. Loop: kirim deteksi setiap ~200ms ──
-        send_interval = 1.0 / (detector._fps or 5)
-        last_timestamp = 0.0
-
+        # Cukup pertahankan koneksi websocket agar frontend tidak error, tanpa memproses video
         while True:
-            # Cek apakah worker masih running
-            if not worker.is_running:
-                # Worker mati — coba restart
-                worker = detector.get_or_create_worker(camera_id, cam.name, rtsp_url)
-                worker.add_subscriber()
-
-            result = worker.latest_result
-            if result and result.timestamp != last_timestamp:
-                last_timestamp = result.timestamp
-                await websocket.send_json(result.to_dict())
-
-            # Sleep async agar tidak block event loop
-            await asyncio.sleep(send_interval)
+            await asyncio.sleep(10)
 
     except WebSocketDisconnect:
-        logger.info(f"WS disconnected: user={user.email}, camera={camera_id}")
+        logger.info(f"WS disconnected (disabled): user={user.email}, camera={camera_id}")
     except Exception as e:
         logger.warning(f"WS error: camera={camera_id}, error={e}")
     finally:
