@@ -25,8 +25,16 @@ def _get_cascade():
     global _cascade
     if _cascade is None:
         import cv2
-        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        # Mencoba memuat model alt2 terlebih dahulu untuk akurasi lebih baik & false positive lebih rendah
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_alt2.xml"
         _cascade = cv2.CascadeClassifier(cascade_path)
+        if _cascade.empty():
+            # Fallback ke model default jika alt2 tidak tersedia
+            cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+            _cascade = cv2.CascadeClassifier(cascade_path)
+            logger.info(f"Loaded fallback Haar Cascade: {cascade_path}")
+        else:
+            logger.info(f"Loaded optimized Haar Cascade: {cascade_path}")
     return _cascade
 
 
@@ -39,12 +47,13 @@ def _detect_faces_in_frame(frame_bgr) -> list[dict]:
     gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
     h_img, w_img = frame_bgr.shape[:2]
 
-    # scaleFactor=1.1, minNeighbors=5 → balance speed vs akurasi
+    # Parameter deteksi disesuaikan agar lebih ketat (menghindari false positive):
+    # scaleFactor=1.15 untuk stabilitas deteksi, minNeighbors=9 agar lebih selektif, minSize=(45,45)
     faces = cascade.detectMultiScale(
         gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(30, 30),
+        scaleFactor=1.15,
+        minNeighbors=9,
+        minSize=(45, 45),
     )
 
     results = []
@@ -52,8 +61,16 @@ def _detect_faces_in_frame(frame_bgr) -> list[dict]:
         return results
 
     for (x, y, w, h) in faces:
+        # Filter aspect ratio wajah manusia (lebar/tinggi harus seimbang, kisaran 0.7 - 1.3)
+        # Menghindari deteksi objek memanjang atau tidak proporsional (tiang, bayangan, garis)
+        aspect_ratio = w / h
+        if not (0.7 <= aspect_ratio <= 1.3):
+            continue
+
         # Crop wajah → resize kecil → encode base64 (untuk thumbnail)
         face_crop = frame_bgr[y:y+h, x:x+w]
+        if face_crop.size == 0:
+            continue
         face_small = cv2.resize(face_crop, (64, 64))
         _, buf = cv2.imencode(".jpg", face_small, [cv2.IMWRITE_JPEG_QUALITY, 60])
         crop_b64 = base64.b64encode(buf).decode("utf-8")

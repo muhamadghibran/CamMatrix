@@ -53,9 +53,14 @@ def _get_cascade():
     if _cascade is None:
         with _cascade_lock:
             if _cascade is None:
-                cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+                cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_alt2.xml"
                 _cascade = cv2.CascadeClassifier(cascade_path)
-                logger.info(f"Haar Cascade loaded: {cascade_path}")
+                if _cascade.empty():
+                    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+                    _cascade = cv2.CascadeClassifier(cascade_path)
+                    logger.info(f"Haar Cascade fallback loaded: {cascade_path}")
+                else:
+                    logger.info(f"Haar Cascade alt2 loaded: {cascade_path}")
     return _cascade
 
 
@@ -66,6 +71,32 @@ class FaceBox:
     y: float
     w: float
     h: float
+
+
+def _calculate_iou(box1: FaceBox, box2: FaceBox) -> float:
+    """Hitung Intersection over Union (IoU) antara dua FaceBox."""
+    x1_1, y1_1, w1, h1 = box1.x, box1.y, box1.w, box1.h
+    x2_1, y2_1 = x1_1 + w1, y1_1 + h1
+
+    x1_2, y1_2, w2, h2 = box2.x, box2.y, box2.w, box2.h
+    x2_2, y2_2 = x1_2 + w2, y1_2 + h2
+
+    x1_i = max(x1_1, x1_2)
+    y1_i = max(y1_1, y1_2)
+    x2_i = min(x2_1, x2_2)
+    y2_i = min(y2_1, y2_2)
+
+    if x1_i >= x2_i or y1_i >= y2_i:
+        return 0.0
+
+    intersection_area = (x2_i - x1_i) * (y2_i - y1_i)
+    area1 = w1 * h1
+    area2 = w2 * h2
+    union_area = area1 + area2 - intersection_area
+
+    if union_area <= 0:
+        return 0.0
+    return intersection_area / union_area
 
 
 @dataclass
@@ -112,6 +143,7 @@ class CameraWorker:
         self._latest_result: Optional[DetectionResult] = None
         self._running: bool = False
         self._last_tracking_time: float = 0.0
+        self._prev_boxes: list[FaceBox] = []
 
     @property
     def is_running(self) -> bool:
@@ -228,6 +260,18 @@ class CameraWorker:
                             with dlib_lock:
                                 locations = face_recognition.face_locations(rgb, model="hog")
                             
+                            # Filter lokasi berdasarkan ukuran dan rasio aspek wajah manusia untuk mengurangi false positive
+                            filtered_locations = []
+                            for loc in locations:
+                                top, right, bottom, left = loc
+                                face_h = bottom - top
+                                face_w = right - left
+                                if face_h >= 40 and face_w >= 40:
+                                    aspect_ratio = face_w / face_h
+                                    if 0.7 <= aspect_ratio <= 1.3:
+                                        filtered_locations.append(loc)
+                            locations = filtered_locations
+
                             for top, right, bottom, left in locations:
                                 # Kembalikan koordinat ke skala gambar asli
                                 orig_left = left / scale
@@ -250,6 +294,29 @@ class CameraWorker:
                                     encodings = face_recognition.face_encodings(rgb, locations)
                                 for loc, enc in zip(locations, encodings):
                                     top_c, right_c, bottom_c, left_c = loc
+                                    
+                                    # Bangun FaceBox untuk pencocokan temporal
+                                    orig_left = left_c / scale
+                                    orig_top = top_c / scale
+                                    orig_right = right_c / scale
+                                    orig_bottom = bottom_c / scale
+                                    current_box = FaceBox(
+                                        x=round(orig_left / w_img, 4),
+                                        y=round(orig_top / h_img, 4),
+                                        w=round((orig_right - orig_left) / w_img, 4),
+                                        h=round((orig_bottom - orig_top) / h_img, 4),
+                                    )
+                                    
+                                    # Cek apakah wajah terdeteksi secara konsisten (ada di frame sebelumnya)
+                                    is_confirmed = False
+                                    for prev_box in self._prev_boxes:
+                                        if _calculate_iou(current_box, prev_box) >= 0.25:
+                                            is_confirmed = True
+                                            break
+                                    
+                                    if not is_confirmed:
+                                        continue  # Lewati deteksi yang bersifat transien (flicker/noise)
+                                        
                                     face_crop = small_frame[top_c:bottom_c, left_c:right_c]
                                     if face_crop.size > 0:
                                         face_small = cv2.resize(face_crop, (64, 64))
@@ -269,12 +336,22 @@ class CameraWorker:
 
                 if not use_face_rec:
                     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    # Parameter disetel lebih ketat untuk mereduksi false positive: minNeighbors=9, minSize=50x50, scaleFactor=1.15
                     faces = cascade.detectMultiScale(
                         gray,
-                        scaleFactor=1.1,
-                        minNeighbors=5,
-                        minSize=(30, 30),
+                        scaleFactor=1.15,
+                        minNeighbors=9,
+                        minSize=(50, 50),
                     )
+                    
+                    # Filter berdasarkan aspek rasio wajah manusia
+                    filtered_faces = []
+                    for (x, y, w, h) in faces:
+                        aspect_ratio = w / h
+                        if 0.7 <= aspect_ratio <= 1.3:
+                            filtered_faces.append((x, y, w, h))
+                    faces = filtered_faces
+
                     if len(faces) > 0:
                         now = time.time()
                         for (x, y, w, h) in faces:
@@ -289,6 +366,23 @@ class CameraWorker:
                         if now - self._last_tracking_time >= 0.8:
                             self._last_tracking_time = now
                             for (x, y, w, h) in faces:
+                                current_box = FaceBox(
+                                    x=round(x / w_img, 4),
+                                    y=round(y / h_img, 4),
+                                    w=round(w / w_img, 4),
+                                    h=round(h / h_img, 4),
+                                )
+                                
+                                # Cek apakah wajah terdeteksi secara konsisten (ada di frame sebelumnya)
+                                is_confirmed = False
+                                for prev_box in self._prev_boxes:
+                                    if _calculate_iou(current_box, prev_box) >= 0.25:
+                                        is_confirmed = True
+                                        break
+                                
+                                if not is_confirmed:
+                                    continue  # Lewati deteksi transien
+                                    
                                 face_crop = frame[y:y+h, x:x+w]
                                 if face_crop.size > 0:
                                     face_small = cv2.resize(face_crop, (64, 64))
@@ -311,6 +405,9 @@ class CameraWorker:
                     frame_width=w_img,
                     frame_height=h_img,
                 )
+                
+                # Simpan untuk validasi temporal pada frame berikutnya
+                self._prev_boxes = boxes
 
                 # Bebaskan RAM
                 if not use_face_rec:

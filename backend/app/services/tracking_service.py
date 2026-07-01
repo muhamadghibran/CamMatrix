@@ -75,6 +75,19 @@ def _extract_face_data_from_video(video_path: str) -> list[dict]:
             # Deteksi lokasi wajah (HOG, ringan)
             with dlib_lock:
                 locations = face_recognition.face_locations(rgb, model="hog")
+            
+            # Filter lokasi wajah yang terlalu kecil atau rasio aspek tidak wajar untuk mengurangi false positive
+            filtered_locations = []
+            for loc in locations:
+                top, right, bottom, left = loc
+                face_h = bottom - top
+                face_w = right - left
+                if face_h >= 40 and face_w >= 40:
+                    aspect_ratio = face_w / face_h
+                    if 0.7 <= aspect_ratio <= 1.3:
+                        filtered_locations.append(loc)
+            locations = filtered_locations
+
             if not locations:
                 frame_idx += 1
                 del frame
