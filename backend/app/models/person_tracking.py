@@ -36,8 +36,8 @@ class PersonSighting(Base):
     person_id: Mapped[int]    = mapped_column(
         ForeignKey("tracked_persons.id", ondelete="CASCADE"), index=True
     )
-    recording_id: Mapped[int] = mapped_column(
-        ForeignKey("recordings.id", ondelete="CASCADE"), index=True
+    recording_id: Mapped[int | None] = mapped_column(
+        ForeignKey("recordings.id", ondelete="CASCADE"), index=True, nullable=True
     )
     camera_name: Mapped[str | None]   = mapped_column(String(255), nullable=True)
     camera_id: Mapped[int | None]     = mapped_column(Integer, nullable=True)

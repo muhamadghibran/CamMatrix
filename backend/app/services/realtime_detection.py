@@ -16,6 +16,9 @@ import cv2
 import time
 import logging
 import threading
+import queue
+import asyncio
+import base64
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -73,8 +76,9 @@ class CameraWorker:
     Auto-stop jika tidak ada subscriber selama `timeout` detik.
     """
 
-    def __init__(self, camera_id: int, rtsp_url: str, fps: int = 5, timeout: int = 30):
+    def __init__(self, camera_id: int, camera_name: str, rtsp_url: str, fps: int = 5, timeout: int = 30):
         self.camera_id = camera_id
+        self.camera_name = camera_name
         self.rtsp_url = rtsp_url
         self.target_fps = fps
         self.timeout = timeout
@@ -88,6 +92,7 @@ class CameraWorker:
         self._last_subscriber_time: float = time.time()
         self._latest_result: Optional[DetectionResult] = None
         self._running: bool = False
+        self._last_tracking_time: float = 0.0
 
     @property
     def is_running(self) -> bool:
@@ -211,6 +216,27 @@ class CameraWorker:
                                 w=round((orig_right - orig_left) / w_img, 4),
                                 h=round((orig_bottom - orig_top) / h_img, 4),
                             ))
+
+                        # ── Real-time Face Tracking embedding extraction and queueing ──
+                        now = time.time()
+                        if len(locations) > 0 and (now - self._last_tracking_time >= 1.5):
+                            self._last_tracking_time = now
+                            encodings = face_recognition.face_encodings(rgb, locations)
+                            for loc, enc in zip(locations, encodings):
+                                top_c, right_c, bottom_c, left_c = loc
+                                face_crop = small_frame[top_c:bottom_c, left_c:right_c]
+                                if face_crop.size > 0:
+                                    face_small = cv2.resize(face_crop, (64, 64))
+                                    _, buf = cv2.imencode(".jpg", face_small, [cv2.IMWRITE_JPEG_QUALITY, 65])
+                                    crop_b64 = base64.b64encode(buf).decode("utf-8")
+                                    
+                                    enqueue_tracking_item({
+                                        "camera_id": self.camera_id,
+                                        "camera_name": self.camera_name,
+                                        "embedding": enc.tolist(),
+                                        "thumbnail": crop_b64,
+                                        "timestamp": now,
+                                    })
                     except Exception as e:
                         logger.error(f"Error running face_recognition detector: {e}")
                         use_face_rec = False # Fallback jika terjadi error runtime
@@ -272,7 +298,7 @@ class RealtimeDetector:
         self._fps = fps
         self._timeout = timeout
 
-    def get_or_create_worker(self, camera_id: int, rtsp_url: str) -> CameraWorker:
+    def get_or_create_worker(self, camera_id: int, camera_name: str, rtsp_url: str) -> CameraWorker:
         """Ambil worker yang ada atau buat baru. Auto-start jika belum running."""
         with self._lock:
             worker = self._workers.get(camera_id)
@@ -280,6 +306,7 @@ class RealtimeDetector:
                 # Buat worker baru
                 worker = CameraWorker(
                     camera_id=camera_id,
+                    camera_name=camera_name,
                     rtsp_url=rtsp_url,
                     fps=self._fps,
                     timeout=self._timeout,
@@ -335,3 +362,199 @@ def shutdown_detector():
     if _detector:
         _detector.stop_all()
         _detector = None
+
+
+# ── Background Real-time Face Tracking Queue & Listener ──
+_tracking_queue = queue.Queue()
+_listener_task: Optional[asyncio.Task] = None
+_stop_listener = False
+
+
+def enqueue_tracking_item(item: dict):
+    """Masukkan item deteksi wajah ke antrean untuk diproses background task."""
+    try:
+        _tracking_queue.put_nowait(item)
+    except queue.Full:
+        logger.warning("Tracking queue is full, dropping item")
+
+
+async def start_realtime_tracking_listener():
+    """Mulai background listener untuk memproses tracking real-time."""
+    global _listener_task, _stop_listener
+    if _listener_task is not None:
+        return
+    _stop_listener = False
+    _listener_task = asyncio.create_task(_tracking_listener_loop())
+    logger.info("Real-time tracking listener started")
+
+
+async def stop_realtime_tracking_listener():
+    """Hentikan background listener."""
+    global _listener_task, _stop_listener
+    _stop_listener = True
+    if _listener_task:
+        _listener_task.cancel()
+        try:
+            await _listener_task
+        except asyncio.CancelledError:
+            pass
+        _listener_task = None
+    logger.info("Real-time tracking listener stopped")
+
+
+async def _tracking_listener_loop():
+    """Loop utama untuk membaca queue dan memproses data tracking."""
+    from app.core.database import AsyncSessionLocal
+    while not _stop_listener:
+        try:
+            try:
+                item = _tracking_queue.get_nowait()
+            except queue.Empty:
+                await asyncio.sleep(0.5)
+                continue
+
+            camera_id = item["camera_id"]
+            camera_name = item["camera_name"]
+            embedding = item["embedding"]
+            thumbnail = item["thumbnail"]
+            timestamp = item["timestamp"]
+
+            async with AsyncSessionLocal() as db:
+                await _process_realtime_sighting(
+                    db=db,
+                    camera_id=camera_id,
+                    camera_name=camera_name,
+                    embedding=embedding,
+                    thumbnail=thumbnail,
+                    timestamp=timestamp,
+                )
+
+            _tracking_queue.task_done()
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Error in tracking listener loop: {e}", exc_info=True)
+            await asyncio.sleep(1.0)
+
+
+async def _process_realtime_sighting(
+    db,
+    camera_id: int,
+    camera_name: str,
+    embedding: list[float],
+    thumbnail: str,
+    timestamp: float,
+):
+    """Proses pencocokan wajah dan simpan ke database."""
+    try:
+        import face_recognition
+        import numpy as np
+        import json
+        from sqlalchemy import select
+        from app.models.person_tracking import TrackedPerson, PersonSighting
+    except ImportError as e:
+        logger.error(f"Failed to import required libraries in _process_realtime_sighting: {e}")
+        return
+
+    try:
+        # 1. Ambil semua data person untuk dicocokkan
+        result = await db.execute(select(TrackedPerson))
+        tracked_persons = result.scalars().all()
+
+        target_enc = np.array(embedding)
+        matched_person = None
+        matched_distance = float("inf")
+
+        if tracked_persons:
+            rep_encs = []
+            valid_persons = []
+            for p in tracked_persons:
+                try:
+                    emb = json.loads(p.embedding_json)
+                    if isinstance(emb, list) and len(emb) == 128:
+                        rep_encs.append(np.array(emb))
+                        valid_persons.append(p)
+                except Exception:
+                    continue
+
+            if rep_encs:
+                distances = face_recognition.face_distance(rep_encs, target_enc)
+                min_idx = int(np.argmin(distances))
+                if distances[min_idx] < 0.50:  # MATCH_THRESHOLD
+                    matched_person = valid_persons[min_idx]
+                    matched_distance = distances[min_idx]
+
+        if matched_person:
+            # Update TrackedPerson
+            p = matched_person
+            try:
+                old_emb = np.array(json.loads(p.embedding_json))
+                new_emb = ((old_emb * p.total_sightings + target_enc) / (p.total_sightings + 1)).tolist()
+            except Exception:
+                new_emb = embedding
+
+            p.total_sightings += 1
+            p.embedding_json = json.dumps(new_emb)
+            db.add(p)
+
+            # Cari sighting terbaru untuk kamera ini yang juga merupakan real-time (recording_id=None)
+            recent_result = await db.execute(
+                select(PersonSighting)
+                .where(
+                    PersonSighting.person_id == p.id,
+                    PersonSighting.camera_id == camera_id,
+                    PersonSighting.recording_id == None
+                )
+                .order_by(PersonSighting.id.desc())
+                .limit(1)
+            )
+            recent_sighting = recent_result.scalar_one_or_none()
+
+            # Jika penampakan terakhir kurang dari 30 detik yang lalu, gabungkan
+            if recent_sighting and (timestamp - recent_sighting.last_timestamp_sec < 30.0):
+                recent_sighting.last_timestamp_sec = timestamp
+                recent_sighting.frame_count += 1
+                recent_sighting.thumbnail = thumbnail
+                db.add(recent_sighting)
+            else:
+                # Sesi sighting baru (setelah 30s menghilang)
+                ps = PersonSighting(
+                    person_id=p.id,
+                    recording_id=None,
+                    camera_name=camera_name,
+                    camera_id=camera_id,
+                    first_timestamp_sec=timestamp,
+                    last_timestamp_sec=timestamp,
+                    frame_count=1,
+                    thumbnail=thumbnail,
+                )
+                db.add(ps)
+        else:
+            # Buat orang baru
+            tp = TrackedPerson(
+                embedding_json=json.dumps(embedding),
+                first_thumbnail=thumbnail,
+                first_camera_name=camera_name,
+                first_seen_at=timestamp,
+                total_sightings=1,
+            )
+            db.add(tp)
+            await db.flush()
+
+            # Buat sighting baru
+            ps = PersonSighting(
+                person_id=tp.id,
+                recording_id=None,
+                camera_name=camera_name,
+                camera_id=camera_id,
+                first_timestamp_sec=timestamp,
+                last_timestamp_sec=timestamp,
+                frame_count=1,
+                thumbnail=thumbnail,
+            )
+            db.add(ps)
+
+        await db.commit()
+    except Exception as e:
+        logger.error(f"Error processing realtime sighting in database: {e}", exc_info=True)
+        await db.rollback()

@@ -114,7 +114,7 @@ async def ws_realtime_detection(
 
     # ── 4. Start/join detection worker ──
     detector = get_detector()
-    worker = detector.get_or_create_worker(camera_id, rtsp_url)
+    worker = detector.get_or_create_worker(camera_id, cam.name, rtsp_url)
     worker.add_subscriber()
 
     try:
@@ -134,7 +134,7 @@ async def ws_realtime_detection(
             # Cek apakah worker masih running
             if not worker.is_running:
                 # Worker mati — coba restart
-                worker = detector.get_or_create_worker(camera_id, rtsp_url)
+                worker = detector.get_or_create_worker(camera_id, cam.name, rtsp_url)
                 worker.add_subscriber()
 
             result = worker.latest_result

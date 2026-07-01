@@ -49,6 +49,10 @@ async def lifespan(app: FastAPI):
                 
         print(f"✅ Startup: {len(cameras)} kamera disinkronisasi ke MediaMTX API")
 
+        # Start Real-time Tracking queue listener
+        from app.services.realtime_detection import start_realtime_tracking_listener
+        await start_realtime_tracking_listener()
+
     except RuntimeError:
         raise  # Re-raise FATAL errors
     except Exception as e:
@@ -58,9 +62,10 @@ async def lifespan(app: FastAPI):
 
     # ── Shutdown: cleanup real-time detection workers ──
     try:
-        from app.services.realtime_detection import shutdown_detector
+        from app.services.realtime_detection import shutdown_detector, stop_realtime_tracking_listener
+        await stop_realtime_tracking_listener()
         shutdown_detector()
-        print("✅ Shutdown: real-time detection workers stopped")
+        print("✅ Shutdown: real-time detection workers and tracking listener stopped")
     except Exception as e:
         print(f"⚠️  Shutdown cleanup: {e}")
 
