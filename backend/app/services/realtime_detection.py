@@ -19,8 +19,12 @@ import threading
 import queue
 import asyncio
 import base64
+import os
 from dataclasses import dataclass, field
 from typing import Optional
+
+# Paksa OpenCV menggunakan TCP untuk semua stream RTSP guna mencegah packet loss/corrupt H.264
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
 
 from app.core.dlib_lock import dlib_lock  # Cegah SEGFAULT akibat concurrent dlib
 
