@@ -26,6 +26,19 @@ from app.core.dlib_lock import dlib_lock  # Cegah SEGFAULT akibat concurrent dli
 
 logger = logging.getLogger(__name__)
 
+# ── Flag untuk pause sementara realtime dlib (saat batch tracking berjalan) ──
+_dlib_paused = threading.Event()  # Set = paused, Clear = running
+
+def pause_realtime_dlib():
+    """Pause semua camera worker agar tidak memakai dlib. Dipanggil saat batch tracking."""
+    _dlib_paused.set()
+    logger.info("[dlib] Realtime detection di-pause untuk batch tracking")
+
+def resume_realtime_dlib():
+    """Resume camera workers setelah batch tracking selesai."""
+    _dlib_paused.clear()
+    logger.info("[dlib] Realtime detection di-resume")
+
 # ── Haar Cascade (built-in OpenCV) ──
 _cascade = None
 _cascade_lock = threading.Lock()
@@ -192,56 +205,60 @@ class CameraWorker:
 
                 if use_face_rec:
                     try:
-                        # Resize frame untuk mempercepat deteksi (max width 640)
-                        target_w = 640
-                        if w_img > target_w:
-                            scale = target_w / w_img
-                            small_frame = cv2.resize(frame, (target_w, int(h_img * scale)))
+                        # Jika sedang batch tracking, skip dlib — gunakan Haar saja
+                        if _dlib_paused.is_set():
+                            use_face_rec = False
                         else:
-                            scale = 1.0
-                            small_frame = frame
+                            # Resize frame untuk mempercepat deteksi (max width 640)
+                            target_w = 640
+                            if w_img > target_w:
+                                scale = target_w / w_img
+                                small_frame = cv2.resize(frame, (target_w, int(h_img * scale)))
+                            else:
+                                scale = 1.0
+                                small_frame = frame
 
-                        rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+                            rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-                        # dlib tidak thread-safe — gunakan lock sebelum memanggil face_recognition
-                        with dlib_lock:
-                            locations = face_recognition.face_locations(rgb, model="hog")
-                        
-                        for top, right, bottom, left in locations:
-                            # Kembalikan koordinat ke skala gambar asli
-                            orig_left = left / scale
-                            orig_top = top / scale
-                            orig_right = right / scale
-                            orig_bottom = bottom / scale
-                            
-                            boxes.append(FaceBox(
-                                x=round(orig_left / w_img, 4),
-                                y=round(orig_top / h_img, 4),
-                                w=round((orig_right - orig_left) / w_img, 4),
-                                h=round((orig_bottom - orig_top) / h_img, 4),
-                            ))
-
-                        # ── Real-time Face Tracking embedding extraction and queueing ──
-                        now = time.time()
-                        if len(locations) > 0 and (now - self._last_tracking_time >= 0.8):
-                            self._last_tracking_time = now
+                            # dlib tidak thread-safe — gunakan lock sebelum memanggil face_recognition
                             with dlib_lock:
-                                encodings = face_recognition.face_encodings(rgb, locations)
-                            for loc, enc in zip(locations, encodings):
-                                top_c, right_c, bottom_c, left_c = loc
-                                face_crop = small_frame[top_c:bottom_c, left_c:right_c]
-                                if face_crop.size > 0:
-                                    face_small = cv2.resize(face_crop, (64, 64))
-                                    _, buf = cv2.imencode(".jpg", face_small, [cv2.IMWRITE_JPEG_QUALITY, 65])
-                                    crop_b64 = base64.b64encode(buf).decode("utf-8")
-                                    
-                                    enqueue_tracking_item({
-                                        "camera_id": self.camera_id,
-                                        "camera_name": self.camera_name,
-                                        "embedding": enc.tolist(),
-                                        "thumbnail": crop_b64,
-                                        "timestamp": now,
-                                    })
+                                locations = face_recognition.face_locations(rgb, model="hog")
+                            
+                            for top, right, bottom, left in locations:
+                                # Kembalikan koordinat ke skala gambar asli
+                                orig_left = left / scale
+                                orig_top = top / scale
+                                orig_right = right / scale
+                                orig_bottom = bottom / scale
+                                
+                                boxes.append(FaceBox(
+                                    x=round(orig_left / w_img, 4),
+                                    y=round(orig_top / h_img, 4),
+                                    w=round((orig_right - orig_left) / w_img, 4),
+                                    h=round((orig_bottom - orig_top) / h_img, 4),
+                                ))
+
+                            # ── Real-time Face Tracking embedding extraction and queueing ──
+                            now = time.time()
+                            if len(locations) > 0 and (now - self._last_tracking_time >= 0.8):
+                                self._last_tracking_time = now
+                                with dlib_lock:
+                                    encodings = face_recognition.face_encodings(rgb, locations)
+                                for loc, enc in zip(locations, encodings):
+                                    top_c, right_c, bottom_c, left_c = loc
+                                    face_crop = small_frame[top_c:bottom_c, left_c:right_c]
+                                    if face_crop.size > 0:
+                                        face_small = cv2.resize(face_crop, (64, 64))
+                                        _, buf = cv2.imencode(".jpg", face_small, [cv2.IMWRITE_JPEG_QUALITY, 65])
+                                        crop_b64 = base64.b64encode(buf).decode("utf-8")
+                                        
+                                        enqueue_tracking_item({
+                                            "camera_id": self.camera_id,
+                                            "camera_name": self.camera_name,
+                                            "embedding": enc.tolist(),
+                                            "thumbnail": crop_b64,
+                                            "timestamp": now,
+                                        })
                     except Exception as e:
                         logger.error(f"Error running face_recognition detector: {e}")
                         use_face_rec = False # Fallback jika terjadi error runtime

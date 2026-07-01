@@ -246,28 +246,35 @@ async def run_cross_camera_tracking(session_id: int, recording_ids: list[int], d
     await db.commit()
 
     try:
-        # Ambil data rekaman dari DB
-        result = await db.execute(
-            select(Recording, Camera)
-            .join(Camera, Recording.camera_id == Camera.id)
-            .where(Recording.id.in_(recording_ids))
-        )
-        rows = result.all()
+        # Import pause/resume realtime dlib
+        from app.services.realtime_detection import pause_realtime_dlib, resume_realtime_dlib
+        pause_realtime_dlib()
 
-        recordings_data = []
-        for rec, cam in rows:
-            path = _resolve_path(rec.minio_key)
-            recordings_data.append({
-                "recording_id":   rec.id,
-                "camera_name":    cam.name,
-                "camera_id":      cam.id,
-                "path":           path,
-                "recording_start": rec.created_at.isoformat() if rec.created_at else None,
-            })
+        try:
+            # Ambil data rekaman dari DB
+            result = await db.execute(
+                select(Recording, Camera)
+                .join(Camera, Recording.camera_id == Camera.id)
+                .where(Recording.id.in_(recording_ids))
+            )
+            rows = result.all()
 
-        # Jalankan di thread pool (blocking heavy computation)
-        loop = asyncio.get_event_loop()
-        persons = await loop.run_in_executor(None, _process_all, recordings_data)
+            recordings_data = []
+            for rec, cam in rows:
+                path = _resolve_path(rec.minio_key)
+                recordings_data.append({
+                    "recording_id":   rec.id,
+                    "camera_name":    cam.name,
+                    "camera_id":      cam.id,
+                    "path":           path,
+                    "recording_start": rec.created_at.isoformat() if rec.created_at else None,
+                })
+
+            # Jalankan di thread pool (blocking heavy computation)
+            loop = asyncio.get_event_loop()
+            persons = await loop.run_in_executor(None, _process_all, recordings_data)
+        finally:
+            resume_realtime_dlib()
 
         # Hapus data tracking lama dari session ini (re-analyze)
         # ── Simpan persons ke DB ──
