@@ -604,10 +604,51 @@ export default function FaceAnalyticsPage() {
             <ScanFace size={24} style={{ color: "#2D2D3F" }} />
           </div>
           <p style={{ fontSize: 14, fontWeight: 600, color: "#FFF", margin: "0 0 8px" }}>Belum ada data tracking</p>
-          <p style={{ fontSize: 12, color: "#71717A", margin: 0, lineHeight: 1.7 }}>
+          <p style={{ fontSize: 12, color: "#71717A", margin: "0 0 20px", lineHeight: 1.7 }}>
             Aktifkan <strong style={{ color: "#FFF" }}>AI Detection</strong> di halaman Live View agar wajah dari
             live stream otomatis dicocokkan dan muncul di sini secara real-time.
           </p>
+          {/* ── Tombol Analisis Manual di empty state ── */}
+          {!tracking ? (
+            <button
+              onClick={handleStartTracking}
+              title="Analisis rekaman video untuk mendeteksi dan mencocokkan wajah"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "10px 20px", borderRadius: 10,
+                background: "linear-gradient(135deg, rgba(139,92,246,0.18), rgba(99,102,241,0.18))",
+                border: "1px solid rgba(139,92,246,0.4)",
+                color: "#a78bfa", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                transition: "all 0.2s",
+                boxShadow: "0 0 20px rgba(139,92,246,0.15)",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(139,92,246,0.32), rgba(99,102,241,0.32))";
+                e.currentTarget.style.borderColor = "rgba(139,92,246,0.7)";
+                e.currentTarget.style.color = "#c4b5fd";
+                e.currentTarget.style.boxShadow = "0 0 28px rgba(139,92,246,0.3)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(139,92,246,0.18), rgba(99,102,241,0.18))";
+                e.currentTarget.style.borderColor = "rgba(139,92,246,0.4)";
+                e.currentTarget.style.color = "#a78bfa";
+                e.currentTarget.style.boxShadow = "0 0 20px rgba(139,92,246,0.15)";
+              }}
+            >
+              <ScanFace size={15} />
+              Analisis Manual Sekarang
+            </button>
+          ) : (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              padding: "10px 20px", borderRadius: 10,
+              background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)",
+              fontSize: 13, fontWeight: 600, color: "#a78bfa",
+            }}>
+              <RefreshCw size={13} style={{ animation: "spin 1s linear infinite" }} />
+              {sessionInfo?.status === "running" ? "Menganalisis..." : "Mempersiapkan..."}
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
