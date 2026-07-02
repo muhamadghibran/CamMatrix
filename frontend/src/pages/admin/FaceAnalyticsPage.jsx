@@ -517,20 +517,18 @@ export default function FaceAnalyticsPage() {
               style={{
                 display: "flex", alignItems: "center", gap: 7,
                 padding: "0 16px", height: 34, borderRadius: 8,
-                background: "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(99,102,241,0.15))",
-                border: "1px solid rgba(139,92,246,0.35)",
-                color: "#a78bfa", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.25)",
+                color: "#FFFFFF", fontSize: 12, fontWeight: 600, cursor: "pointer",
                 transition: "all 0.2s",
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = "linear-gradient(135deg, rgba(139,92,246,0.28), rgba(99,102,241,0.28))";
-                e.currentTarget.style.borderColor = "rgba(139,92,246,0.6)";
-                e.currentTarget.style.color = "#c4b5fd";
+                e.currentTarget.style.background = "rgba(255,255,255,0.16)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)";
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(99,102,241,0.15))";
-                e.currentTarget.style.borderColor = "rgba(139,92,246,0.35)";
-                e.currentTarget.style.color = "#a78bfa";
+                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
               }}
             >
               <ScanFace size={13} />
@@ -540,8 +538,8 @@ export default function FaceAnalyticsPage() {
             <div style={{
               display: "flex", alignItems: "center", gap: 7,
               padding: "0 14px", height: 34, borderRadius: 8,
-              background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)",
-              fontSize: 11, fontWeight: 600, color: "#a78bfa",
+              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)",
+              fontSize: 11, fontWeight: 600, color: "#AAAAAA",
             }}>
               <RefreshCw size={11} style={{ animation: "spin 1s linear infinite" }} />
               {sessionInfo?.status === "running" ? "Menganalisis..." : "Mempersiapkan..."}
