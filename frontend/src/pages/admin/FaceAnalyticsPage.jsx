@@ -387,12 +387,13 @@ export default function FaceAnalyticsPage() {
   const pollRef      = useRef(null);
   const autoRefRef   = useRef(null);
 
-  const headers = { Authorization: `Bearer ${token()}` };
+  // Selalu ambil token fresh saat request — hindari stale closure di dalam setInterval
+  const getHeaders = () => ({ Authorization: `Bearer ${token()}` });
 
   const fetchPersons = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await fetch(`${BASE}/ai/persons`, { headers });
+      const res = await fetch(`${BASE}/ai/persons`, { headers: getHeaders() });
       if (res.ok) {
         setPersons(await res.json());
         setLastRefresh(new Date());
@@ -421,7 +422,7 @@ export default function FaceAnalyticsPage() {
   const startPoll = (sid) => {
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${BASE}/ai/track/${sid}`, { headers });
+        const res = await fetch(`${BASE}/ai/track/${sid}`, { headers: getHeaders() });
         if (!res.ok) return;
         const data = await res.json();
         setSessionInfo(data);
@@ -440,7 +441,7 @@ export default function FaceAnalyticsPage() {
     setError(null);
     setSessionInfo(null);
     try {
-      const res = await fetch(`${BASE}/ai/track`, { method: "POST", headers });
+      const res = await fetch(`${BASE}/ai/track`, { method: "POST", headers: getHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Gagal memulai tracking");
       setSessionId(data.session_id);
@@ -456,7 +457,7 @@ export default function FaceAnalyticsPage() {
   const handleReset = async () => {
     if (!confirm("Hapus semua data tracking? Data orang dan jejak kamera akan hilang.")) return;
     try {
-      await fetch(`${BASE}/ai/persons`, { method: "DELETE", headers });
+      await fetch(`${BASE}/ai/persons`, { method: "DELETE", headers: getHeaders() });
       setPersons([]);
       setSessionInfo(null);
     } catch (_) {}
@@ -616,23 +617,21 @@ export default function FaceAnalyticsPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
                 padding: "10px 20px", borderRadius: 10,
-                background: "linear-gradient(135deg, rgba(139,92,246,0.18), rgba(99,102,241,0.18))",
-                border: "1px solid rgba(139,92,246,0.4)",
-                color: "#a78bfa", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.25)",
+                color: "#FFFFFF", fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "all 0.2s",
-                boxShadow: "0 0 20px rgba(139,92,246,0.15)",
+                boxShadow: "0 0 20px rgba(255,255,255,0.05)",
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = "linear-gradient(135deg, rgba(139,92,246,0.32), rgba(99,102,241,0.32))";
-                e.currentTarget.style.borderColor = "rgba(139,92,246,0.7)";
-                e.currentTarget.style.color = "#c4b5fd";
-                e.currentTarget.style.boxShadow = "0 0 28px rgba(139,92,246,0.3)";
+                e.currentTarget.style.background = "rgba(255,255,255,0.16)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)";
+                e.currentTarget.style.boxShadow = "0 0 24px rgba(255,255,255,0.12)";
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = "linear-gradient(135deg, rgba(139,92,246,0.18), rgba(99,102,241,0.18))";
-                e.currentTarget.style.borderColor = "rgba(139,92,246,0.4)";
-                e.currentTarget.style.color = "#a78bfa";
-                e.currentTarget.style.boxShadow = "0 0 20px rgba(139,92,246,0.15)";
+                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
+                e.currentTarget.style.boxShadow = "0 0 20px rgba(255,255,255,0.05)";
               }}
             >
               <ScanFace size={15} />
@@ -642,8 +641,8 @@ export default function FaceAnalyticsPage() {
             <div style={{
               display: "inline-flex", alignItems: "center", gap: 8,
               padding: "10px 20px", borderRadius: 10,
-              background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.25)",
-              fontSize: 13, fontWeight: 600, color: "#a78bfa",
+              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)",
+              fontSize: 13, fontWeight: 600, color: "#AAAAAA",
             }}>
               <RefreshCw size={13} style={{ animation: "spin 1s linear infinite" }} />
               {sessionInfo?.status === "running" ? "Menganalisis..." : "Mempersiapkan..."}
