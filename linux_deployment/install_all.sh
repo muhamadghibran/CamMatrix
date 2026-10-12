@@ -115,6 +115,9 @@ fi
 mkdir -p /var/lib/minio/data
 
 if command -v minio &>/dev/null; then
+    MINIO_BIN=$(command -v minio)
+    ln -sf "$MINIO_BIN" /usr/local/bin/minio
+    chmod +x /usr/local/bin/minio
     cat <<EOF > /etc/default/minio
 MINIO_VOLUMES="/var/lib/minio/data"
 MINIO_OPTS="--console-address :9001"
@@ -127,6 +130,7 @@ EOF
     systemctl restart minio || systemctl start minio
     systemctl enable minio
     echo "✅ MinIO Native Service berhasil berjalan via systemd!"
+
 else
     echo "  Fallback: menjalankan MinIO ringan..."
     apt-get install -y docker.io
