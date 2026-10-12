@@ -101,12 +101,15 @@ sudo -u postgres psql -d cctv_vms -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
 
 echo "[4/8] Menginstal & Menjalankan MinIO (Native S3 Storage)..."
-wget -qO /usr/local/bin/minio https://dl.min.io/server/minio/release/linux-amd64/minio
+if ! curl -fSL --connect-timeout 15 --retry 3 https://dl.min.io/server/minio/release/linux-amd64/minio -o /usr/local/bin/minio; then
+    echo "Gagal dari dl.min.io, mencoba download dari mirror GitHub..."
+    curl -fSL --connect-timeout 15 --retry 3 https://github.com/minio/minio/releases/latest/download/minio -o /usr/local/bin/minio || wget https://dl.min.io/server/minio/release/linux-amd64/minio -O /usr/local/bin/minio
+fi
 chmod +x /usr/local/bin/minio
 
-mkdir -p /mnt/data/minio
+mkdir -p /var/lib/minio/data
 cat <<EOF > /etc/default/minio
-MINIO_VOLUMES="/mnt/data/minio"
+MINIO_VOLUMES="/var/lib/minio/data"
 MINIO_OPTS="--console-address :9001"
 MINIO_ROOT_USER="admin"
 MINIO_ROOT_PASSWORD="${MINIO_PASS}"
@@ -114,8 +117,9 @@ EOF
 
 cp $APP_DIR/linux_deployment/minio.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl start minio
+systemctl restart minio || systemctl start minio
 systemctl enable minio
+
 
 
 echo "[5/8] Menginstal & Menjalankan MediaMTX (RTSP/WebRTC Engine)..."
