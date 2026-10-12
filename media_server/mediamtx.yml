@@ -39,11 +39,11 @@ authInternalUsers:
       - action: publish
         path: ~^cam_
 
-  # Publik (anonymous) — menonton streaming + akses API dari localhost
-  # API sudah aman karena apiAddress hanya 127.0.0.1:9997
+  # Publik (anonymous) — menonton streaming + publish untuk dev lokal
   - user: any
     pass:
     permissions:
+      - action: publish
       - action: read
       - action: playback
       - action: api

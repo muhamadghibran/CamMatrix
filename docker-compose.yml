@@ -19,7 +19,7 @@ services:
   # MinIO (S3-compatible storage untuk rekaman)
   # ─────────────────────────────────────────────
   minio:
-    image: minio/minio:latest
+    image: elestio/minio:latest
     container_name: vms_minio
     restart: always
     command: server /data --console-address ":9001"

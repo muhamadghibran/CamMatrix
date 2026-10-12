@@ -4,10 +4,16 @@
 __pycache__/
 *.py[cod]
 .env
+backend/venv/
+backend/seed_admin.py
 
 # Node / Frontend
 node_modules/
 dist/
+
+# Production env (jangan commit credential!)
+.env.prod
+*.env.prod
 
 # OS
 .DS_Store

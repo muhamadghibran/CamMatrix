@@ -24,7 +24,7 @@ mkdir -p /var/www
 cp -r . $APP_DIR || true # Asumsi script dijalankan dari dalam project folder
 
 apt-get update -y
-apt-get install -y curl wget git python3 python3-venv python3-pip openssl build-essential libpq-dev
+apt-get install -y curl wget git python3 python3-venv python3-pip openssl build-essential libpq-dev cmake libopenblas-dev
 
 # === Network setup ===
 SERVER_IP=$(curl -s --max-time 5 ifconfig.me || echo "127.0.0.1")
@@ -160,6 +160,7 @@ cd $APP_DIR/frontend
 # Frontend .env sudah ditulis di atas (baris [2/8]) — langsung build
 npm install
 npm run build
+npm install -g serve
 
 # Jadikan sebagai daemon via systemd
 cp $APP_DIR/linux_deployment/cammatrix-frontend.service /etc/systemd/system/
