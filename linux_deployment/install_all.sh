@@ -116,8 +116,11 @@ mkdir -p /var/lib/minio/data
 
 if command -v minio &>/dev/null; then
     MINIO_BIN=$(command -v minio)
-    ln -sf "$MINIO_BIN" /usr/local/bin/minio
-    chmod +x /usr/local/bin/minio
+    if [ "$MINIO_BIN" != "/usr/local/bin/minio" ]; then
+        ln -sf "$MINIO_BIN" /usr/local/bin/minio || true
+    fi
+    chmod +x /usr/local/bin/minio || true
+
     cat <<EOF > /etc/default/minio
 MINIO_VOLUMES="/var/lib/minio/data"
 MINIO_OPTS="--console-address :9001"
