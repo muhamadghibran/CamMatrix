@@ -8,7 +8,7 @@ import Hls from "hls.js";
 import { useCameraStore } from "../../store/cameraStore";
 import { useAuthStore } from "../../store/authStore";
 import api from "../../utils/api";
-import { WS_BASE_URL } from "../../constants/api";
+import { WS_BASE_URL, getWsUrl } from "../../constants/api";
 
 const LAYOUTS = [
   { key: "1x1", icon: Maximize2,  cols: 1, label: "1×1",  max: 1  },
@@ -98,7 +98,7 @@ function DetectionOverlay({ cameraId, enabled, videoRef, objectFit = "cover" }) 
     const token = useAuthStore.getState().token;
     if (!token) return;
 
-    const wsUrl = `${WS_BASE_URL}/realtime/${cameraId}?token=${token}`;
+    const wsUrl = getWsUrl(`/realtime/${cameraId}?token=${encodeURIComponent(token)}`);
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

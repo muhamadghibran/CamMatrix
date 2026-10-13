@@ -188,17 +188,47 @@ class CameraWorker:
         logger.info(f"Camera {self.camera_id}: detection worker stopped")
 
     def _worker_loop(self):
-        """Loop utama worker — grab frame, deteksi, simpan hasil."""
+        """Loop utama worker — grab frame, deteksi cepat, kirim bounding box, simpan tracking."""
         cascade = _get_cascade()
-        frame_interval = 1.0 / self.target_fps
+        frame_interval = 1.0 / max(1, self.target_fps)
 
-        cap = cv2.VideoCapture(self.rtsp_url)
-        if not cap.isOpened():
+        # ── Coba buka stream RTSP dengan retry ──
+        cap = None
+        for attempt in range(5):
+            if self._stop_event.is_set():
+                self._running = False
+                return
+            cap = cv2.VideoCapture(self.rtsp_url)
+            if cap.isOpened():
+                break
+            logger.warning(
+                f"Camera {self.camera_id}: mencoba koneksi RTSP ({attempt + 1}/5) ke {self.rtsp_url}..."
+            )
+            time.sleep(1.5)
+
+        if not cap or not cap.isOpened():
+            # Fallback: coba path MediaMTX lokal jika berbeda
+            from app.core.config import settings
+            alt_url = f"{settings.MEDIAMTX_RTSP_BASE}/cam_{self.camera_id}"
+            if self.rtsp_url != alt_url:
+                logger.info(f"Camera {self.camera_id}: mencoba fallback path MediaMTX: {alt_url}")
+                cap = cv2.VideoCapture(alt_url)
+
+        if not cap or not cap.isOpened():
             logger.error(f"Camera {self.camera_id}: gagal membuka RTSP: {self.rtsp_url}")
             self._running = False
             return
 
-        logger.info(f"Camera {self.camera_id}: RTSP stream opened ({self.rtsp_url})")
+        logger.info(f"Camera {self.camera_id}: RTSP stream berhasil dibuka ({self.rtsp_url})")
+
+        # Cek ketersediaan face_recognition satu kali
+        has_face_rec = False
+        try:
+            import face_recognition
+            has_face_rec = True
+            logger.info("AI: face_recognition (dlib) tersedia untuk embedding presisi tinggi")
+        except ImportError:
+            logger.info("AI: face_recognition tidak tersedia, menggunakan OpenCV Haar Cascade bawaan")
 
         try:
             while not self._stop_event.is_set():
@@ -206,212 +236,131 @@ class CameraWorker:
 
                 # ── Auto-stop jika tidak ada subscriber ──
                 with self._lock:
-                    if self._subscribers == 0:
+                    if self._subscribers <= 0:
                         idle_time = time.time() - self._last_subscriber_time
                         if idle_time > self.timeout:
                             logger.info(
-                                f"Camera {self.camera_id}: no subscribers for "
-                                f"{idle_time:.0f}s, auto-stopping"
+                                f"Camera {self.camera_id}: tidak ada subscriber selama "
+                                f"{idle_time:.0f}s, auto-stopping worker"
                             )
                             break
 
                 # ── Grab frame ──
                 ret, frame = cap.read()
                 if not ret:
-                    # Stream terputus — coba reconnect
-                    logger.warning(f"Camera {self.camera_id}: frame grab failed, reconnecting...")
+                    logger.warning(f"Camera {self.camera_id}: frame grab gagal, mencoba reconnect...")
                     cap.release()
-                    time.sleep(2)
+                    time.sleep(1.5)
                     cap = cv2.VideoCapture(self.rtsp_url)
                     if not cap.isOpened():
-                        logger.error(f"Camera {self.camera_id}: reconnect failed")
-                        time.sleep(3)
+                        time.sleep(2.0)
                     continue
 
                 h_img, w_img = frame.shape[:2]
+                if h_img == 0 or w_img == 0:
+                    continue
 
-                # ── Deteksi wajah ──
+                # ── Resize untuk deteksi cepat (max width 640) ──
+                scale = 1.0
+                if w_img > 640:
+                    scale = 640.0 / w_img
+                    proc_w = 640
+                    proc_h = int(h_img * scale)
+                    proc_frame = cv2.resize(frame, (proc_w, proc_h))
+                else:
+                    proc_frame = frame
+
+                gray = cv2.cvtColor(proc_frame, cv2.COLOR_BGR2GRAY)
+
+                # ── Deteksi wajah cepat menggunakan Haar Cascade (~5-10ms) ──
+                raw_faces = cascade.detectMultiScale(
+                    gray,
+                    scaleFactor=1.1,
+                    minNeighbors=4,
+                    minSize=(24, 24),
+                )
+
                 boxes = []
-                use_face_rec = False
-                try:
-                    import face_recognition
-                    use_face_rec = True
-                except ImportError:
-                    pass
+                pixel_boxes = []
 
-                if use_face_rec:
-                    try:
-                        # Jika sedang batch tracking, skip dlib — gunakan Haar saja
-                        if _dlib_paused.is_set():
-                            use_face_rec = False
-                        else:
-                            # Resize frame untuk mempercepat deteksi (max width 640)
-                            target_w = 640
-                            if w_img > target_w:
-                                scale = target_w / w_img
-                                small_frame = cv2.resize(frame, (target_w, int(h_img * scale)))
-                            else:
-                                scale = 1.0
-                                small_frame = frame
+                for (sx, sy, sw, sh) in raw_faces:
+                    # Kembalikan koordinat ke frame asli
+                    orig_x = int(sx / scale)
+                    orig_y = int(sy / scale)
+                    orig_w = int(sw / scale)
+                    orig_h = int(sh / scale)
 
-                            rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+                    # Filter rasio aspek wajah manusia
+                    aspect_ratio = orig_w / max(1, orig_h)
+                    if not (0.6 <= aspect_ratio <= 1.4):
+                        continue
 
-                            # dlib tidak thread-safe — gunakan lock sebelum memanggil face_recognition
-                            with dlib_lock:
-                                locations = face_recognition.face_locations(rgb, model="hog")
-                            
-                            # Filter lokasi berdasarkan ukuran dan rasio aspek wajah manusia untuk mengurangi false positive
-                            filtered_locations = []
-                            for loc in locations:
-                                top, right, bottom, left = loc
-                                face_h = bottom - top
-                                face_w = right - left
-                                if face_h >= 40 and face_w >= 40:
-                                    aspect_ratio = face_w / face_h
-                                    if 0.7 <= aspect_ratio <= 1.3:
-                                        filtered_locations.append(loc)
-                            locations = filtered_locations
+                    # Pastikan dalam batas frame
+                    orig_x = max(0, min(orig_x, w_img - 1))
+                    orig_y = max(0, min(orig_y, h_img - 1))
+                    orig_w = max(1, min(orig_w, w_img - orig_x))
+                    orig_h = max(1, min(orig_h, h_img - orig_y))
 
-                            for top, right, bottom, left in locations:
-                                # Kembalikan koordinat ke skala gambar asli
-                                orig_left = left / scale
-                                orig_top = top / scale
-                                orig_right = right / scale
-                                orig_bottom = bottom / scale
-                                
-                                boxes.append(FaceBox(
-                                    x=round(orig_left / w_img, 4),
-                                    y=round(orig_top / h_img, 4),
-                                    w=round((orig_right - orig_left) / w_img, 4),
-                                    h=round((orig_bottom - orig_top) / h_img, 4),
-                                ))
+                    pixel_boxes.append((orig_x, orig_y, orig_w, orig_h))
+                    boxes.append(FaceBox(
+                        x=round(orig_x / w_img, 4),
+                        y=round(orig_y / h_img, 4),
+                        w=round(orig_w / w_img, 4),
+                        h=round(orig_h / h_img, 4),
+                    ))
 
-                            # ── Real-time Face Tracking embedding extraction and queueing ──
-                            now = time.time()
-                            if len(locations) > 0 and (now - self._last_tracking_time >= 0.8):
-                                self._last_tracking_time = now
+                # ── Face Tracking & Embedding Extraction (interval ~1s) ──
+                now = time.time()
+                if len(pixel_boxes) > 0 and (now - self._last_tracking_time >= 1.0):
+                    self._last_tracking_time = now
+
+                    for (px, py, pw, ph) in pixel_boxes:
+                        face_crop = frame[py:py+ph, px:px+pw]
+                        if face_crop.size == 0:
+                            continue
+
+                        # Thumbnail kecil untuk disimpan
+                        face_small = cv2.resize(face_crop, (64, 64))
+                        _, buf = cv2.imencode(".jpg", face_small, [cv2.IMWRITE_JPEG_QUALITY, 65])
+                        crop_b64 = base64.b64encode(buf).decode("utf-8")
+
+                        embedding = None
+                        if has_face_rec and not _dlib_paused.is_set():
+                            try:
+                                import face_recognition
+                                rgb_crop = cv2.cvtColor(face_crop, cv2.COLOR_BGR2RGB)
+                                ch, cw = face_crop.shape[:2]
+                                loc = [(0, cw, ch, 0)]
                                 with dlib_lock:
-                                    encodings = face_recognition.face_encodings(rgb, locations)
-                                for loc, enc in zip(locations, encodings):
-                                    top_c, right_c, bottom_c, left_c = loc
-                                    
-                                    # Bangun FaceBox untuk pencocokan temporal
-                                    orig_left = left_c / scale
-                                    orig_top = top_c / scale
-                                    orig_right = right_c / scale
-                                    orig_bottom = bottom_c / scale
-                                    current_box = FaceBox(
-                                        x=round(orig_left / w_img, 4),
-                                        y=round(orig_top / h_img, 4),
-                                        w=round((orig_right - orig_left) / w_img, 4),
-                                        h=round((orig_bottom - orig_top) / h_img, 4),
-                                    )
-                                    
-                                    # Cek apakah wajah terdeteksi secara konsisten (ada di frame sebelumnya)
-                                    is_confirmed = False
-                                    for prev_box in self._prev_boxes:
-                                        if _calculate_iou(current_box, prev_box) >= 0.25:
-                                            is_confirmed = True
-                                            break
-                                    
-                                    if not is_confirmed:
-                                        continue  # Lewati deteksi yang bersifat transien (flicker/noise)
-                                        
-                                    face_crop = small_frame[top_c:bottom_c, left_c:right_c]
-                                    if face_crop.size > 0:
-                                        face_small = cv2.resize(face_crop, (64, 64))
-                                        _, buf = cv2.imencode(".jpg", face_small, [cv2.IMWRITE_JPEG_QUALITY, 65])
-                                        crop_b64 = base64.b64encode(buf).decode("utf-8")
-                                        
-                                        enqueue_tracking_item({
-                                            "camera_id": self.camera_id,
-                                            "camera_name": self.camera_name,
-                                            "embedding": enc.tolist(),
-                                            "thumbnail": crop_b64,
-                                            "timestamp": now,
-                                        })
-                    except Exception as e:
-                        logger.error(f"Error running face_recognition detector: {e}")
-                        use_face_rec = False # Fallback jika terjadi error runtime
+                                    encs = face_recognition.face_encodings(rgb_crop, loc)
+                                    if encs:
+                                        embedding = encs[0].tolist()
+                            except Exception as e:
+                                logger.debug(f"Face encoding error: {e}")
 
-                if not use_face_rec:
-                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    # Parameter disetel lebih ketat untuk mereduksi false positive: minNeighbors=9, minSize=50x50, scaleFactor=1.15
-                    faces = cascade.detectMultiScale(
-                        gray,
-                        scaleFactor=1.15,
-                        minNeighbors=9,
-                        minSize=(50, 50),
-                    )
-                    
-                    # Filter berdasarkan aspek rasio wajah manusia
-                    filtered_faces = []
-                    for (x, y, w, h) in faces:
-                        aspect_ratio = w / h
-                        if 0.7 <= aspect_ratio <= 1.3:
-                            filtered_faces.append((x, y, w, h))
-                    faces = filtered_faces
+                        enqueue_tracking_item({
+                            "camera_id": self.camera_id,
+                            "camera_name": self.camera_name,
+                            "embedding": embedding,
+                            "thumbnail": crop_b64,
+                            "timestamp": now,
+                        })
+                        break  # 1 wajah utama per siklus untuk hemat CPU
 
-                    if len(faces) > 0:
-                        now = time.time()
-                        for (x, y, w, h) in faces:
-                            boxes.append(FaceBox(
-                                x=round(x / w_img, 4),
-                                y=round(y / h_img, 4),
-                                w=round(w / w_img, 4),
-                                h=round(h / h_img, 4),
-                            ))
-                        # Haar Cascade fallback: enqueue bounding box ke tracking
-                        # (tanpa embedding — hanya catat kehadiran wajah)
-                        if now - self._last_tracking_time >= 0.8:
-                            self._last_tracking_time = now
-                            for (x, y, w, h) in faces:
-                                current_box = FaceBox(
-                                    x=round(x / w_img, 4),
-                                    y=round(y / h_img, 4),
-                                    w=round(w / w_img, 4),
-                                    h=round(h / h_img, 4),
-                                )
-                                
-                                # Cek apakah wajah terdeteksi secara konsisten (ada di frame sebelumnya)
-                                is_confirmed = False
-                                for prev_box in self._prev_boxes:
-                                    if _calculate_iou(current_box, prev_box) >= 0.25:
-                                        is_confirmed = True
-                                        break
-                                
-                                if not is_confirmed:
-                                    continue  # Lewati deteksi transien
-                                    
-                                face_crop = frame[y:y+h, x:x+w]
-                                if face_crop.size > 0:
-                                    face_small = cv2.resize(face_crop, (64, 64))
-                                    _, buf = cv2.imencode(".jpg", face_small, [cv2.IMWRITE_JPEG_QUALITY, 65])
-                                    crop_b64 = base64.b64encode(buf).decode("utf-8")
-                                    enqueue_tracking_item({
-                                        "camera_id": self.camera_id,
-                                        "camera_name": self.camera_name,
-                                        "embedding": None,  # Haar tidak punya embedding
-                                        "thumbnail": crop_b64,
-                                        "timestamp": now,
-                                    })
-                                    break  # cukup satu wajah per frame untuk Haar
-
-                # ── Simpan hasil ──
+                # ── Simpan hasil untuk streaming WebSocket ──
                 self._latest_result = DetectionResult(
                     camera_id=self.camera_id,
                     faces=boxes,
-                    timestamp=time.time(),
+                    timestamp=now,
                     frame_width=w_img,
                     frame_height=h_img,
                 )
-                
-                # Simpan untuk validasi temporal pada frame berikutnya
                 self._prev_boxes = boxes
 
                 # Bebaskan RAM
-                if not use_face_rec:
-                    del gray
+                del gray
+                if proc_frame is not frame:
+                    del proc_frame
                 del frame
 
                 # ── Rate limiting ──
@@ -423,7 +372,8 @@ class CameraWorker:
         except Exception as e:
             logger.exception(f"Camera {self.camera_id}: worker error: {e}")
         finally:
-            cap.release()
+            if cap:
+                cap.release()
             self._running = False
             logger.info(f"Camera {self.camera_id}: worker loop ended")
 
@@ -589,18 +539,28 @@ async def _process_realtime_sighting(
 ):
     """Proses pencocokan wajah dan simpan ke database."""
     try:
-        import face_recognition
-        import numpy as np
         import json
         from sqlalchemy import select
         from app.models.person_tracking import TrackedPerson, PersonSighting
-    except ImportError as e:
-        logger.error(f"Failed to import required libraries in _process_realtime_sighting: {e}")
+    except Exception as e:
+        logger.error(f"Failed to import DB models in _process_realtime_sighting: {e}")
         return
 
     try:
-        # Jika tidak ada embedding (Haar fallback), hanya catat sighting tanpa matching
-        if embedding is None:
+        # Jika tidak ada embedding (Haar fallback), catat sighting tanpa matching vektor
+        if not embedding:
+            await _record_haar_sighting(db, camera_id, camera_name, thumbnail, timestamp)
+            return
+
+        # Cek apakah library matching (face_recognition & numpy) tersedia
+        try:
+            import face_recognition
+            import numpy as np
+            has_matching_libs = True
+        except ImportError:
+            has_matching_libs = False
+
+        if not has_matching_libs:
             await _record_haar_sighting(db, camera_id, camera_name, thumbnail, timestamp)
             return
 

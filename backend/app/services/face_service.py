@@ -47,13 +47,12 @@ def _detect_faces_in_frame(frame_bgr) -> list[dict]:
     gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
     h_img, w_img = frame_bgr.shape[:2]
 
-    # Parameter deteksi disesuaikan agar lebih ketat (menghindari false positive):
-    # scaleFactor=1.15 untuk stabilitas deteksi, minNeighbors=9 agar lebih selektif, minSize=(45,45)
+    # Parameter deteksi seimbang: sensitif mendeteksi wajah di rekaman tanpa false positive berlebih
     faces = cascade.detectMultiScale(
         gray,
-        scaleFactor=1.15,
-        minNeighbors=9,
-        minSize=(45, 45),
+        scaleFactor=1.1,
+        minNeighbors=4,
+        minSize=(28, 28),
     )
 
     results = []
@@ -61,10 +60,9 @@ def _detect_faces_in_frame(frame_bgr) -> list[dict]:
         return results
 
     for (x, y, w, h) in faces:
-        # Filter aspect ratio wajah manusia (lebar/tinggi harus seimbang, kisaran 0.7 - 1.3)
-        # Menghindari deteksi objek memanjang atau tidak proporsional (tiang, bayangan, garis)
-        aspect_ratio = w / h
-        if not (0.7 <= aspect_ratio <= 1.3):
+        # Filter aspect ratio wajah manusia (0.6 - 1.4)
+        aspect_ratio = w / max(1, h)
+        if not (0.6 <= aspect_ratio <= 1.4):
             continue
 
         # Crop wajah → resize kecil → encode base64 (untuk thumbnail)

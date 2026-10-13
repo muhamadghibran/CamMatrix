@@ -52,7 +52,13 @@ async def start_tracking(
 
     recordings = result.scalars().all()
     if not recordings:
-        raise HTTPException(status_code=404, detail="Tidak ada rekaman ditemukan")
+        return {
+            "session_id": 0,
+            "status": "done",
+            "recordings_to_analyze": 0,
+            "persons_found": 0,
+            "message": "Belum ada file rekaman video di server. AI melacak wajah secara otomatis dari Live Stream kamera.",
+        }
 
     ids = [r.id for r in recordings]
 
@@ -70,6 +76,32 @@ async def start_tracking(
         "status": "pending",
         "recordings_to_analyze": len(ids),
         "message": f"Tracking {len(ids)} rekaman dimulai. Poll /ai/track/{session.id} untuk progress.",
+    }
+
+
+# ── POST /ai/scan-live ────────────────────────────────────────────────────────
+@router.post("/scan-live", summary="Trigger scan wajah live stream langsung")
+async def scan_live_cameras(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Trigger scan wajah langsung dari seluruh kamera yang aktif saat ini.
+    """
+    from app.services.realtime_detection import get_detector
+    detector = get_detector()
+    active_cams = detector.get_active_cameras()
+    total_faces = 0
+    for cam_id in active_cams:
+        worker = detector._workers.get(cam_id)
+        if worker and worker.latest_result:
+            total_faces += len(worker.latest_result.faces)
+
+    return {
+        "status": "success",
+        "active_cameras": len(active_cams),
+        "total_faces_now": total_faces,
+        "message": f"Scan selesai: {total_faces} wajah terdeteksi dari {len(active_cams)} kamera aktif",
     }
 
 

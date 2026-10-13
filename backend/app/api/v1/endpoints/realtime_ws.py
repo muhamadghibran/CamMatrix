@@ -2,7 +2,7 @@
 WebSocket endpoint untuk Real-Time Face Detection.
 
 Route:
-  WS /api/v1/ws/realtime/{camera_id}?token=JWT_TOKEN
+  WS /ws/realtime/{camera_id}?token=JWT_TOKEN
 
 Flow:
   1. Client connect dengan JWT token di query param
@@ -14,6 +14,7 @@ Flow:
 import asyncio
 import json
 import logging
+from urllib.parse import unquote
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy import select
 
@@ -28,7 +29,14 @@ router = APIRouter()
 
 async def _authenticate_ws(token: str):
     """Validasi JWT token dan return user. None jika gagal."""
+    if not token:
+        return None
     try:
+        # Bersihkan token jika terbungkus encoding atau prefix Bearer
+        token = unquote(token).strip()
+        if token.lower().startswith("bearer "):
+            token = token[7:].strip()
+
         from app.core.security import decode_access_token
         payload = decode_access_token(token)
         if not payload:
@@ -63,13 +71,20 @@ async def _get_camera_rtsp(camera_id: int):
         if not cam:
             return None, None
 
-        # Bangun RTSP URL lengkap (dengan username:password@)
+        from app.core.config import settings
+        # Path default di MediaMTX lokal
+        local_mediamtx_url = f"{settings.MEDIAMTX_RTSP_BASE}/cam_{cam.owner_id}_{cam.id}"
+
         if cam.rtsp_url == "publisher":
-            # Mode publisher — ambil dari MediaMTX
-            from app.core.config import settings
-            rtsp_url = f"{settings.MEDIAMTX_RTSP_BASE}/cam_{cam.owner_id}_{cam.id}"
+            rtsp_url = local_mediamtx_url
         elif _build_rtsp_with_auth:
-            rtsp_url = _build_rtsp_with_auth(cam.rtsp_url, cam.username, cam.password)
+            built = _build_rtsp_with_auth(cam.rtsp_url, cam.username, cam.password)
+            # Jika rtsp_url adalah IP LAN private yang tak terjangkau langsung oleh VPS,
+            # prioritaskan stream MediaMTX yang sudah me-relay stream tersebut
+            if any(p in built for p in ("192.168.", "10.", "172.16.")):
+                rtsp_url = local_mediamtx_url
+            else:
+                rtsp_url = built
         else:
             rtsp_url = cam.rtsp_url
 
@@ -99,12 +114,16 @@ async def ws_realtime_detection(
     # ── 1. Autentikasi ──
     user = await _authenticate_ws(token)
     if not user:
+        await websocket.accept()
+        await websocket.send_json({"type": "error", "message": "Unauthorized"})
         await websocket.close(code=4001, reason="Unauthorized")
         return
 
     # ── 2. Ambil data kamera ──
     cam, rtsp_url = await _get_camera_rtsp(camera_id)
     if not cam or not rtsp_url:
+        await websocket.accept()
+        await websocket.send_json({"type": "error", "message": "Camera not found"})
         await websocket.close(code=4004, reason="Camera not found")
         return
 
@@ -127,13 +146,13 @@ async def ws_realtime_detection(
         })
 
         # ── 5. Loop: kirim deteksi setiap ~200ms ──
-        send_interval = 1.0 / (detector._fps or 5)
+        send_interval = 1.0 / max(1, detector._fps or 5)
         last_timestamp = 0.0
 
         while True:
             # Cek apakah worker masih running
             if not worker.is_running:
-                # Worker mati — coba restart
+                await asyncio.sleep(1.0)
                 worker = detector.get_or_create_worker(camera_id, cam.name, rtsp_url)
                 worker.add_subscriber()
 
@@ -142,7 +161,6 @@ async def ws_realtime_detection(
                 last_timestamp = result.timestamp
                 await websocket.send_json(result.to_dict())
 
-            # Sleep async agar tidak block event loop
             await asyncio.sleep(send_interval)
 
     except WebSocketDisconnect:
@@ -150,5 +168,6 @@ async def ws_realtime_detection(
     except Exception as e:
         logger.warning(f"WS error: camera={camera_id}, error={e}")
     finally:
-        worker.remove_subscriber()
+        if worker:
+            worker.remove_subscriber()
         logger.info(f"WS cleanup done: camera={camera_id}")

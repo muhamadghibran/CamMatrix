@@ -444,12 +444,33 @@ export default function FaceAnalyticsPage() {
       const res = await fetch(`${BASE}/ai/track`, { method: "POST", headers: getHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Gagal memulai tracking");
+      if (data.session_id === 0) {
+        setSessionInfo({ status: "done", message: data.message });
+        setTracking(false);
+        await fetchPersons();
+        return;
+      }
       setSessionId(data.session_id);
       setSessionInfo({ status: "pending", recordings_to_analyze: data.recordings_to_analyze });
       startPoll(data.session_id);
     } catch (e) {
       setError(e.message);
       setTracking(false);
+    }
+  };
+
+  // ── Scan live cameras ──
+  const [scanningLive, setScanningLive] = useState(false);
+  const handleScanLive = async () => {
+    setScanningLive(true);
+    setError(null);
+    try {
+      await fetch(`${BASE}/ai/scan-live`, { method: "POST", headers: getHeaders() });
+      await fetchPersons();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setScanningLive(false);
     }
   };
 
@@ -509,7 +530,24 @@ export default function FaceAnalyticsPage() {
             <LiveDot /> Auto-refresh 15s
           </div>
 
-          {/* ── Tombol Analisis Wajah Manual ── */}
+          {/* ── Tombol Scan Live & Analisis Wajah Manual ── */}
+          <button
+            onClick={handleScanLive}
+            disabled={scanningLive}
+            title="Scan wajah langsung dari seluruh kamera online yang aktif"
+            style={{
+              display: "flex", alignItems: "center", gap: 7,
+              padding: "0 14px", height: 34, borderRadius: 8,
+              background: "rgba(74,222,128,0.12)",
+              border: "1px solid rgba(74,222,128,0.3)",
+              color: "#4ade80", fontSize: 12, fontWeight: 600, cursor: scanningLive ? "wait" : "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            <Radio size={13} />
+            {scanningLive ? "Memindai..." : "Scan Live Stream"}
+          </button>
+
           {!tracking ? (
             <button
               onClick={handleStartTracking}
@@ -532,7 +570,7 @@ export default function FaceAnalyticsPage() {
               }}
             >
               <ScanFace size={13} />
-              Analisis Wajah
+              Analisis Rekaman
             </button>
           ) : (
             <div style={{
