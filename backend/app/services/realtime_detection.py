@@ -116,6 +116,7 @@ except BaseException as _fr_err:
     )
 
 
+@dataclass
 class FaceBox:
     """Bounding box wajah dalam koordinat relatif (0.0–1.0)."""
     x: float
