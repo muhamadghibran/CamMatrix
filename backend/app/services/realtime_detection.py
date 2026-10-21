@@ -326,20 +326,23 @@ class CameraWorker:
 
                 gray = cv2.cvtColor(proc_frame, cv2.COLOR_BGR2GRAY)
 
-                # ── Deteksi wajah cepat menggunakan Haar Cascade (~5-10ms) ──
+                # ── Deteksi wajah dengan Haar Cascade (parameter ketat anti false-positive) ──
                 if cascade is None:
-                    # Haar Cascade tidak tersedia, simpan hasil kosong
                     raw_faces = []
                 else:
+                    # Equalise histogram agar stabil di berbagai kondisi cahaya
+                    gray_eq = cv2.equalizeHist(gray)
                     raw_faces = cascade.detectMultiScale(
-                        gray,
-                        scaleFactor=1.1,
-                        minNeighbors=4,
-                        minSize=(24, 24),
+                        gray_eq,
+                        scaleFactor=1.15,   # Lebih besar = lebih cepat, lebih sedikit skala
+                        minNeighbors=8,     # Naik dari 4 → 8 untuk drastis kurangi false positive
+                        minSize=(80, 80),   # Min 80px dalam frame 640px (≈12% lebar)
+                        maxSize=(400, 400), # Max 400px — objek besar seperti papan tidak lolos
                     )
 
                 boxes = []
                 pixel_boxes = []
+                min_face_area = w_img * h_img * 0.005  # Min 0.5% area frame
 
                 for (sx, sy, sw, sh) in raw_faces:
                     # Kembalikan koordinat ke frame asli
@@ -348,9 +351,33 @@ class CameraWorker:
                     orig_w = int(sw / scale)
                     orig_h = int(sh / scale)
 
-                    # Filter rasio aspek wajah manusia
+                    # Filter rasio aspek wajah manusia (lebih ketat)
                     aspect_ratio = orig_w / max(1, orig_h)
-                    if not (0.6 <= aspect_ratio <= 1.4):
+                    if not (0.7 <= aspect_ratio <= 1.35):
+                        continue
+
+                    # Filter area minimum (buang deteksi terlalu kecil di frame asli)
+                    if orig_w * orig_h < min_face_area:
+                        continue
+
+                    # Filter temporal consistency — kotak harus ada di frame sebelumnya
+                    # (IoU > 0.25 dengan salah satu prev_box)
+                    is_consistent = False
+                    if self._prev_boxes:
+                        norm_x = orig_x / w_img
+                        norm_y = orig_y / h_img
+                        norm_w = orig_w / w_img
+                        norm_h = orig_h / h_img
+                        candidate = FaceBox(x=norm_x, y=norm_y, w=norm_w, h=norm_h)
+                        for prev in self._prev_boxes:
+                            if _calculate_iou(candidate, prev) > 0.25:
+                                is_consistent = True
+                                break
+                    else:
+                        # Frame pertama, izinkan semua (belum ada referensi)
+                        is_consistent = True
+
+                    if not is_consistent:
                         continue
 
                     # Pastikan dalam batas frame
