@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, memo, forwardRef } from "reac
 import {
   Maximize2, Grid2X2, Grid3X3, LayoutGrid, WifiOff,
   Expand, Minimize2, RefreshCw, Download, MonitorPlay,
-  ScanFace
+  ScanFace, BellRing
 } from "lucide-react";
 import Hls from "hls.js";
 import { useCameraStore } from "../../store/cameraStore";
@@ -58,14 +58,68 @@ const MemoHlsPlayer = memo(forwardRef(function HlsPlayer({ src, objectFit = "cov
 }));
 
 
+/* ── Toast Notification System ── */
+function ToastContainer({ toasts, onRemove }) {
+  return (
+    <div style={{
+      position: "fixed", bottom: 24, right: 24,
+      display: "flex", flexDirection: "column-reverse", gap: 10,
+      zIndex: 9999, pointerEvents: "none",
+    }}>
+      {toasts.map(t => (
+        <div key={t.id} style={{
+          display: "flex", alignItems: "center", gap: 10,
+          background: "rgba(0,0,0,0.88)",
+          border: "1px solid rgba(0,255,0,0.35)",
+          borderLeft: "3px solid #00FF00",
+          borderRadius: 10, padding: "10px 16px",
+          backdropFilter: "blur(12px)",
+          boxShadow: "0 4px 24px rgba(0,255,0,0.12)",
+          animation: "toastIn 0.35s cubic-bezier(0.16,1,0.3,1) both",
+          pointerEvents: "auto", minWidth: 220,
+        }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 7,
+            background: "rgba(0,255,0,0.12)",
+            border: "1px solid rgba(0,255,0,0.3)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <BellRing size={13} style={{ color: "#00FF00" }} />
+          </div>
+          <div>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "#FFF" }}>
+              Wajah Terdeteksi!
+            </p>
+            <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(0,255,0,0.8)" }}>
+              {t.cameraName}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Hook untuk toast ── */
+function useToasts() {
+  const [toasts, setToasts] = useState([]);
+  const fire = useCallback((cameraName) => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, cameraName }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+  }, []);
+  return { toasts, fire };
+}
+
 /* ── Detection Overlay — Canvas untuk menggambar kotak hijau ── */
-function DetectionOverlay({ cameraId, enabled, videoRef, objectFit = "cover" }) {
+function DetectionOverlay({ cameraId, enabled, videoRef, objectFit = "cover", onFaceDetected, cameraName }) {
   const canvasRef = useRef(null);
   const wsRef = useRef(null);
   const facesRef = useRef([]);
   const targetFacesRef = useRef([]);
   const animFrameRef = useRef(null);
   const faceCountRef = useRef(0);
+  const prevFaceCountRef = useRef(0);  // Track perubahan untuk notifikasi
   const [faceCount, setFaceCount] = useState(0);
   const [wsConnected, setWsConnected] = useState(false);
 
@@ -109,12 +163,16 @@ function DetectionOverlay({ cameraId, enabled, videoRef, objectFit = "cover" }) 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === "connected") return; // Pesan awal
+        if (data.type === "connected") return;
 
-        // Simpan target faces untuk interpolasi smooth
         targetFacesRef.current = data.faces || [];
         const count = data.face_count || 0;
         if (count !== faceCountRef.current) {
+          // Notifikasi saat pertama kali wajah muncul (dari 0 ke >0)
+          if (count > 0 && prevFaceCountRef.current === 0) {
+            onFaceDetected?.(cameraName);
+          }
+          prevFaceCountRef.current = count;
           faceCountRef.current = count;
           setFaceCount(count);
         }
@@ -130,7 +188,7 @@ function DetectionOverlay({ cameraId, enabled, videoRef, objectFit = "cover" }) 
     };
 
     // ── Animation loop: gambar kotak hijau dengan smooth interpolation ──
-    const LERP_SPEED = 0.3; // Kecepatan interpolasi (0-1, lebih tinggi = lebih cepat)
+    const LERP_SPEED = 0.5; // Lebih cepat mengikuti wajah
 
     function lerp(a, b, t) {
       return a + (b - a) * t;
@@ -324,7 +382,7 @@ function DetectionOverlay({ cameraId, enabled, videoRef, objectFit = "cover" }) 
 }
 
 /* ── Camera Card (mirip halaman publik, dengan fitur admin) ── */
-function CameraCard({ cam, index, aiEnabled, onToggleAI }) {
+function CameraCard({ cam, index, aiEnabled, onToggleAI, onFaceDetected }) {
   const [hov, setHov] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [downloadState, setDownloadState] = useState({ state: "idle", progress: 0 });
@@ -406,9 +464,15 @@ function CameraCard({ cam, index, aiEnabled, onToggleAI }) {
             cam.stream_url && <MemoHlsPlayer ref={videoRef} src={cam.stream_url} objectFit={isFullscreen ? "contain" : "cover"} />
           )}
 
-          {/* ── AI Detection Overlay (canvas kotak hijau) ── */}
           {!isOffline && (
-            <DetectionOverlay cameraId={cam.id} enabled={aiEnabled} videoRef={videoRef} objectFit={isFullscreen ? "contain" : "cover"} />
+            <DetectionOverlay
+              cameraId={cam.id}
+              enabled={aiEnabled}
+              videoRef={videoRef}
+              objectFit={isFullscreen ? "contain" : "cover"}
+              onFaceDetected={onFaceDetected}
+              cameraName={cam.name}
+            />
           )}
         </div>{/* /inner wrapper */}
 
@@ -563,6 +627,7 @@ export default function LiveViewPage() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [aiCameras, setAiCameras] = useState({}); // { [cameraId]: true/false }
   const fullscreenRef = useRef(null);
+  const { toasts, fire: fireToast } = useToasts();
 
   const refresh = useCallback(async () => {
     await fetchCameras();
@@ -645,6 +710,10 @@ export default function LiveViewPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24, height: "100%" }}>
       <style>{`
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateX(24px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
         @keyframes fadeUpIn {
           from { opacity: 0; transform: translateY(14px); }
           to   { opacity: 1; transform: translateY(0); }
@@ -784,10 +853,13 @@ export default function LiveViewPage() {
               index={i}
               aiEnabled={!!aiCameras[cam.id]}
               onToggleAI={handleToggleAI}
+              onFaceDetected={fireToast}
             />
           ))}
         </div>
       )}
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }

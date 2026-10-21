@@ -145,8 +145,8 @@ async def ws_realtime_detection(
             "message": "Real-time detection started",
         })
 
-        # ── 5. Loop: kirim deteksi setiap ~200ms ──
-        send_interval = 1.0 / max(1, detector._fps or 5)
+        # ── 5. Loop: kirim deteksi setiap ~66ms (max ~15fps ke client) ──
+        send_interval = min(1.0 / max(1, detector._fps or 15), 0.066)
         last_timestamp = 0.0
 
         while True:
