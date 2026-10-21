@@ -119,9 +119,14 @@ function DetectionOverlay({ cameraId, enabled, videoRef, objectFit = "cover", on
   const targetFacesRef = useRef([]);
   const animFrameRef = useRef(null);
   const faceCountRef = useRef(0);
-  const prevFaceCountRef = useRef(0);  // Track perubahan untuk notifikasi
+  const prevFaceCountRef = useRef(0);
+  const lastNotifRef = useRef(0);          // Cooldown agar tidak spam
+  const onFaceDetectedRef = useRef(onFaceDetected); // Hindari stale closure
   const [faceCount, setFaceCount] = useState(0);
   const [wsConnected, setWsConnected] = useState(false);
+
+  // Update ref setiap render agar selalu fresh
+  useEffect(() => { onFaceDetectedRef.current = onFaceDetected; });
 
   useEffect(() => {
     if (!enabled) {
@@ -136,6 +141,8 @@ function DetectionOverlay({ cameraId, enabled, videoRef, objectFit = "cover", on
       }
       facesRef.current = [];
       targetFacesRef.current = [];
+      prevFaceCountRef.current = 0;  // Reset agar notifikasi bisa muncul lagi
+      faceCountRef.current = 0;
       setFaceCount(0);
       setWsConnected(false);
 
@@ -168,9 +175,11 @@ function DetectionOverlay({ cameraId, enabled, videoRef, objectFit = "cover", on
         targetFacesRef.current = data.faces || [];
         const count = data.face_count || 0;
         if (count !== faceCountRef.current) {
-          // Notifikasi saat pertama kali wajah muncul (dari 0 ke >0)
-          if (count > 0 && prevFaceCountRef.current === 0) {
-            onFaceDetected?.(cameraName);
+          // Notifikasi saat wajah pertama muncul, dengan cooldown 5 detik
+          const now = Date.now();
+          if (count > 0 && prevFaceCountRef.current === 0 && now - lastNotifRef.current > 5000) {
+            lastNotifRef.current = now;
+            onFaceDetectedRef.current?.(cameraName);
           }
           prevFaceCountRef.current = count;
           faceCountRef.current = count;
