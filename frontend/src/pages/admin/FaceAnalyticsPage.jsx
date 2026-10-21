@@ -386,6 +386,7 @@ export default function FaceAnalyticsPage() {
   const [lastRefresh, setLastRefresh] = useState(null);
   const pollRef      = useRef(null);
   const autoRefRef   = useRef(null);
+  const autoScanRef  = useRef(null);  // Interval untuk auto scan-live
 
   // Selalu ambil token fresh saat request — hindari stale closure di dalam setInterval
   const getHeaders = () => ({ Authorization: `Bearer ${token()}` });
@@ -408,13 +409,22 @@ export default function FaceAnalyticsPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Auto-refresh data setiap 15 detik (silent)
+  // Auto-refresh data setiap 5 detik (silent) + auto-scan-live setiap 8 detik
   useEffect(() => {
     fetchPersons();
-    autoRefRef.current = setInterval(() => fetchPersons(true), 15_000);
+    autoRefRef.current = setInterval(() => fetchPersons(true), 5_000);
+
+    // Auto scan live cameras di background — tidak perlu pencet manual
+    const doSilentScan = () => {
+      fetch(`${BASE}/ai/scan-live`, { method: "POST", headers: getHeaders() }).catch(() => {});
+    };
+    doSilentScan(); // langsung scan saat halaman dibuka
+    autoScanRef.current = setInterval(doSilentScan, 8_000);
+
     return () => {
       clearInterval(autoRefRef.current);
       clearInterval(pollRef.current);
+      clearInterval(autoScanRef.current);
     };
   }, []);
 

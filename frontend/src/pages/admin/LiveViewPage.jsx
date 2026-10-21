@@ -570,19 +570,21 @@ export default function LiveViewPage() {
     setLastUpdate(new Date());
   }, [fetchCameras, fetchStatuses]);
 
-  // Efek untuk mengaktifkan AI Detection secara otomatis pada semua kamera yang live/recording saat halaman dimuat atau status terupdate
+  // Auto-aktifkan AI Detection untuk semua kamera yang LIVE saat halaman dimuat
+  // atau saat status kamera berubah menjadi live
   useEffect(() => {
     if (cameras.length > 0) {
       setAiCameras(prev => {
-        let changed = false;
         const updated = { ...prev };
         cameras.forEach(cam => {
-          if (updated[cam.id] === undefined && (cam.status === "live" || cam.status === "recording")) {
-            updated[cam.id] = true;
-            changed = true;
+          // Auto-ON jika live/recording dan belum pernah di-set manual ke false
+          if (cam.status === "live" || cam.status === "recording") {
+            if (updated[cam.id] !== false) {  // hormati toggle manual OFF
+              updated[cam.id] = true;
+            }
           }
         });
-        return changed ? updated : prev;
+        return updated;
       });
     }
   }, [cameras]);
