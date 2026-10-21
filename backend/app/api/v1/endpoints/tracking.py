@@ -21,6 +21,7 @@ from app.models.user import User
 from app.models.recording import Recording
 from app.models.person_tracking import TrackedPerson, PersonSighting, TrackingSession
 from app.services.tracking_service import run_cross_camera_tracking
+from app.services.realtime_detection import _FACE_REC_AVAILABLE
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -88,20 +89,99 @@ async def scan_live_cameras(
     """
     Trigger scan wajah langsung dari seluruh kamera yang aktif saat ini.
     """
-    from app.services.realtime_detection import get_detector
-    detector = get_detector()
-    active_cams = detector.get_active_cameras()
+    import cv2
+    import time
+    import base64
+    from sqlalchemy import select
+    from app.models.camera import Camera
+    from app.services.realtime_detection import _process_realtime_sighting, _get_cascade, get_detector
+    from app.api.v1.endpoints.cameras import get_mediamtx_status
+    from app.core.config import settings
+
+    # Ambil semua kamera
+    stmt = select(Camera)
+    result = await db.execute(stmt)
+    cameras = result.scalars().all()
+
     total_faces = 0
-    for cam_id in active_cams:
-        worker = detector._workers.get(cam_id)
-        if worker and worker.latest_result:
-            total_faces += len(worker.latest_result.faces)
+    scanned_cams = 0
+    cascade = _get_cascade()
+    now = time.time()
+
+    for cam in cameras:
+        st = await get_mediamtx_status(cam.owner_id, cam.id)
+        if st != "live":
+            continue
+
+        scanned_cams += 1
+        path = f"cam_{cam.owner_id}_{cam.id}"
+        rtsp_urls = [
+            f"{settings.MEDIAMTX_RTSP_BASE}/{path}",
+            f"http://127.0.0.1:8888/{path}/index.m3u8",
+        ]
+
+        frame = None
+        for u in rtsp_urls:
+            cap = cv2.VideoCapture(u)
+            if cap.isOpened():
+                for _ in range(3):  # Lewati buffering awal untuk frame teranyar
+                    ret, f = cap.read()
+                    if ret and f is not None and f.size > 0:
+                        frame = f
+                cap.release()
+                if frame is not None:
+                    break
+
+        if frame is None or frame.size == 0:
+            continue
+
+        h_img, w_img = frame.shape[:2]
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        raw_faces = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(24, 24))
+
+        for (sx, sy, sw, sh) in raw_faces:
+            aspect_ratio = sw / max(1, sh)
+            if not (0.6 <= aspect_ratio <= 1.4):
+                continue
+
+            total_faces += 1
+            face_crop = frame[max(0, sy):min(h_img, sy+sh), max(0, sx):min(w_img, sx+sw)]
+            if face_crop.size == 0:
+                continue
+
+            face_small = cv2.resize(face_crop, (64, 64))
+            _, buf = cv2.imencode(".jpg", face_small, [cv2.IMWRITE_JPEG_QUALITY, 65])
+            crop_b64 = base64.b64encode(buf).decode("utf-8")
+
+            embedding = None
+            try:
+                if _FACE_REC_AVAILABLE:
+                    import face_recognition
+                    rgb_crop = cv2.cvtColor(face_crop, cv2.COLOR_BGR2RGB)
+                    loc = [(0, sw, sh, 0)]
+                    encs = face_recognition.face_encodings(rgb_crop, loc)
+                    if encs:
+                        embedding = encs[0].tolist()
+            except BaseException:
+                pass
+
+            await _process_realtime_sighting(
+                db=db,
+                camera_id=cam.id,
+                camera_name=cam.name,
+                embedding=embedding,
+                thumbnail=crop_b64,
+                timestamp=now,
+            )
+
+    if total_faces > 0:
+        await db.commit()
 
     return {
         "status": "success",
-        "active_cameras": len(active_cams),
+        "active_cameras": scanned_cams,
         "total_faces_now": total_faces,
-        "message": f"Scan selesai: {total_faces} wajah terdeteksi dari {len(active_cams)} kamera aktif",
+        "message": f"Scan selesai: {total_faces} wajah terdeteksi dari {scanned_cams} kamera aktif",
     }
 
 

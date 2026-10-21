@@ -12,7 +12,6 @@ Arsitektur:
 
 RAM usage: ~50-150 MB per kamera aktif
 """
-import cv2
 import time
 import logging
 import threading
@@ -25,6 +24,20 @@ from typing import Optional
 
 # Paksa OpenCV menggunakan TCP untuk semua stream RTSP guna mencegah packet loss/corrupt H.264
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
+
+# Guard import cv2 — bisa gagal jika NumPy ABI tidak kompatibel
+try:
+    import cv2
+    _CV2_AVAILABLE = True
+except Exception as _cv2_import_err:
+    cv2 = None  # type: ignore
+    _CV2_AVAILABLE = False
+    import logging as _log
+    _log.getLogger(__name__).error(
+        f"[OpenCV] Gagal import cv2: {_cv2_import_err}. "
+        "Face detection dinonaktifkan. "
+        "Fix: pip install opencv-python-headless==4.10.0.84"
+    )
 
 from app.core.dlib_lock import dlib_lock  # Cegah SEGFAULT akibat concurrent dlib
 
@@ -45,26 +58,64 @@ def resume_realtime_dlib():
 
 # ── Haar Cascade (built-in OpenCV) ──
 _cascade = None
+_cascade_load_attempted = False
 _cascade_lock = threading.Lock()
+
+# Cek apakah opencv build ini mendukung CascadeClassifier
+_HAS_CASCADE = _CV2_AVAILABLE and hasattr(cv2, "CascadeClassifier")
+if not _CV2_AVAILABLE:
+    logger.error("[OpenCV] cv2 tidak dapat diimpor \u2014 face detection dinonaktifkan sepenuhnya.")
+elif not _HAS_CASCADE:
+    logger.warning(
+        "cv2.CascadeClassifier tidak tersedia di build OpenCV ini. "
+        "Face detection via Haar akan dinonaktifkan. "
+        "Fix: pip install opencv-python-headless==4.10.0.84"
+    )
 
 
 def _get_cascade():
-    global _cascade
-    if _cascade is None:
-        with _cascade_lock:
-            if _cascade is None:
-                cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_alt2.xml"
+    global _cascade, _cascade_load_attempted
+    if not _HAS_CASCADE:
+        return None
+    if _cascade_load_attempted:
+        return _cascade
+    with _cascade_lock:
+        if _cascade_load_attempted:
+            return _cascade
+        _cascade_load_attempted = True
+        try:
+            cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_alt2.xml"
+            _cascade = cv2.CascadeClassifier(cascade_path)
+            if _cascade.empty():
+                cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
                 _cascade = cv2.CascadeClassifier(cascade_path)
                 if _cascade.empty():
-                    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-                    _cascade = cv2.CascadeClassifier(cascade_path)
-                    logger.info(f"Haar Cascade fallback loaded: {cascade_path}")
+                    logger.error("Haar Cascade XML tidak ditemukan — cascade dinonaktifkan")
+                    _cascade = None
                 else:
-                    logger.info(f"Haar Cascade alt2 loaded: {cascade_path}")
+                    logger.info(f"Haar Cascade fallback loaded: {cascade_path}")
+            else:
+                logger.info(f"Haar Cascade alt2 loaded: {cascade_path}")
+        except Exception as e:
+            logger.error(f"Gagal inisialisasi Haar Cascade: {e}")
+            _cascade = None
     return _cascade
 
 
-@dataclass
+# ── Pre-check face_recognition (bisa gagal dengan SystemExit jika pkg_resources hilang) ──
+_FACE_REC_AVAILABLE = False
+try:
+    import face_recognition as _fr_test  # noqa: F401
+    _FACE_REC_AVAILABLE = True
+    logger.info("AI: face_recognition (dlib) tersedia — embedding presisi tinggi aktif")
+except BaseException as _fr_err:
+    logger.warning(
+        f"AI: face_recognition tidak tersedia ({type(_fr_err).__name__}: {_fr_err}). "
+        "Menggunakan Haar Cascade bawaan. "
+        "Fix: pip install setuptools && pip install face_recognition"
+    )
+
+
 class FaceBox:
     """Bounding box wajah dalam koordinat relatif (0.0–1.0)."""
     x: float
@@ -189,7 +240,11 @@ class CameraWorker:
 
     def _worker_loop(self):
         """Loop utama worker — grab frame, deteksi cepat, kirim bounding box, simpan tracking."""
-        cascade = _get_cascade()
+        try:
+            cascade = _get_cascade()
+        except Exception as e:
+            logger.error(f"Camera {self.camera_id}: gagal load cascade: {e}")
+            cascade = None
         frame_interval = 1.0 / max(1, self.target_fps)
 
         # ── Coba buka stream RTSP dengan retry ──
@@ -221,14 +276,12 @@ class CameraWorker:
 
         logger.info(f"Camera {self.camera_id}: RTSP stream berhasil dibuka ({self.rtsp_url})")
 
-        # Cek ketersediaan face_recognition satu kali
-        has_face_rec = False
-        try:
-            import face_recognition
-            has_face_rec = True
-            logger.info("AI: face_recognition (dlib) tersedia untuk embedding presisi tinggi")
-        except ImportError:
-            logger.info("AI: face_recognition tidak tersedia, menggunakan OpenCV Haar Cascade bawaan")
+        # Gunakan flag module-level (sudah di-test saat startup, aman dari SystemExit)
+        has_face_rec = _FACE_REC_AVAILABLE
+        if has_face_rec:
+            logger.info(f"Camera {self.camera_id}: face_recognition tersedia")
+        else:
+            logger.info(f"Camera {self.camera_id}: menggunakan Haar Cascade saja (face_recognition tidak tersedia)")
 
         try:
             while not self._stop_event.is_set():
@@ -273,12 +326,16 @@ class CameraWorker:
                 gray = cv2.cvtColor(proc_frame, cv2.COLOR_BGR2GRAY)
 
                 # ── Deteksi wajah cepat menggunakan Haar Cascade (~5-10ms) ──
-                raw_faces = cascade.detectMultiScale(
-                    gray,
-                    scaleFactor=1.1,
-                    minNeighbors=4,
-                    minSize=(24, 24),
-                )
+                if cascade is None:
+                    # Haar Cascade tidak tersedia, simpan hasil kosong
+                    raw_faces = []
+                else:
+                    raw_faces = cascade.detectMultiScale(
+                        gray,
+                        scaleFactor=1.1,
+                        minNeighbors=4,
+                        minSize=(24, 24),
+                    )
 
                 boxes = []
                 pixel_boxes = []
